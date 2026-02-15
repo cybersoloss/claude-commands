@@ -99,6 +99,7 @@ Parse the argument to determine scope:
    - `crypto` → `"success"` path / `"error"` path
    - `batch` → `"done"` path / `"error"` path
    - `transaction` → `"committed"` path / `"rolled_back"` path
+   - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
 
    **Terminal nodes → HTTP responses**: Use `status` and `body` fields from terminal spec:
    - `status` → HTTP status code (e.g., 201, 400, 409)

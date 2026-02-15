@@ -77,6 +77,10 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Use `crypto` for encrypt/decrypt/hash/sign/verify operations
      - Use `batch` for executing an operation against each item in a collection with concurrency control
      - Use `transaction` for atomic multi-step database operations with rollback
+     - Use `cache` for cache-before-fetch patterns (set `key`, `store`, `ttl_ms`)
+     - Use `delay` for rate limiting or wait/throttle between steps (set `min_ms`)
+     - Use `transform` for pure field mapping between schemas (set `input_schema`, `output_schema`, `field_mappings`)
+     - Use `sub_flow` to call reusable flows from other domains (set `flow_ref` as `domain/flow-id`)
      - End every path with a `terminal` node (set `outcome`, `status`, `body`)
    - Wire all connections with proper `sourceHandle` values:
      - `input` → `"valid"` / `"invalid"`
@@ -93,6 +97,8 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `crypto` → `"success"` / `"error"`
      - `batch` → `"done"` / `"error"`
      - `transaction` → `"committed"` / `"rolled_back"`
+     - `cache` → `"hit"` / `"miss"`
+     - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
    - Position nodes vertically with ~130px spacing, branch error terminals to the right
    - `metadata` with created and modified timestamps (current ISO)
 
@@ -111,6 +117,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Crypto nodes have success/error paths wired
    - Batch nodes have done/error paths wired
    - Transaction nodes have committed/rolled_back paths wired
+   - Cache nodes have hit/miss paths wired
    - Guardrail nodes have pass/block paths wired
    - Terminal nodes have `status` and `body` for HTTP-triggered flows
    - Error terminals reference error codes from `specs/shared/errors.yaml`
