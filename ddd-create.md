@@ -57,19 +57,20 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
 7. **Create flow YAML files**: For each flow, create `specs/domains/{domain-id}/flows/{flow-id}.yaml` with:
    - `flow` metadata (id, name, type, domain, description)
-   - `trigger` node with appropriate convention:
+   - `trigger` node with `spec.event` set to one of these conventions:
      - `HTTP {METHOD} {path}` for API endpoints
      - `cron {expression}` for scheduled jobs. Add `job_config` to the trigger spec with queue, concurrency, timeout, and retry settings
      - `event:{EventName}` for event-driven flows
      - `webhook {path}` for webhook handlers
      - `manual` for admin-triggered flows
+     - The label can match the event value or be more descriptive
    - For flows called as sub-flows, add a `contract` section to the flow metadata with `inputs` and `outputs`
    - `nodes` array — design the complete node graph:
      - Always start with `input` node after trigger for API flows (validate incoming data)
      - Use `decision` nodes for branching logic (always wire both `true` and `false`)
      - Use `data_store` for database operations (set `operation`, `model`, `data`/`query`)
      - Use `service_call` for external API calls (set `method`, `url`, `error_mapping`)
-     - Use `event` nodes to publish/consume domain events
+     - Use `event` nodes to publish/consume domain events (set `direction` to `'emit'` or `'consume'`, `event_name`, and `payload`)
      - Use `loop` for iteration, `parallel` for concurrent operations
      - Use `collection` for in-memory data transformations (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten)
      - Use `parse` for structured extraction from raw formats (rss, atom, html, xml, json, csv, markdown)
