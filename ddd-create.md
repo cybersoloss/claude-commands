@@ -71,6 +71,11 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Use `service_call` for external API calls (set `method`, `url`, `error_mapping`)
      - Use `event` nodes to publish/consume domain events
      - Use `loop` for iteration, `parallel` for concurrent operations
+     - Use `collection` for in-memory data transformations (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten)
+     - Use `parse` for structured extraction from raw formats (rss, atom, html, xml, json, csv, markdown)
+     - Use `crypto` for encrypt/decrypt/hash/sign/verify operations
+     - Use `batch` for executing an operation against each item in a collection with concurrency control
+     - Use `transaction` for atomic multi-step database operations with rollback
      - End every path with a `terminal` node (set `outcome`, `status`, `body`)
    - Wire all connections with proper `sourceHandle` values:
      - `input` → `"valid"` / `"invalid"`
@@ -79,6 +84,14 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `service_call` → `"success"` / `"error"`
      - `loop` → `"body"` / `"done"`
      - `parallel` → `"branch-0"`, `"branch-1"`, ... / `"done"`
+     - `guardrail` → `"pass"` / `"block"`
+     - `agent_loop` → `"done"` / `"error"`
+     - `llm_call` → `"success"` / `"error"`
+     - `collection` → `"result"` / `"empty"`
+     - `parse` → `"success"` / `"error"`
+     - `crypto` → `"success"` / `"error"`
+     - `batch` → `"done"` / `"error"`
+     - `transaction` → `"committed"` / `"rolled_back"`
    - Position nodes vertically with ~130px spacing, branch error terminals to the right
    - `metadata` with created and modified timestamps (current ISO)
 
@@ -92,6 +105,12 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Input nodes have valid/invalid paths wired
    - Data store nodes have success/error paths wired
    - Service call nodes have success/error paths wired
+   - Collection nodes have result/empty paths wired
+   - Parse nodes have success/error paths wired
+   - Crypto nodes have success/error paths wired
+   - Batch nodes have done/error paths wired
+   - Transaction nodes have committed/rolled_back paths wired
+   - Guardrail nodes have pass/block paths wired
    - Terminal nodes have `status` and `body` for HTTP-triggered flows
    - Error terminals reference error codes from `specs/shared/errors.yaml`
    - Published events have matching consumers across domains (or note warnings)

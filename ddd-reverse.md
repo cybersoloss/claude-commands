@@ -85,6 +85,11 @@ For each entry point, read the handler and trace through called functions to bui
 - Event publishing → `event` node (direction: emit)
 - LLM/AI calls → `llm_call` node
 - Sub-routine calls → `sub_flow` node
+- Collection transforms (filter, sort, deduplicate, merge) → `collection` node
+- Parsing raw formats (JSON, XML, HTML, CSV, RSS) → `parse` node
+- Encryption/hashing/signing → `crypto` node
+- Bulk/batch operations over collections → `batch` node
+- Multi-step atomic DB operations → `transaction` node
 - Response/return → `terminal` node (outcome, status, body)
 - Error handling → `terminal` on error paths
 
@@ -315,6 +320,9 @@ Walk each source file. For every function, method, class, or handler, assign a r
 | `M` | Middleware |
 | `T` | Transform/utility |
 | `G` | Guard/auth check |
+| `B` | Batch/bulk operation |
+| `C` | Crypto/security operation |
+| `P` | Parse/extract from raw format |
 
 Domain prefix: first letter(s) of inferred domain. Use `_` for shared/cross-cutting code.
 
@@ -361,12 +369,13 @@ Show the user the codex grouped by domain prefix. Ask them to confirm/adjust dom
 ### C4: Build DDD specs from codex + chains
 Now read ONLY codex.yaml + chains.yaml (both small — always fit in context). Map ref codes to DDD node types:
 - `V` codes → `input` node
-- `D` codes → `data_store` node
+- `D` codes → `data_store` node (or `transaction` if multi-step atomic)
 - `X` codes → `service_call` node
 - `E` codes → `event` node
 - `S` codes → `process` node
-- `M`/`G` codes → `decision` node or security annotation
-- `T` codes → `process` node
+- `M`/`G` codes → `decision` node or `guardrail` node or security annotation
+- `T` codes → `process` node (or `parse`/`collection`/`crypto` if the transform matches those types)
+- `B` codes → `batch` node (iterating an operation over a collection)
 - `if`/branching → `decision` node
 - status codes at chain end → `terminal` node
 
@@ -389,6 +398,12 @@ Before writing final spec files, verify:
 - Input nodes have valid/invalid paths wired
 - Data store nodes have success/error paths wired
 - Service call nodes have success/error paths wired
+- Collection nodes have result/empty paths wired
+- Parse nodes have success/error paths wired
+- Crypto nodes have success/error paths wired
+- Batch nodes have done/error paths wired
+- Transaction nodes have committed/rolled_back paths wired
+- Guardrail nodes have pass/block paths wired
 - Terminal nodes have `status` and `body` for HTTP-triggered flows
 - Error terminals reference error codes from `specs/shared/errors.yaml`
 - Published events have matching consumers across domains (or note warnings)
@@ -505,6 +520,14 @@ Wire with proper `sourceHandle` values:
 - `service_call` → `"success"` / `"error"`
 - `loop` → `"body"` / `"done"`
 - `parallel` → `"branch-0"`, `"branch-1"`, ... / `"done"`
+- `guardrail` → `"pass"` / `"block"`
+- `agent_loop` → `"done"` / `"error"`
+- `llm_call` → `"success"` / `"error"`
+- `collection` → `"result"` / `"empty"`
+- `parse` → `"success"` / `"error"`
+- `crypto` → `"success"` / `"error"`
+- `batch` → `"done"` / `"error"`
+- `transaction` → `"committed"` / `"rolled_back"`
 - All other nodes → single output connection
 
 ### Summary report
