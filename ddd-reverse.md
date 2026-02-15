@@ -557,26 +557,6 @@ Next steps:
 
 ## Node Type Reference
 
-| Type | Required Spec Fields | Connections |
-|------|---------------------|-------------|
-| `trigger` | `event`, `source` | Single output |
-| `input` | `fields` (array of `{name, type, required?}`), `validation` | `sourceHandle: "valid"` + `sourceHandle: "invalid"` |
-| `process` | `action`, `service` | Single output |
-| `decision` | `condition`, `trueLabel`, `falseLabel` | `sourceHandle: "true"` + `sourceHandle: "false"` |
-| `terminal` | `outcome`; also `status` (HTTP code), `body` (response shape) | None (endpoint) |
-| `data_store` | `operation` (create/read/update/delete), `model`; also `pagination`, `sort` for reads | `sourceHandle: "success"` + `sourceHandle: "error"` |
-| `service_call` | `method` (GET/POST/PUT/PATCH/DELETE), `url`; also `error_mapping` | `sourceHandle: "success"` + `sourceHandle: "error"` |
-| `event` | `direction` (emit/consume), `event_name` | Single output |
-| `loop` | `collection`, `iterator` | `sourceHandle: "body"` + `sourceHandle: "done"` |
-| `parallel` | `branches` (2+ items), `join` (all/any/n_of) | `sourceHandle: "branch-0"`, `"branch-1"`, ... + `sourceHandle: "done"` |
-| `sub_flow` | `flow_ref` (domain/flow-id format) | Single output |
-| `llm_call` | `model`, `prompt_template` | Single output |
-| `agent_loop` | `model`, `system_prompt`, `tools` (with 1+ terminal tool), `max_iterations` | Single output |
-| `guardrail` | `position` (input/output), `checks` | Single output |
-| `human_gate` | `notification_channels`, `approval_options`, `timeout` | Single output |
-| `orchestrator` | `strategy`, `agents` (2+ items) | Single output |
-| `smart_router` | `rules` | Multiple outputs (one per route name) |
-| `handoff` | `mode`, `target` | Single output |
-| `agent_group` | `members` (2+ items) | Single output |
+The DDD Usage Guide (fetched in Phase 0) defines all node types, their required spec fields, connection patterns (sourceHandle values), and conventions. Always refer to it when creating nodes during reverse-engineering.
 
 $ARGUMENTS

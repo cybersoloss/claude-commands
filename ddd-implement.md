@@ -39,38 +39,22 @@ Parse the argument to determine scope:
    - `specs/domains/{domain}/domain.yaml` — domain context, events, relationships
    - `specs/domains/{domain}/flows/{flow}.yaml` — the flow specification
 
-4. **Understand the flow spec**: Each flow YAML contains:
+4. **Fetch the DDD Usage Guide**: Run `gh api repos/mhcandan/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all node types, spec fields, connection patterns, and conventions. Use it as your reference for understanding node specs during implementation.
+
+5. **Understand the flow spec**: Each flow YAML contains:
    - `flow:` — metadata (id, name, type, domain)
    - `trigger:` — what starts the flow (event, HTTP, scheduled, manual)
-   - `nodes:` — ordered list of processing steps with types:
-     - `input` — user/external input with validation rules
-     - `process` — business logic step
-     - `decision` — branching point (connections have labels like "Yes"/"No")
-     - `terminal` — end state (with optional `status` and `body` for HTTP responses)
-     - `data_store` — database operation (CRUD, with optional `pagination`/`sort` for reads)
-     - `service_call` — external API call (with optional `error_mapping` for status→error code)
-     - `event` — publish/subscribe event
-     - `loop` — iteration over a collection
-     - `parallel` — concurrent processing
-     - `sub_flow` — reference to another flow
-     - `llm_call` — single LLM invocation
-     - `agent_loop` — LLM agent with tools in a loop
-     - `guardrail` — input/output validation for agent flows
-     - `human_gate` — async human approval step for agent flows
-     - `orchestrator` — multi-agent supervisor/coordinator
-     - `smart_router` — rule-based or LLM-based routing to agents
-     - `handoff` — transfer/consult/collaborate between agents
-     - `agent_group` — group of agents working together
+   - `nodes:` — ordered list of processing steps (see Usage Guide for all node types and their spec fields)
    - Each node has `connections:` listing target nodes with `sourceHandle` for branching nodes
    - Each node has `spec:` with type-specific configuration fields
    - Each node may have `observability:` (logging, metrics, tracing) and `security:` (auth, rate limiting, encryption, audit) configs
 
-5. **Check existing implementation**: Read `.ddd/mapping.yaml` to see if this flow was previously implemented.
+6. **Check existing implementation**: Read `.ddd/mapping.yaml` to see if this flow was previously implemented.
    - If yes and spec hasn't changed → skip (tell user it's up to date)
    - If yes and spec changed → update mode (modify existing files, don't recreate)
    - If no → new implementation
 
-6. **Implement**:
+7. **Implement**:
 
    **Entry point — determine from trigger convention**:
    - `HTTP {METHOD} {path}` → route handler (e.g., Express route, FastAPI endpoint)
@@ -96,6 +80,11 @@ Parse the argument to determine scope:
    - `smart_router` → routing logic from `rules` and/or `llm_routing`
    - `handoff` → agent transfer with context passing per `mode` (transfer/consult/collaborate)
    - `agent_group` → agent team coordination with shared memory
+   - `collection` → collection operation (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten) on input
+   - `parse` → structured extraction from raw format (rss, atom, html, xml, json, csv, markdown)
+   - `crypto` → cryptographic operation (encrypt, decrypt, hash, sign, verify, generate_key)
+   - `batch` → execute operation template against each item in input collection with concurrency control
+   - `transaction` → atomic multi-step database operation with rollback on error
 
    **Wire connections using `sourceHandle`** — nodes with multiple output paths use `sourceHandle` values:
    - `input` → `"valid"` path (continue) / `"invalid"` path (validation error terminal)
@@ -105,6 +94,11 @@ Parse the argument to determine scope:
    - `loop` → `"body"` path (loop body) / `"done"` path (after loop completes)
    - `parallel` → `"branch-0"`, `"branch-1"`, etc. (parallel branches) / `"done"` path (join point)
    - `smart_router` → dynamic route names as handle IDs
+   - `collection` → `"result"` path / `"empty"` path
+   - `parse` → `"success"` path / `"error"` path
+   - `crypto` → `"success"` path / `"error"` path
+   - `batch` → `"done"` path / `"error"` path
+   - `transaction` → `"committed"` path / `"rolled_back"` path
 
    **Terminal nodes → HTTP responses**: Use `status` and `body` fields from terminal spec:
    - `status` → HTTP status code (e.g., 201, 400, 409)
@@ -135,15 +129,15 @@ Parse the argument to determine scope:
    - Match the project's existing code style and conventions
    - For multi-flow implementations, share common infrastructure (DB, config, middleware)
 
-7. **Write tests**: Create tests covering:
+8. **Write tests**: Create tests covering:
    - Happy path through the flow
    - Each decision branch
    - Error/terminal states
    - Input validation rules from input node specs
 
-8. **Run tests and fix**: Run the test suite. If tests fail, fix the implementation. Keep iterating until all tests pass.
+9. **Run tests and fix**: Run the test suite. If tests fail, fix the implementation. Keep iterating until all tests pass.
 
-9. **Update mapping**: After each flow is successfully implemented, update `.ddd/mapping.yaml`:
+10. **Update mapping**: After each flow is successfully implemented, update `.ddd/mapping.yaml`:
    ```yaml
    flows:
      domain-id/flow-id:
@@ -154,7 +148,7 @@ Parse the argument to determine scope:
          - src/path/to/file2.ts
    ```
 
-10. **Summary**: After all flows are done, show a summary table:
+11. **Summary**: After all flows are done, show a summary table:
     ```
     Domain/Flow                  Status    Files  Tests
     users/user-registration      ✓ done    5      12/12
