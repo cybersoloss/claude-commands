@@ -1,13 +1,16 @@
 # DDD Commands Reference
 
-Five Claude Code slash commands for the [Design Driven Development](https://github.com/mhcandan/DDD) workflow.
+Eight Claude Code slash commands for the [Design Driven Development](https://github.com/mhcandan/DDD) workflow.
 
 ## Overview
 
 ```
 /ddd-create     Design a new project from description → YAML specs
 /ddd-reverse    Reverse-engineer existing code → YAML specs
+/ddd-scaffold   Set up project skeleton from specs (Session B first step)
 /ddd-implement  Read specs → generate code + tests
+/ddd-test       Run tests for implemented flows
+/ddd-status     Quick read-only project overview
 /ddd-update     Natural language → updated specs
 /ddd-sync       Keep specs and code aligned
 ```
@@ -15,8 +18,9 @@ Five Claude Code slash commands for the [Design Driven Development](https://gith
 ### Workflow
 
 ```
-New project:      /ddd-create → DDD Tool → /ddd-implement → /ddd-update + /ddd-sync
-Existing project: /ddd-reverse → DDD Tool → /ddd-implement → /ddd-update + /ddd-sync
+New project:      /ddd-create → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test
+Existing project: /ddd-reverse → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test
+Iterate:          /ddd-status → /ddd-update → /ddd-implement → /ddd-test → /ddd-sync
 ```
 
 ---
@@ -306,6 +310,131 @@ Summary showing:
 
 ---
 
+## /ddd-scaffold
+
+Set up project skeleton and shared infrastructure from specs. Run this as the first step of Session B, before `/ddd-implement`.
+
+### Usage
+
+```
+/ddd-scaffold
+```
+
+### What it does
+
+1. Reads `system.yaml`, `architecture.yaml`, `config.yaml`, `errors.yaml`, `types.yaml`, and all schema files
+2. Initializes the project:
+   - Package config (package.json, tsconfig, dependencies)
+   - Project directory structure from architecture spec
+3. Generates shared infrastructure:
+   - Config loader from config.yaml
+   - Error classes/handler from errors.yaml
+   - Shared types from types.yaml
+   - Database schema/models from schemas/
+   - App entry point with middleware stack
+   - Integration clients from system.yaml integrations
+   - Event infrastructure (if domains use events)
+   - Test configuration and utilities
+4. Creates environment files (.env.example, .gitignore)
+5. Verifies build and tests pass
+6. Initializes `.ddd/mapping.yaml`
+
+### Output
+
+Summary of created files, models, error codes, integrations, and build/test status.
+
+---
+
+## /ddd-status
+
+Quick read-only overview of project implementation state.
+
+### Usage
+
+```
+/ddd-status [--json]
+```
+
+### Examples
+
+```
+# Table view
+/ddd-status
+
+# Machine-readable output
+/ddd-status --json
+```
+
+### What it does
+
+1. Reads `ddd-project.json`, all domain.yaml files, and `.ddd/mapping.yaml`
+2. For each flow, computes status: **Up to date**, **Drifted**, **Stale**, or **Not implemented**
+3. Checks scaffold state (package.json, entry point, database schema)
+4. Shows a table with domain, flow, status, and implementation date
+5. Suggests next actions based on what it finds
+
+### Output
+
+```
+Domain          Flow                    Status          Implemented
+users           user-register           Up to date      2025-12-15
+users           user-login              Drifted         2025-12-14
+orders          create-order            Not implemented —
+
+Summary: 1 up to date, 1 drifted, 1 not implemented
+```
+
+---
+
+## /ddd-test
+
+Run tests for implemented flows without re-generating code.
+
+### Usage
+
+```
+/ddd-test [scope] [--coverage]
+```
+
+### Scope
+
+| Argument | Scope | Example |
+|---|---|---|
+| `--all` | All implemented flows | `/ddd-test --all` |
+| `domain-name` | All flows in a domain | `/ddd-test users` |
+| `domain-name/flow-name` | Single flow | `/ddd-test users/user-register` |
+| *(empty)* | Interactive — shows flows and asks | `/ddd-test` |
+
+### Examples
+
+```
+# Test everything
+/ddd-test --all
+
+# Test one domain
+/ddd-test users
+
+# Test with coverage
+/ddd-test --all --coverage
+
+# Test a single flow
+/ddd-test users/user-register
+```
+
+### What it does
+
+1. Reads `.ddd/mapping.yaml` to find test files for the scoped flows
+2. Runs the test runner (auto-detected from config files)
+3. Reports pass/fail per flow with detailed failure analysis
+4. Identifies likely failure cause: spec drift, manual code change, environment issue, or dependency issue
+5. Suggests fix actions (re-implement, manual fix, or environment fix)
+
+### Output
+
+Table with domain/flow, test counts, pass/fail, and failure analysis with suggestions.
+
+---
+
 ## Typical Workflows
 
 ### New project from scratch
@@ -313,7 +442,9 @@ Summary showing:
 ```
 /ddd-create A task management app with users, projects, and tasks...
 # Review in DDD Tool, adjust flows
+/ddd-scaffold
 /ddd-implement --all
+/ddd-test --all
 ```
 
 ### Existing codebase, no specs
@@ -321,14 +452,18 @@ Summary showing:
 ```
 /ddd-reverse ~/code/my-existing-app
 # Review generated specs in DDD Tool
-/ddd-implement --all   # verify round-trip
+/ddd-scaffold
+/ddd-implement --all
+/ddd-test --all
 ```
 
 ### Add a feature
 
 ```
+/ddd-status                   # see what's implemented
 /ddd-update users/user-register add email verification step after creation
 /ddd-implement users/user-register
+/ddd-test users/user-register
 ```
 
 ### Add a new domain
@@ -336,20 +471,23 @@ Summary showing:
 ```
 /ddd-update --add-domain add analytics domain with page-view tracking and dashboard flows
 /ddd-implement analytics
+/ddd-test analytics
 ```
 
 ### Code drifted from specs
 
 ```
+/ddd-status                   # see which flows drifted
 /ddd-sync --full
-# Reviews drift, re-implements, discovers untracked code
+/ddd-test --all
 ```
 
 ### Ongoing maintenance
 
 ```
-/ddd-sync              # check status
+/ddd-status            # quick overview
 /ddd-update ...        # make changes to specs
 /ddd-implement ...     # update code
+/ddd-test ...          # verify tests pass
 /ddd-sync              # verify alignment
 ```
