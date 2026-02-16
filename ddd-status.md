@@ -23,13 +23,30 @@ Show a quick read-only overview of the DDD project's implementation state. No fi
 
    To compute specHash: read the flow YAML file content and compute SHA-256.
 
-4. **Check scaffold state**:
+4. **For drifted flows, classify the drift** (CRITICAL — do NOT skip this step):
+
+   When a flow shows as "Drifted", you MUST analyze what actually changed before recommending any action:
+
+   a. **Read the current spec YAML** and compare against the mapping's stored specHash context
+   b. **Read the existing implementation code** listed in the mapping's `files` array
+   c. **Classify the drift into one of these categories:**
+
+   | Drift Type | How to Detect | Recommended Action |
+   |------------|---------------|-------------------|
+   | **Metadata-only** | Only `metadata.modified`, `metadata.updated`, `position` fields, or formatting changed. No nodes, connections, or spec logic changed. | `/ddd-sync` — safe to update hash only |
+   | **Spec enriched, code already covers it** | Spec added detail (e.g., new field description) but the implementation code already handles it. | `/ddd-sync` — verify and update hash |
+   | **Code has details spec doesn't** | Implementation has patterns (error handling, caching, stealth HTTP, encryption) that the spec doesn't describe. | `/ddd-reverse {domain/flow}` first to enrich specs, then `/ddd-sync` |
+   | **Spec has new logic code doesn't** | New nodes, connections, tools, or business logic were added to the spec that the code does not implement. | `/ddd-implement {domain/flow}` — only case where re-implementation is appropriate |
+
+   **WARNING:** Never recommend `/ddd-implement` without first confirming the drift is type 4 (new logic). Re-implementing a flow overwrites existing code, which can destroy working implementation details that the spec doesn't capture.
+
+5. **Check scaffold state**:
    - Does `package.json` (or equivalent) exist?
    - Does the main entry point exist (e.g., `src/app.ts`)?
    - Does the database schema exist (e.g., `prisma/schema.prisma`)?
    - Does `.ddd/mapping.yaml` exist?
 
-5. **Display the status report**:
+6. **Display the status report**:
 
    ```
    DDD Project: {project-name}
@@ -38,7 +55,7 @@ Show a quick read-only overview of the DDD project's implementation state. No fi
    Domain          Flow                    Status          Implemented
    ─────────────── ─────────────────────── ─────────────── ──────────────
    users           user-register           Up to date      2025-12-15
-   users           user-login              Drifted         2025-12-14
+   users           user-login              Drifted (meta)  2025-12-14
    users           reset-password          Not implemented —
    orders          create-order            Up to date      2025-12-15
    orders          process-payment         Stale           2025-12-13
@@ -46,7 +63,7 @@ Show a quick read-only overview of the DDD project's implementation state. No fi
 
    Summary:
      2 up to date
-     1 drifted (spec changed — run /ddd-implement users/user-login)
+     1 drifted — metadata only (run /ddd-sync)
      1 stale (missing files — run /ddd-implement orders/process-payment)
      2 not implemented (run /ddd-scaffold then /ddd-implement)
 
@@ -55,13 +72,23 @@ Show a quick read-only overview of the DDD project's implementation state. No fi
      OrderCreated: orders → notifications (consumer not implemented)
    ```
 
-6. **If `$ARGUMENTS` includes `--json`**, output the status as a JSON object instead of the table format. This is useful for scripting.
+   **For drifted flows, always show the drift type in parentheses:**
+   - `Drifted (metadata)` — only timestamps/positions changed
+   - `Drifted (spec enriched)` — spec added detail, code already covers it
+   - `Drifted (code ahead)` — code has details spec doesn't describe
+   - `Drifted (new logic)` — spec has new logic code doesn't implement
 
-7. **Suggest next actions** based on what's found:
+7. **If `$ARGUMENTS` includes `--json`**, output the status as a JSON object instead of the table format. This is useful for scripting.
+
+8. **Suggest next actions** based on what's found — using the SAFE recommendation rules:
    - If no scaffold: "Run `/ddd-scaffold` to set up the project"
    - If not-implemented flows exist: "Run `/ddd-implement {scope}` to generate code"
-   - If drifted flows exist: "Run `/ddd-implement {domain/flow}` or `/ddd-sync --fix-drift` to update"
+   - If drifted (metadata or spec enriched): "Run `/ddd-sync` to update hashes"
+   - If drifted (code ahead): "Run `/ddd-reverse {domain/flow}` to capture implementation details into specs, then `/ddd-sync`"
+   - If drifted (new logic): "Run `/ddd-implement {domain/flow}` to update code — WARNING: this will regenerate code, review the spec diff first"
    - If stale flows exist: "Run `/ddd-implement {domain/flow}` to regenerate missing files"
    - If everything is up to date: "All flows are implemented and in sync"
+
+   **NEVER suggest `/ddd-implement` as the default action for drifted flows.** Always classify the drift first and recommend the least destructive action.
 
 $ARGUMENTS
