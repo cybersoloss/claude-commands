@@ -1,24 +1,17 @@
 # Claude Code Commands
 
-A comprehensive set of custom commands for AI-native software development with Claude Code.
+Custom slash commands for AI-native software development with Claude Code.
 
-## Overview
-
-This repository contains custom slash commands for code verification, enhancement, and team assessment workflows built on insights from McKinsey research, Jellyfish, Sonar, and Cursor.
+Built on insights from McKinsey research, Jellyfish, Sonar, and Cursor.
 
 ## Installation
 
-Clone this repo into your Claude commands directory:
-
 ```bash
-# Backup existing commands (if any)
-mv ~/.claude/commands ~/.claude/commands.bak
-
-# Clone the repo
-git clone <your-repo-url> ~/.claude/commands
-
-# Restart Claude Code to load the commands
+git clone https://github.com/mhcandan/claude-commands.git
+cp claude-commands/*.md ~/.claude/commands/
 ```
+
+Restart Claude Code to load the commands.
 
 ## Commands
 
@@ -61,59 +54,6 @@ Run `/helpmecode` for the complete guide.
 | `/dev-metrics` | Metrics framework |
 | `/ai-dev-guide` | Best practices reference |
 
-### DDD (Design Driven Development) Commands
-
-<!-- NOTE: When adding or changing DDD commands, update this section AND /DDD-commands reference -->
-
-Design software visually as flow graphs, generate YAML specs, then implement with AI. See `/DDD-commands` for full reference with detailed docs.
-
-**Workflows:**
-```
-New project:      /ddd-create → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test
-Existing project: /ddd-reverse → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test
-Iterate:          /ddd-status → /ddd-update → /ddd-implement → /ddd-test → /ddd-sync
-Evolve DDD:       /ddd-create --shortfalls → /ddd-evolve → /ddd-evolve --review → /ddd-evolve --apply
-```
-
-| Command | Options | Description |
-|---------|---------|-------------|
-| `/ddd-create` | `--from`, `--shortfalls` | Describe a project or point to a design file → full DDD spec structure |
-| `/ddd-reverse` | `--output`, `--domains`, `--merge`, `--strategy` | Reverse-engineer existing code → DDD specs |
-| `/ddd-scaffold` | — | Set up project skeleton from specs |
-| `/ddd-implement` | `--all`, `domain`, `domain/flow` | Read specs → generate code + tests |
-| `/ddd-test` | `--all`, `--coverage`, `domain`, `domain/flow` | Run tests for implemented flows |
-| `/ddd-status` | `--json` | Quick read-only project overview |
-| `/ddd-update` | `--add-flow`, `--add-domain`, `domain/flow` | Natural language → updated specs |
-| `/ddd-sync` | `--discover`, `--fix-drift`, `--full` | Keep specs and code aligned |
-| `/ddd-evolve` | `--dir`, `--review`, `--apply` | Analyze shortfall reports → review interactively → apply approved changes |
-
-**Examples:**
-```bash
-# Design a new project from description
-/ddd-create A SaaS platform for restaurant orders. Node.js, Express, PostgreSQL.
-
-# Design from a wireframe/mockup/architecture diagram
-/ddd-create --from ~/designs/app-wireframes.png E-commerce platform
-
-# Design with gap analysis
-/ddd-create --from ~/docs/requirements.pdf AI moderation service. TypeScript, Hono. --shortfalls
-
-# Reverse-engineer existing code
-/ddd-reverse ~/code/my-app --strategy compiler
-
-# Implement all flows
-/ddd-implement --all
-
-# Update a specific flow
-/ddd-update users/user-register add rate limiting before input
-
-# Check project state
-/ddd-status
-
-# Analyze DDD framework gaps across projects
-/ddd-evolve ~/proj-a/specs/shortfalls.yaml ~/proj-b/specs/shortfalls.yaml
-```
-
 ### Utility Commands
 
 | Command | Description |
@@ -122,6 +62,14 @@ Evolve DDD:       /ddd-create --shortfalls → /ddd-evolve → /ddd-evolve --rev
 | `/notes-week` | Apple Notes since Monday |
 | `/notes-search` | Search Apple Notes by keyword |
 | `/helpmecode` | This command guide |
+
+## DDD Commands
+
+DDD (Design Driven Development) commands have moved to the [DDD repo](https://github.com/mhcandan/DDD). Install them from there:
+
+```bash
+cp ~/dev/DDD/commands/*.md ~/.claude/commands/
+```
 
 ## Usage
 
@@ -153,11 +101,6 @@ Evolve DDD:       /ddd-create --shortfalls → /ddd-evolve → /ddd-evolve --rev
 2. Transparency
 3. Repeatability
 4. Evidence
-
-### Performance Benchmarks (Top Performers)
-- Team Productivity: 16-30% improvement
-- Software Quality: 31-45% improvement
-- Key threshold: 80-100% adoption → 110%+ gains
 
 ## Sources
 
