@@ -451,8 +451,17 @@ Analyze DDD shortfall reports, critically evaluate each gap, and produce a prior
 
 ```
 /ddd-evolve <shortfalls.yaml> [<shortfalls2.yaml> ...]
+/ddd-evolve --review <evolution-plan.yaml>
 /ddd-evolve --apply <evolution-plan.yaml>
 ```
+
+### Modes
+
+| Mode | What it does |
+|------|-------------|
+| *(default)* | Analyze shortfalls → produce `ddd-evolution-plan.yaml` |
+| `--review` | Walk through each item interactively, collect approve/defer/reject decisions |
+| `--apply` | Execute approved items from a reviewed plan |
 
 ### Examples
 
@@ -461,31 +470,26 @@ Analyze DDD shortfall reports, critically evaluate each gap, and produce a prior
 /ddd-evolve ~/code/my-app/specs/shortfalls.yaml
 
 # Analyze across multiple projects for stronger signal
-/ddd-evolve ~/code/proj-a/specs/shortfalls.yaml ~/code/proj-b/specs/shortfalls.yaml ~/code/proj-c/specs/shortfalls.yaml
+/ddd-evolve ~/code/proj-a/specs/shortfalls.yaml ~/code/proj-b/specs/shortfalls.yaml
 
-# Apply approved changes from evolution plan
+# Interactively review and decide on each item
+/ddd-evolve --review ddd-evolution-plan.yaml
+
+# Apply approved changes from reviewed plan
 /ddd-evolve --apply ddd-evolution-plan.yaml
 ```
 
 ### What it does
 
-1. Reads all shortfall files and deduplicates across projects
-2. Critically evaluates each shortfall through 6 filters:
-   - **Already possible?** — check if DDD can already do it
-   - **Frequency test** — how many projects reported it (1 = weak, 3+ = systemic)
-   - **Specificity test** — actionable or vague?
-   - **Scope test** — breaking vs additive vs docs-only
-   - **Workaround quality** — blocked vs lossy vs adequate
-   - **Design intent** — intentional limitation or real gap?
-3. Classifies each as: `REAL_GAP`, `ENHANCEMENT`, `VAGUE`, `ALREADY_POSSIBLE`, `BY_DESIGN`, or `PROJECT_SPECIFIC`
-4. Produces a tiered evolution plan with `decision: null` fields for human approval
-5. With `--apply`: executes approved items (updates spec, commands, and tool code)
+1. **Analyze** — Reads shortfall files, deduplicates, evaluates through 6 filters (already possible? recurring? specific? breaking? adequate workaround? intentional?), classifies as `REAL_GAP`/`ENHANCEMENT`/`VAGUE`/`ALREADY_POSSIBLE`/`BY_DESIGN`/`PROJECT_SPECIFIC`, writes `ddd-evolution-plan.yaml`
+2. **Review** — Presents each item with analysis and evidence, asks human to approve/defer/reject via interactive prompts, records decisions and notes back to the plan file
+3. **Apply** — Requires reviewed plan. Shows what will change, asks confirmation, executes approved items (updates spec, commands, tool, validator)
 
 ### Output
 
-- `ddd-evolution-plan.yaml` with tiered recommendations
-- Summary table showing real gaps, enhancements, and not-actionable items
-- Recommended execution order for approved items
+- `ddd-evolution-plan.yaml` with tiered recommendations and decisions
+- Interactive review walkthrough (with `--review`)
+- Code/spec changes across DDD repos (with `--apply`)
 
 ---
 

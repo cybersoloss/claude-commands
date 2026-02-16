@@ -72,7 +72,7 @@ Design software visually as flow graphs, generate YAML specs, then implement wit
 New project:      /ddd-create → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test
 Existing project: /ddd-reverse → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test
 Iterate:          /ddd-status → /ddd-update → /ddd-implement → /ddd-test → /ddd-sync
-Evolve DDD:       /ddd-create --shortfalls → /ddd-evolve → human approves → /ddd-evolve --apply
+Evolve DDD:       /ddd-create --shortfalls → /ddd-evolve → /ddd-evolve --review → /ddd-evolve --apply
 ```
 
 | Command | Options | Description |
@@ -85,7 +85,7 @@ Evolve DDD:       /ddd-create --shortfalls → /ddd-evolve → human approves �
 | `/ddd-status` | `--json` | Quick read-only project overview |
 | `/ddd-update` | `--add-flow`, `--add-domain`, `domain/flow` | Natural language → updated specs |
 | `/ddd-sync` | `--discover`, `--fix-drift`, `--full` | Keep specs and code aligned |
-| `/ddd-evolve` | `--apply` | Analyze shortfall reports → prioritized evolution plan |
+| `/ddd-evolve` | `--review`, `--apply` | Analyze shortfall reports → review interactively → apply approved changes |
 
 **Examples:**
 ```bash
