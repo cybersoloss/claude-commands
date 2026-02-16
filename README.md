@@ -61,12 +61,29 @@ Run `/helpmecode` for the complete guide.
 | `/dev-metrics` | Metrics framework |
 | `/ai-dev-guide` | Best practices reference |
 
+### DDD (Design Driven Development) Commands
+
+Design software visually as flow graphs, generate YAML specs, then implement with AI. See `/DDD-commands` for full reference.
+
+| Command | Description |
+|---------|-------------|
+| `/ddd-create` | Describe a project → full DDD spec structure (`--shortfalls` for gap analysis) |
+| `/ddd-reverse` | Reverse-engineer existing code → DDD specs |
+| `/ddd-scaffold` | Set up project skeleton from specs |
+| `/ddd-implement` | Read specs → generate code + tests |
+| `/ddd-test` | Run tests for implemented flows |
+| `/ddd-status` | Quick read-only project overview |
+| `/ddd-update` | Natural language → updated specs |
+| `/ddd-sync` | Keep specs and code aligned |
+| `/ddd-evolve` | Analyze shortfall reports → prioritized evolution plan |
+
 ### Utility Commands
 
 | Command | Description |
 |---------|-------------|
 | `/notes-today` | Apple Notes modified today |
 | `/notes-week` | Apple Notes since Monday |
+| `/notes-search` | Search Apple Notes by keyword |
 | `/helpmecode` | This command guide |
 
 ## Usage

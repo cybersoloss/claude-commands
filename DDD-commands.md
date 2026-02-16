@@ -34,8 +34,14 @@ Generate a complete DDD spec structure from a project description.
 ### Usage
 
 ```
-/ddd-create <description>
+/ddd-create <description> [--shortfalls]
 ```
+
+### Flags
+
+| Flag | Purpose |
+|------|---------|
+| `--shortfalls` | Generate `specs/shortfalls.yaml` — a structured report of DDD framework gaps encountered during design (7 categories: missing node types, inadequate nodes, missing fields, connection limitations, layer gaps, workarounds, cross-cutting gaps). Feed into `/ddd-evolve` for analysis. |
 
 ### Examples
 
@@ -44,7 +50,7 @@ Generate a complete DDD spec structure from a project description.
 
 /ddd-create A CLI tool that scrapes product prices from e-commerce sites and alerts users when prices drop. Python, FastAPI, Celery, PostgreSQL.
 
-/ddd-create An AI-powered content moderation service with human review workflow. TypeScript, Hono, Anthropic API, PostgreSQL.
+/ddd-create An AI-powered content moderation service with human review workflow. TypeScript, Hono, Anthropic API, PostgreSQL. --shortfalls
 ```
 
 ### What it does
