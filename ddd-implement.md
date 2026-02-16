@@ -30,7 +30,7 @@ Parse the argument to determine scope:
 3. **Read the specs for each flow**:
    - `ddd-project.json` — project config, tech stack
    - `specs/system.yaml` — project identity, tech stack, environments (if exists)
-   - `specs/architecture.yaml` — conventions, infrastructure, API design (if exists)
+   - `specs/architecture.yaml` — conventions, infrastructure, API design, **cross-cutting patterns** (if exists)
    - `specs/config.yaml` — environment variable schema (if exists)
    - `specs/shared/errors.yaml` — error codes with HTTP status mappings (if exists)
    - `specs/shared/types.yaml` — shared enum/type definitions (if exists)
@@ -38,6 +38,8 @@ Parse the argument to determine scope:
    - Note: `system.yaml` may contain an `integrations:` section with external API configs
    - `specs/domains/{domain}/domain.yaml` — domain context, events, relationships
    - `specs/domains/{domain}/flows/{flow}.yaml` — the flow specification
+
+   **IMPORTANT — Cross-cutting patterns**: If `specs/architecture.yaml` contains a `cross_cutting_patterns` section, read it carefully. These are project-wide conventions that apply to ALL flows, even if individual flow specs don't mention them. They MUST be applied during implementation. See step 7 for details.
 
 4. **Fetch the DDD Usage Guide**: Run `gh api repos/mhcandan/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all node types, spec fields, connection patterns, and conventions. Use it as your reference for understanding node specs during implementation.
 
@@ -126,6 +128,28 @@ Parse the argument to determine scope:
    - `dependencies` → use the specified libraries and versions
    - `api_design` → follow versioning, pagination format, filtering style, error format
    - `testing` → use the specified framework, runner, and patterns
+
+   **Apply cross-cutting patterns** (CRITICAL): If `architecture.yaml` has a `cross_cutting_patterns` section, each pattern defines a project-wide convention that MUST be applied to every flow in matching domains. These patterns exist because implementation experience proved they're necessary — skipping them will produce code that breaks in production.
+
+   For each pattern, check:
+   1. Does this flow's domain appear in the pattern's `used_by_domains` list?
+   2. Does this flow contain node types that the pattern's `convention` addresses?
+
+   If yes, apply the pattern. Common cross-cutting patterns and how to apply them:
+
+   - **stealth_http** — Any `service_call` node or agent tool that fetches external web content: use the stealth HTTP utility (e.g., `stealthFetch`) instead of plain HTTP clients. Apply the configured `rotateUserAgent`, `delayMin`, `delayMax` settings. Only skip for trusted first-party APIs listed in `system.yaml` integrations.
+
+   - **api_key_resolution** — Any flow that needs API keys: use the key resolution utility (e.g., `requireApiKey`/`getApiKey`) instead of reading `process.env` directly. This checks the database first (user may have configured keys via UI), caches lookups, and falls back to env vars.
+
+   - **encryption** — Any `data_store` node that writes credentials, API keys, or tokens: encrypt before write using the encryption utility. Any read that returns credentials: decrypt after read. Display to users: use masking.
+
+   - **soft_delete** — ALL `data_store` read operations: include `deletedAt: null` in filters unless the flow explicitly queries deleted records. This prevents returning soft-deleted records.
+
+   - **content_hashing** — Any flow that stores content items: compute a content hash for deduplication before storing.
+
+   - **error_handling** — Any `loop` node with `on_error: continue`: wrap each iteration in try/catch so one item's failure doesn't stop the batch. Log per-item errors but continue processing.
+
+   If a flow spec already specifies a cross-cutting concern at the node level (e.g., `request_config` on a tool, `deletedAt: null` in filters), use the flow-level spec. The flow spec takes precedence over architecture defaults, but architecture defaults fill in anything the flow spec doesn't mention.
 
    - Match the project's existing code style and conventions
    - For multi-flow implementations, share common infrastructure (DB, config, middleware)
