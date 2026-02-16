@@ -1,3 +1,3 @@
 #!/bin/bash
-# Auto-fetch DDD commands after git pull
+# Auto-install commands after git pull
 "$(git rev-parse --show-toplevel)/install.sh"
