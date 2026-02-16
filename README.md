@@ -85,7 +85,7 @@ Evolve DDD:       /ddd-create --shortfalls → /ddd-evolve → /ddd-evolve --rev
 | `/ddd-status` | `--json` | Quick read-only project overview |
 | `/ddd-update` | `--add-flow`, `--add-domain`, `domain/flow` | Natural language → updated specs |
 | `/ddd-sync` | `--discover`, `--fix-drift`, `--full` | Keep specs and code aligned |
-| `/ddd-evolve` | `--review`, `--apply` | Analyze shortfall reports → review interactively → apply approved changes |
+| `/ddd-evolve` | `--dir`, `--review`, `--apply` | Analyze shortfall reports → review interactively → apply approved changes |
 
 **Examples:**
 ```bash

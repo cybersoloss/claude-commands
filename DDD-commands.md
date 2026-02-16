@@ -14,7 +14,7 @@ Nine Claude Code slash commands for the [Design Driven Development](https://gith
 | `/ddd-status` | `--json` | Quick read-only project overview |
 | `/ddd-update` | `--add-flow`, `--add-domain`, `domain/flow` | Natural language → updated specs |
 | `/ddd-sync` | `--discover`, `--fix-drift`, `--full` | Keep specs and code aligned |
-| `/ddd-evolve` | `--review`, `--apply` | Analyze shortfall reports → review → apply approved changes |
+| `/ddd-evolve` | `--dir`, `--review`, `--apply` | Analyze shortfall reports → review → apply approved changes |
 
 ### Workflow
 
@@ -461,6 +461,7 @@ Analyze DDD shortfall reports, critically evaluate each gap, and produce a prior
 
 ```
 /ddd-evolve <shortfalls.yaml> [<shortfalls2.yaml> ...]
+/ddd-evolve --dir <project-dir> [--dir <project-dir2> ...]
 /ddd-evolve --review <evolution-plan.yaml>
 /ddd-evolve --apply <evolution-plan.yaml>
 ```
@@ -473,6 +474,12 @@ Analyze DDD shortfall reports, critically evaluate each gap, and produce a prior
 | `--review` | Walk through each item interactively, collect approve/defer/reject decisions |
 | `--apply` | Execute approved items from a reviewed plan |
 
+### Options
+
+| Flag | Purpose |
+|------|---------|
+| `--dir <path>` | Point to a DDD project directory. Auto-discovers `specs/shortfalls.yaml` inside it. Can be specified multiple times. Can be mixed with direct file paths. |
+
 ### Examples
 
 ```
@@ -481,6 +488,12 @@ Analyze DDD shortfall reports, critically evaluate each gap, and produce a prior
 
 # Analyze across multiple projects for stronger signal
 /ddd-evolve ~/code/proj-a/specs/shortfalls.yaml ~/code/proj-b/specs/shortfalls.yaml
+
+# Point to project directories (auto-discovers shortfalls.yaml)
+/ddd-evolve --dir ~/code/proj-a --dir ~/code/proj-b
+
+# Mix direct paths and --dir
+/ddd-evolve ~/code/proj-a/specs/shortfalls.yaml --dir ~/code/proj-b
 
 # Interactively review and decide on each item
 /ddd-evolve --review ddd-evolution-plan.yaml

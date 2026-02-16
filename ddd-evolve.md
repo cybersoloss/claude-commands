@@ -6,6 +6,7 @@ Analyze DDD shortfall reports from one or more projects, critically evaluate eac
 
 ```
 /ddd-evolve <path-to-shortfalls.yaml> [<path2> <path3> ...]
+/ddd-evolve --dir <project-dir> [--dir <project-dir2> ...]
 /ddd-evolve --review <path-to-evolution-plan.yaml>
 /ddd-evolve --apply <path-to-evolution-plan.yaml>
 ```
@@ -18,6 +19,12 @@ Analyze DDD shortfall reports from one or more projects, critically evaluate eac
 | `--review` | Walk human through each item interactively, collect approve/defer/reject decisions |
 | `--apply` | Execute approved items from a reviewed plan |
 
+**Options:**
+
+| Flag | Purpose |
+|------|---------|
+| `--dir <path>` | Point to a DDD project directory. Auto-discovers `specs/shortfalls.yaml` inside it. Verifies `ddd-project.json` exists to confirm it's a valid DDD project. Can be specified multiple times. Can be mixed with direct file paths. |
+
 **Flow:** analyze → `--review` → `--apply` (each step requires the previous)
 
 ## Instructions
@@ -26,15 +33,23 @@ Analyze DDD shortfall reports from one or more projects, critically evaluate eac
 
 1. **Fetch the DDD Usage Guide**: Run `gh api repos/mhcandan/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. You need this to evaluate whether shortfalls are genuine gaps or already addressable within the current spec.
 
-2. **Read all shortfall files**: Parse each `shortfalls.yaml` from `$ARGUMENTS`. For each file, record the project name, date, and all shortfall entries.
+2. **Resolve shortfall file paths**: Collect all shortfall files from `$ARGUMENTS`:
+   - **Direct paths** — use as-is (e.g., `~/code/proj-a/specs/shortfalls.yaml`)
+   - **`--dir` flags** — for each directory:
+     a. Verify `{dir}/ddd-project.json` exists. If not, warn: "Not a DDD project: {dir}" and skip.
+     b. Check for `{dir}/specs/shortfalls.yaml`. If not found, warn: "No shortfalls.yaml in {dir} — run /ddd-create --shortfalls first" and skip.
+     c. Use `{dir}/specs/shortfalls.yaml` as the shortfall file.
+   - If no valid shortfall files are found after resolution, show an error and exit.
 
-3. **Deduplicate across projects**: Merge shortfalls that describe the same underlying gap (even if worded differently). Track:
+3. **Read all shortfall files**: Parse each resolved `shortfalls.yaml`. For each file, record the project name, date, and all shortfall entries.
+
+4. **Deduplicate across projects**: Merge shortfalls that describe the same underlying gap (even if worded differently). Track:
    - `frequency` — how many projects reported this gap
    - `projects` — which projects
    - `max_severity` — highest severity reported across projects
    - `consistent_severity` — whether all projects agree on severity (high signal) or vary widely (low signal)
 
-4. **Critically evaluate each shortfall**: This is the core of the command. For EVERY shortfall, apply these filters:
+5. **Critically evaluate each shortfall**: This is the core of the command. For EVERY shortfall, apply these filters:
 
    **Filter A — Already possible?**
    Check the DDD Usage Guide. Can this already be done with existing nodes, fields, `custom_fields`, or connection patterns? If yes, classify as `already_expressible` — the shortfall is a documentation/awareness problem, not a framework gap.
@@ -71,7 +86,7 @@ Analyze DDD shortfall reports from one or more projects, critically evaluate eac
    - `process` nodes are intentionally flexible (sometimes free-text IS the right answer)
    Rate as `likely_intentional` or `likely_unintentional`.
 
-5. **Classify each shortfall** into one of these verdicts:
+6. **Classify each shortfall** into one of these verdicts:
 
    | Verdict | Meaning | Criteria |
    |---------|---------|----------|
@@ -82,7 +97,7 @@ Analyze DDD shortfall reports from one or more projects, critically evaluate eac
    | `BY_DESIGN` | Limitation is intentional | Failed Filter F |
    | `PROJECT_SPECIFIC` | Only relevant to one unusual project | Single occurrence + not generalizable |
 
-6. **Produce the evolution plan**: Write `ddd-evolution-plan.yaml` to the current directory. Structure:
+7. **Produce the evolution plan**: Write `ddd-evolution-plan.yaml` to the current directory. Structure:
 
    ```yaml
    # DDD Evolution Plan
@@ -181,7 +196,7 @@ Analyze DDD shortfall reports from one or more projects, critically evaluate eac
        rationale: "Depends on phase 1 types being added first"
    ```
 
-7. **Present the plan to the human**: After writing the file, show a summary table:
+8. **Present the plan to the human**: After writing the file, show a summary table:
 
    ```
    DDD Evolution Plan — {date}
