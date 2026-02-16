@@ -2,6 +2,10 @@
 
 Create a complete DDD (Design Driven Development) project from a software project description. Generates all YAML spec files that the DDD Tool can visualize and `/ddd-implement` can turn into code.
 
+## Options
+
+- `--shortfalls` — After creating specs, generate a `specs/shortfalls.yaml` report documenting DDD framework limitations encountered during design. Use this flag when you want structured feedback about spec gaps for evolving the DDD methodology.
+
 ## Instructions
 
 1. **Fetch the DDD Usage Guide**: Run `gh api repos/mhcandan/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all YAML formats, node types, spec fields, connection patterns, and conventions. It is your primary reference for creating correct specs.
@@ -101,6 +105,14 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
    - Position nodes vertically with ~130px spacing, branch error terminals to the right
    - `metadata` with created and modified timestamps (current ISO)
+   - **Shortfall tracking** (if `--shortfalls` flag is present): As you design each flow, mentally track every time you:
+     - Use a `process` node with a free-text description because no structured node type fits the operation
+     - Need a node type that doesn't exist (not an inadequate existing node — an entirely missing concept)
+     - Hit a limitation in an existing node's fields or configuration options
+     - Cannot express a connection behavior, data flow pattern, or error handling strategy
+     - Cannot represent something at L1 (system), L2 (domain), or L3 (flow) layer that should be visible
+     - Resort to `custom_fields` to express something that should be a first-class field
+     - Cannot express a cross-cutting concern (auth, logging, rate limiting, monitoring) structurally
 
 8. **Node ID convention**: Use `{type}-{8-char-random}` format (e.g., `input-xK9mR2vL`, `process-aPq3nW8j`).
 
@@ -128,7 +140,125 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `service_call` nodes reference integrations defined in `system.yaml` (if integrations section exists)
    - Agent flows have agent_loop with tools (at least one `is_terminal: true`)
 
-10. **Summary**: After creating all files, show:
+10. **Shortfall report** (only if `--shortfalls` flag is present in `$ARGUMENTS`): Generate `specs/shortfalls.yaml` documenting every DDD framework limitation you encountered. Be brutally honest — this report exists to improve DDD, not to make it look good.
+
+    ```yaml
+    # DDD Shortfall Report
+    # Generated during: /ddd-create {project-name}
+    # Date: {ISO timestamp}
+    # Purpose: Document DDD framework gaps encountered during spec design
+
+    project: {project-name}
+    generated: {ISO timestamp}
+    ddd_version: "1.0"
+
+    # Severity: critical = blocked design intent, high = significant workaround needed,
+    #           medium = minor workaround, low = cosmetic or nice-to-have
+
+    missing_node_types:
+      # Node types you needed but don't exist in DDD at all
+      - name: "{descriptive-name}"
+        severity: critical|high|medium|low
+        description: "What it would do"
+        used_instead: "What node/pattern you used as a workaround"
+        flows_affected:
+          - "{domain}/{flow-id}"
+        example_use_case: "Concrete scenario from this project"
+
+    inadequate_existing_nodes:
+      # Nodes that exist but lack needed capabilities
+      - node_type: "{existing-type}"
+        severity: critical|high|medium|low
+        limitation: "What's missing or insufficient"
+        suggestion: "What field/option/behavior would fix it"
+        flows_affected:
+          - "{domain}/{flow-id}"
+
+    missing_spec_fields:
+      # Fields that should exist on nodes, connections, or flow metadata but don't
+      - location: "node|connection|flow|trigger|domain|system"
+        target_type: "{specific type if applicable}"
+        field_name: "{proposed-field}"
+        severity: critical|high|medium|low
+        description: "What it would express"
+        workaround: "How you worked around it (custom_fields, free-text, etc.)"
+
+    connection_limitations:
+      # Edge behaviors, data flow patterns, or routing that can't be expressed
+      - severity: critical|high|medium|low
+        limitation: "What you couldn't express"
+        context: "Where in the design this came up"
+        suggestion: "Proposed solution"
+
+    layer_gaps:
+      l1_system:
+        elements_used: ["zones", "domain blocks", "event arrows", "portals"]
+        missing_elements:
+          - description: "What should be visible at L1 but isn't"
+            severity: critical|high|medium|low
+            example: "Concrete scenario"
+        invisible_information:
+          - description: "Data that exists but is hidden at this layer"
+            should_be_visible: true|false
+            reason: "Why it should/shouldn't be shown"
+      l2_domain:
+        elements_used: ["flow blocks", "flow groups", "event arrows", "orchestration arrows"]
+        missing_elements:
+          - description: "What should be visible at L2 but isn't"
+            severity: critical|high|medium|low
+            example: "Concrete scenario"
+        invisible_information:
+          - description: "Data that exists but is hidden at this layer"
+            should_be_visible: true|false
+            reason: "Why it should/shouldn't be shown"
+      l3_flow:
+        elements_used: ["all node types used in this project"]
+        missing_elements:
+          - description: "What should be visible at L3 but isn't"
+            severity: critical|high|medium|low
+            example: "Concrete scenario"
+        invisible_information:
+          - description: "Data that exists but is hidden at this layer"
+            should_be_visible: true|false
+            reason: "Why it should/shouldn't be shown"
+
+    workarounds:
+      # Every time you used a process node (or other generic node) because no structured type fit
+      - flow: "{domain}/{flow-id}"
+        node_id: "{node-id}"
+        node_type_used: "process"
+        intended_operation: "What the node actually does"
+        why_no_fit: "Why no existing structured node type works"
+        proposed_node_type: "{suggested new type or enhancement}"
+        severity: high|medium
+
+    cross_cutting_gaps:
+      # Patterns that span multiple flows/domains but have no first-class representation
+      - concern: "{auth|logging|rate_limiting|monitoring|retry_policy|feature_flags|...}"
+        severity: critical|high|medium|low
+        description: "How this cross-cutting concern manifests in the project"
+        current_expression: "How it's represented now (duplicated per flow, custom_fields, etc.)"
+        suggestion: "How DDD could represent it structurally"
+
+    summary:
+      total_shortfalls: {count}
+      by_severity:
+        critical: {count}
+        high: {count}
+        medium: {count}
+        low: {count}
+      top_recommendation: "Single most impactful improvement to the DDD framework based on this project"
+    ```
+
+    **Rules for shortfall reporting:**
+    - Only include sections that have entries — omit empty sections entirely
+    - Every workaround `process` node MUST be flagged — zero tolerance for silent workarounds
+    - Be specific: reference actual flow IDs, node IDs, and concrete scenarios from this project
+    - Distinguish between "doesn't exist" (missing_node_types) and "exists but insufficient" (inadequate_existing_nodes)
+    - If you used `custom_fields` on any node, that's automatically a `missing_spec_fields` entry
+    - Layer gaps should evaluate what you actually used vs. what you wished you could express
+
+11. **Summary**: After creating all files, show:
     ```
     Created DDD Project: {project-name}
 
@@ -160,6 +290,10 @@ Create a complete DDD (Design Driven Development) project from a software projec
       UserRegistered: users → notifications
       OrderCreated: orders → notifications
       PaymentProcessed: orders → (no consumer — warning)
+
+    Shortfalls: (only if --shortfalls flag was used)
+      specs/shortfalls.yaml — 12 shortfalls (2 critical, 4 high, 3 medium, 3 low)
+      Top recommendation: {one-liner}
 
     Next steps:
       1. Open the project in DDD Tool to visualize and validate
