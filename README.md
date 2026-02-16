@@ -7,11 +7,16 @@ Built on insights from McKinsey research, Jellyfish, Sonar, and Cursor.
 ## Installation
 
 ```bash
-git clone https://github.com/mhcandan/claude-commands.git
-cp claude-commands/*.md ~/.claude/commands/
+git clone https://github.com/mhcandan/claude-commands.git ~/.claude/commands
+~/.claude/commands/install.sh
 ```
 
-Restart Claude Code to load the commands.
+This installs both the general dev commands from this repo AND the [DDD commands](https://github.com/mhcandan/DDD) from the DDD repo. Restart Claude Code to load the commands.
+
+**Update commands:**
+```bash
+cd ~/.claude/commands && git pull && ./install.sh
+```
 
 ## Commands
 
@@ -65,11 +70,7 @@ Run `/helpmecode` for the complete guide.
 
 ## DDD Commands
 
-DDD (Design Driven Development) commands have moved to the [DDD repo](https://github.com/mhcandan/DDD). Install them from there:
-
-```bash
-cp ~/dev/DDD/commands/*.md ~/.claude/commands/
-```
+11 DDD (Design Driven Development) commands are automatically fetched from the [DDD repo](https://github.com/mhcandan/DDD) by `install.sh`. See the DDD repo for documentation.
 
 ## Usage
 
