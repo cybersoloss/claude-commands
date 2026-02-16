@@ -4,13 +4,33 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
 ## Options
 
+- `--from <path-or-url>` — Use a design file as reference input. Supports local files (images, PDFs, markdown, text, YAML) and URLs (Figma, Miro, web pages). The file contents inform domain structure, flows, UI screens, data models, and architecture decisions. Can be combined with a text description for additional context.
 - `--shortfalls` — After creating specs, generate a `specs/shortfalls.yaml` report documenting DDD framework limitations encountered during design. Use this flag when you want structured feedback about spec gaps for evolving the DDD methodology.
 
 ## Instructions
 
 1. **Fetch the DDD Usage Guide**: Run `gh api repos/mhcandan/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all YAML formats, node types, spec fields, connection patterns, and conventions. It is your primary reference for creating correct specs.
 
-2. **Understand the project**: Read the user's description from `$ARGUMENTS`. If the description is brief, ask clarifying questions:
+2. **Understand the project**: Read the user's description from `$ARGUMENTS`.
+
+   **If `--from` flag is present**, read the referenced design file first:
+   - **Local image files** (PNG, JPG, SVG, etc.) — Read the file using the Read tool (it supports images). Extract: screens/pages, UI components, navigation flows, data entities visible in mockups, user interactions, API endpoints implied by forms/buttons.
+   - **Local PDF files** — Read with the Read tool (use `pages` parameter for large PDFs). Extract: architecture diagrams, ERDs, sequence diagrams, user stories, requirements tables, wireframes.
+   - **Local text/markdown/YAML files** — Read directly. Extract: requirements, feature lists, data models, API specs, user stories, architecture decisions.
+   - **URLs (Figma, Miro, web pages)** — Fetch using WebFetch tool. Extract whatever is accessible from the rendered content.
+   - **Multiple files** — If `--from` is specified multiple times or points to a directory, read all files and synthesize.
+
+   After reading the design file, extract:
+   - **Domains**: Group related screens/features into bounded contexts
+   - **Flows**: Map user journeys, API endpoints, background jobs, and event handlers to flows
+   - **Data models**: Extract entities, relationships, and fields from ERDs, forms, or database diagrams
+   - **Events**: Identify cross-domain triggers from sequence diagrams or interaction flows
+   - **Tech stack**: Infer from any architecture diagrams or tech references in the document
+   - **Agent flows**: Identify any AI/LLM-powered features (chatbots, content generation, classification)
+
+   Combine insights from the design file with any text description provided in `$ARGUMENTS`.
+
+   **If no `--from` flag**, use the text description from `$ARGUMENTS`. If the description is brief, ask clarifying questions:
    - What does the software do? (purpose, target users)
    - What tech stack? (language, framework, database, cache, auth)
    - What are the main domains? (bounded contexts)

@@ -77,7 +77,7 @@ Evolve DDD:       /ddd-create --shortfalls → /ddd-evolve → /ddd-evolve --rev
 
 | Command | Options | Description |
 |---------|---------|-------------|
-| `/ddd-create` | `--shortfalls` | Describe a project → full DDD spec structure |
+| `/ddd-create` | `--from`, `--shortfalls` | Describe a project or point to a design file → full DDD spec structure |
 | `/ddd-reverse` | `--output`, `--domains`, `--merge`, `--strategy` | Reverse-engineer existing code → DDD specs |
 | `/ddd-scaffold` | — | Set up project skeleton from specs |
 | `/ddd-implement` | `--all`, `domain`, `domain/flow` | Read specs → generate code + tests |
@@ -89,11 +89,14 @@ Evolve DDD:       /ddd-create --shortfalls → /ddd-evolve → /ddd-evolve --rev
 
 **Examples:**
 ```bash
-# Design a new project
+# Design a new project from description
 /ddd-create A SaaS platform for restaurant orders. Node.js, Express, PostgreSQL.
 
+# Design from a wireframe/mockup/architecture diagram
+/ddd-create --from ~/designs/app-wireframes.png E-commerce platform
+
 # Design with gap analysis
-/ddd-create An AI moderation service. TypeScript, Hono, Anthropic API. --shortfalls
+/ddd-create --from ~/docs/requirements.pdf AI moderation service. TypeScript, Hono. --shortfalls
 
 # Reverse-engineer existing code
 /ddd-reverse ~/code/my-app --strategy compiler

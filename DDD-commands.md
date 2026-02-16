@@ -6,7 +6,7 @@ Nine Claude Code slash commands for the [Design Driven Development](https://gith
 
 | Command | Options | Description |
 |---------|---------|-------------|
-| `/ddd-create` | `--shortfalls` | Design a new project from description → YAML specs |
+| `/ddd-create` | `--from`, `--shortfalls` | Design a new project from description or design file → YAML specs |
 | `/ddd-reverse` | `--output`, `--domains`, `--merge`, `--strategy` | Reverse-engineer existing code → YAML specs |
 | `/ddd-scaffold` | — | Set up project skeleton from specs (Session B first step) |
 | `/ddd-implement` | `--all`, `domain`, `domain/flow` | Read specs → generate code + tests |
@@ -34,23 +34,33 @@ Generate a complete DDD spec structure from a project description.
 ### Usage
 
 ```
-/ddd-create <description> [--shortfalls]
+/ddd-create <description> [--from <path-or-url>] [--shortfalls]
 ```
 
 ### Flags
 
 | Flag | Purpose |
 |------|---------|
-| `--shortfalls` | Generate `specs/shortfalls.yaml` — a structured report of DDD framework gaps encountered during design (7 categories: missing node types, inadequate nodes, missing fields, connection limitations, layer gaps, workarounds, cross-cutting gaps). Feed into `/ddd-evolve` for analysis. |
+| `--from <path-or-url>` | Use a design file as reference input. Supports images (PNG, JPG), PDFs, markdown, text, YAML, and URLs (Figma, Miro, web pages). Extracts domains, flows, data models, events, and architecture from the design. Combine with a text description for additional context. |
+| `--shortfalls` | Generate `specs/shortfalls.yaml` — a structured report of DDD framework gaps encountered during design (7 categories). Feed into `/ddd-evolve` for analysis. |
 
 ### Examples
 
 ```
-/ddd-create A SaaS platform for managing restaurant orders with users, orders, menu, and notifications domains. Tech: Node.js, Express, Prisma, PostgreSQL, Redis, SendGrid.
+# From a text description
+/ddd-create A SaaS platform for managing restaurant orders. Node.js, Express, PostgreSQL.
 
-/ddd-create A CLI tool that scrapes product prices from e-commerce sites and alerts users when prices drop. Python, FastAPI, Celery, PostgreSQL.
+# From a design file (wireframes, mockups, architecture diagram)
+/ddd-create --from ~/designs/app-wireframes.png E-commerce platform
 
-/ddd-create An AI-powered content moderation service with human review workflow. TypeScript, Hono, Anthropic API, PostgreSQL. --shortfalls
+# From a PDF requirements doc
+/ddd-create --from ~/docs/requirements.pdf
+
+# From a Figma URL
+/ddd-create --from https://figma.com/file/abc123 Social media dashboard
+
+# Combine design file with description and shortfall analysis
+/ddd-create --from ~/designs/system-arch.pdf AI content moderation service. TypeScript, Hono. --shortfalls
 ```
 
 ### What it does
