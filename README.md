@@ -7,7 +7,7 @@ Built on insights from McKinsey research, Jellyfish, Sonar, and Cursor.
 ## Installation
 
 ```bash
-git clone https://github.com/mhcandan/claude-commands.git ~/.claude/commands
+git clone https://github.com/cybersoloss/claude-commands.git ~/.claude/commands
 ~/.claude/commands/install.sh
 ```
 

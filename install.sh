@@ -1,6 +1,6 @@
 #!/bin/bash
 # Install all Claude Code commands (general dev + DDD)
-# Usage: git clone https://github.com/mhcandan/claude-commands.git && ./claude-commands/install.sh
+# Usage: git clone https://github.com/cybersoloss/claude-commands.git && ./claude-commands/install.sh
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
