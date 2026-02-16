@@ -11,14 +11,14 @@ git clone https://github.com/mhcandan/claude-commands.git ~/.claude/commands
 ~/.claude/commands/install.sh
 ```
 
-This installs both the general dev commands from this repo AND the [DDD commands](https://github.com/mhcandan/DDD) from the DDD repo. Restart Claude Code to load the commands.
+This installs all commands (general dev + DDD) into `~/.claude/commands/`. Restart Claude Code to load them.
 
 **Update commands:**
 ```bash
 cd ~/.claude/commands && git pull
 ```
 
-`git pull` automatically fetches the latest DDD commands via a post-merge hook.
+`git pull` automatically re-installs commands via a post-merge hook.
 
 ## Commands
 
@@ -72,7 +72,7 @@ Run `/helpmecode` for the complete guide.
 
 ## DDD Commands
 
-11 DDD (Design Driven Development) commands are automatically fetched from the [DDD repo](https://github.com/mhcandan/DDD) by `install.sh`. See the DDD repo for documentation.
+12 [Design Driven Development](https://github.com/mhcandan/DDD) commands are included in this repo. See the DDD repo for methodology documentation.
 
 ## Usage
 
