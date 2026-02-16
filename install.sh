@@ -1,10 +1,15 @@
 #!/bin/bash
 # Install all Claude Code commands (general dev + DDD)
 # Run: git clone https://github.com/mhcandan/claude-commands.git ~/.claude/commands && ~/.claude/commands/install.sh
-# Update: cd ~/.claude/commands && git pull && ./install.sh
+# Update: cd ~/.claude/commands && git pull (auto-runs install.sh via post-merge hook)
 set -e
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Set up post-merge hook so DDD commands auto-update on git pull
+if [ -d "$DIR/.git" ]; then
+  git -C "$DIR" config core.hooksPath .githooks
+fi
 
 # Fetch DDD commands from DDD repo
 echo "Fetching DDD commands..."

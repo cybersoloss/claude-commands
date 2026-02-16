@@ -15,8 +15,10 @@ This installs both the general dev commands from this repo AND the [DDD commands
 
 **Update commands:**
 ```bash
-cd ~/.claude/commands && git pull && ./install.sh
+cd ~/.claude/commands && git pull
 ```
+
+`git pull` automatically fetches the latest DDD commands via a post-merge hook.
 
 ## Commands
 
