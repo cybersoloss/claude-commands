@@ -25,6 +25,7 @@ Parse the argument to determine what to update:
    - `specs/schemas/*.yaml` — data model definitions (reference when adding data_store nodes to use correct model names)
    - `specs/shared/errors.yaml` — error codes (reference when adding terminal error nodes to use correct error codes)
    - `specs/system.yaml` — tech stack context (reference when choosing patterns for new nodes)
+   - `specs/architecture.yaml` — especially the `cross_cutting_patterns` section, which defines project-specific conventions to apply to new nodes
 
 3. **Understand the user's request**: The user will describe what they want to change in natural language. Examples:
    - "Add a rate limiting step before the process node"
@@ -59,6 +60,11 @@ Parse the argument to determine what to update:
    - **Removing a node**: Remove the node entry, rewire upstream connections to skip it (connect to the removed node's targets instead).
    - **Modifying a node**: Update the `spec` fields, `label`, or `connections` as needed.
    - **Adding a decision branch**: Add a new connection with `sourceHandle` and create the target node(s).
+   - **Applying cross-cutting patterns**: When adding new nodes, check if any `cross_cutting_patterns` from `architecture.yaml` apply:
+     - New `service_call` node fetching external content → check if `stealth_http` pattern applies (is the domain in `used_by_domains`?)
+     - New `data_store` node with `operation: read` → apply `soft_delete` pattern (add `deletedAt: null` to filters) if applicable
+     - New `data_store` node writing credentials → apply `encryption` pattern if applicable
+     - Any flow needing API keys → note `api_key_resolution` convention from patterns
    - **Changing flow type**: Update `flow.type` and add/remove agent-specific nodes as needed.
 
    When **modifying a domain**, update `specs/domains/{domain}/domain.yaml`:
@@ -102,6 +108,8 @@ Parse the argument to determine what to update:
        + Added event: UserRateLimited to publishes_events
 
    Affected domains: users
+
+     Cross-cutting patterns applied: stealth_http (to service_call nodes)
 
    Next steps:
      - Reload the DDD Tool to see changes (Cmd+R)

@@ -1,27 +1,43 @@
 # DDD Commands Reference
 
-Nine Claude Code slash commands for the [Design Driven Development](https://github.com/mhcandan/DDD) workflow.
+Eleven Claude Code slash commands for the [Design Driven Development](https://github.com/mhcandan/DDD) four-phase lifecycle.
+
+```
+Phase 1: CREATE        Phase 2: DESIGN         Phase 3: BUILD          Phase 4: REFLECT
+Human intent → Specs   Human reviews in Tool   Specs → Code            Code wisdom → Specs
+
+/ddd-create            (DDD Tool)              /ddd-scaffold           /ddd-reverse
+/ddd-update                                    /ddd-implement          /ddd-sync --discover
+                                               /ddd-test               /ddd-reflect
+                                                                       /ddd-promote
+
+Cross-cutting (any phase): /ddd-status
+Meta-level: /ddd-evolve
+```
 
 ## Overview
 
-| Command | Options | Description |
-|---------|---------|-------------|
-| `/ddd-create` | `--from`, `--shortfalls` | Design a new project from description or design file → YAML specs |
-| `/ddd-reverse` | `--output`, `--domains`, `--merge`, `--strategy` | Reverse-engineer existing code → YAML specs |
-| `/ddd-scaffold` | — | Set up project skeleton from specs (Session B first step) |
-| `/ddd-implement` | `--all`, `domain`, `domain/flow` | Read specs → generate code + tests |
-| `/ddd-test` | `--all`, `--coverage`, `domain`, `domain/flow` | Run tests for implemented flows |
-| `/ddd-status` | `--json` | Quick read-only project overview |
-| `/ddd-update` | `--add-flow`, `--add-domain`, `domain/flow` | Natural language → updated specs |
-| `/ddd-sync` | `--discover`, `--fix-drift`, `--full` | Keep specs and code aligned |
-| `/ddd-evolve` | `--dir`, `--review`, `--apply` | Analyze shortfall reports → review → apply approved changes |
+| Phase | Command | Options | Description |
+|-------|---------|---------|-------------|
+| 1 Create | `/ddd-create` | `--from`, `--shortfalls` | Design a new project from description or design file → YAML specs |
+| 3 Build | `/ddd-scaffold` | — | Set up project skeleton from specs (first step of Phase 3) |
+| 3 Build | `/ddd-implement` | `--all`, `domain`, `domain/flow` | Read specs → generate code + tests |
+| 3 Build | `/ddd-test` | `--all`, `--coverage`, `domain`, `domain/flow` | Run tests for implemented flows |
+| 4 Reflect | `/ddd-reverse` | `--output`, `--domains`, `--merge`, `--strategy` | Reverse-engineer existing code → YAML specs |
+| 4 Reflect | `/ddd-reflect` | `--all`, `domain`, `domain/flow` | Capture implementation wisdom as annotations |
+| 4 Reflect | `/ddd-promote` | `--all`, `--review`, `domain/flow` | Move approved annotations into permanent specs |
+| Any | `/ddd-status` | `--json` | Quick read-only project overview |
+| Any | `/ddd-update` | `--add-flow`, `--add-domain`, `domain/flow` | Natural language → updated specs |
+| Any | `/ddd-sync` | `--discover`, `--fix-drift`, `--full` | Keep specs and code aligned |
+| Meta | `/ddd-evolve` | `--dir`, `--review`, `--apply` | Analyze shortfall reports → review → apply approved changes |
 
 ### Workflow
 
 ```
-New project:      /ddd-create → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test
-Existing project: /ddd-reverse → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test
+New project:      /ddd-create → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test → /ddd-reflect → /ddd-promote
+Existing project: /ddd-reverse → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test → /ddd-reflect → /ddd-promote
 Iterate:          /ddd-status → /ddd-update → /ddd-implement → /ddd-test → /ddd-sync
+Reflect:          /ddd-reflect → /ddd-promote --review → specs updated with implementation wisdom
 Evolve DDD:       /ddd-create --shortfalls → /ddd-evolve → /ddd-evolve --review → /ddd-evolve --apply
 ```
 
@@ -330,7 +346,7 @@ Summary showing:
 
 ## /ddd-scaffold
 
-Set up project skeleton and shared infrastructure from specs. Run this as the first step of Session B, before `/ddd-implement`.
+Set up project skeleton and shared infrastructure from specs. Run this as the first step of Phase 3 (Build), before `/ddd-implement`.
 
 ### Usage
 
@@ -516,6 +532,101 @@ Analyze DDD shortfall reports, critically evaluate each gap, and produce a prior
 
 ---
 
+## /ddd-reflect
+
+Capture implementation wisdom — patterns and details that code has but specs don't describe.
+
+### Usage
+
+```
+/ddd-reflect [scope]
+```
+
+### Scope
+
+| Argument | Scope | Example |
+|----------|-------|---------|
+| `--all` | Entire project | `/ddd-reflect --all` |
+| `domain-name` | All flows in a domain | `/ddd-reflect monitoring` |
+| `domain-name/flow-name` | Single flow | `/ddd-reflect monitoring/check-social-sources` |
+| *(empty)* | Interactive — shows flows and asks | `/ddd-reflect` |
+
+### Examples
+
+```
+# Reflect on entire project
+/ddd-reflect --all
+
+# Reflect on a single domain
+/ddd-reflect monitoring
+
+# Reflect on a specific flow
+/ddd-reflect monitoring/check-social-sources
+```
+
+### What it does
+
+1. Reads flow spec YAML and implementation files from mapping.yaml
+2. Compares what code does vs what spec describes
+3. Classifies findings into pattern categories using `architecture.yaml` cross_cutting_patterns as reference
+4. Writes annotations to `.ddd/annotations/{domain}/{flow}.yaml`
+5. Updates mapping.yaml `annotationCount` for each flow
+6. Reports: N patterns found, M new annotations, K already captured
+
+### Output
+
+Summary of discovered patterns with code evidence, written as annotation files for human review.
+
+---
+
+## /ddd-promote
+
+Move approved annotations into permanent specs. This is how implementation wisdom becomes part of the design.
+
+### Usage
+
+```
+/ddd-promote [scope]
+```
+
+### Scope
+
+| Argument | Scope | Example |
+|----------|-------|---------|
+| `--all` | Promote all approved annotations | `/ddd-promote --all` |
+| `--review` | Interactive review of candidates | `/ddd-promote --review` |
+| `domain-name/flow-name` | Scope to specific flow | `/ddd-promote monitoring/check-social-sources` |
+
+### Examples
+
+```
+# Interactive review of all annotations
+/ddd-promote --review
+
+# Promote all approved annotations
+/ddd-promote --all
+
+# Promote annotations for a specific flow
+/ddd-promote monitoring/check-social-sources
+```
+
+### What it does
+
+1. Reads `.ddd/annotations/` files
+2. Groups by status: candidate, approved, dismissed
+3. Presents candidates with code evidence for review
+4. For approved patterns:
+   - Cross-cutting → add to `architecture.yaml` cross_cutting_patterns
+   - Flow-specific → enrich the flow spec YAML
+   - Shared type/error → update shared/types.yaml or errors.yaml
+5. Updates annotation status and mapping.yaml
+
+### Output
+
+Report of what was promoted and where (which spec files were updated).
+
+---
+
 ## Typical Workflows
 
 ### New project from scratch
@@ -526,6 +637,9 @@ Analyze DDD shortfall reports, critically evaluate each gap, and produce a prior
 /ddd-scaffold
 /ddd-implement --all
 /ddd-test --all
+# After implementation stabilizes:
+/ddd-reflect --all
+/ddd-promote --review
 ```
 
 ### Existing codebase, no specs
@@ -536,6 +650,8 @@ Analyze DDD shortfall reports, critically evaluate each gap, and produce a prior
 /ddd-scaffold
 /ddd-implement --all
 /ddd-test --all
+/ddd-reflect --all       # Capture what reverse missed
+/ddd-promote --review    # Feed back into specs
 ```
 
 ### Add a feature
@@ -559,7 +675,9 @@ Analyze DDD shortfall reports, critically evaluate each gap, and produce a prior
 
 ```
 /ddd-status                   # see which flows drifted
-/ddd-sync --full
+/ddd-sync --full              # classify and resolve drift
+/ddd-reflect --all            # capture any code-ahead patterns
+/ddd-promote --review         # promote approved patterns to specs
 /ddd-test --all
 ```
 
@@ -571,4 +689,13 @@ Analyze DDD shortfall reports, critically evaluate each gap, and produce a prior
 /ddd-implement ...     # update code
 /ddd-test ...          # verify tests pass
 /ddd-sync              # verify alignment
+```
+
+### Capture implementation wisdom
+
+```
+/ddd-reflect --all            # scan all flows for code patterns not in specs
+/ddd-promote --review         # interactively approve/dismiss each finding
+# Approved patterns are written to architecture.yaml or flow specs
+# Future /ddd-implement runs will apply these patterns automatically
 ```

@@ -97,6 +97,16 @@ Wire connections with proper sourceHandle values. Position nodes vertically (~13
 
 **B4. Extract cross-cutting concerns**: Error codes → `shared/errors.yaml`. Shared enums → `shared/types.yaml`. Architecture patterns → `architecture.yaml`. Env vars → `config.yaml`. System + integrations → `system.yaml`.
 
+Additionally, scan for recurring patterns across flows and populate `architecture.yaml` → `cross_cutting_patterns`:
+- Detect stealth HTTP wrappers (user-agent rotation, proxy pools, cookie jars) → `stealth_http` pattern
+- Detect API key resolution utilities (DB + env fallback) → `api_key_resolution` pattern
+- Detect encryption helpers (AES, field-level encrypt/decrypt) → `encryption` pattern
+- Detect soft-delete filters (deletedAt: null on reads) → `soft_delete` pattern
+- Detect content hashing for deduplication → `content_hashing` pattern
+- Detect error handling patterns (retry, circuit breaker) → `error_handling` pattern
+- Set `used_by_domains` based on which domains reference each utility
+- Set `utility` path to the actual utility file location
+
 **B5. Wire events**: Map publish/consume across domains. Flag unmatched events.
 
 **B6. Generate all spec files** and proceed to Quality Checks and Coverage Verification.
@@ -124,7 +134,7 @@ Models: User, Order, OrderItem, Payment, ...
 
 **I4. Wire events** across all domains using the generated domain.yaml files.
 
-**I5. Generate system-level specs** (system.yaml, architecture.yaml, config.yaml, shared/).
+**I5. Generate system-level specs** (system.yaml, architecture.yaml with `cross_cutting_patterns`, config.yaml, shared/).
 
 Proceed to Quality Checks and Coverage Verification.
 
@@ -175,7 +185,7 @@ User:
 
 **S4. Generate schemas** from models.yaml (read source files only if model details are insufficient).
 
-**S5. Extract cross-cutting concerns and wire events** by reading the index files + generated specs.
+**S5. Extract cross-cutting concerns and wire events** by reading the index files + generated specs. Populate `architecture.yaml` → `cross_cutting_patterns` with discovered recurring patterns (stealth HTTP, API key resolution, encryption, soft-delete, error handling).
 
 **S6. Generate system-level specs.** Proceed to Quality Checks and Coverage Verification.
 
@@ -205,7 +215,7 @@ Found 47 entry points:
 
 **BU5. Build domain specs** (L2): Create domain.yaml files. Move flow specs from `.ddd/reverse/flows/` to `specs/domains/{domain}/flows/`. Wire events within and across domains.
 
-**BU6. Build system specs** (L2 → L1): Read only domain.yaml files and schema specs. Generate system.yaml, architecture.yaml, config.yaml, shared/.
+**BU6. Build system specs** (L2 → L1): Read only domain.yaml files and schema specs. Generate system.yaml, architecture.yaml (with `cross_cutting_patterns` from detected recurring patterns), config.yaml, shared/.
 
 **BU7. Orphan sweep**: Compare all source files against files referenced by any flow. Report unreferenced files — they may be missed entry points, shared utilities, or dead code.
 
@@ -289,6 +299,7 @@ Read ALL IR files + symbols/models.yaml (all compact). Resolve cross-references:
 # .ddd/reverse/linked/events.yaml — publisher ↔ consumer mapping
 # .ddd/reverse/linked/schemas.yaml — model → domain ownership
 # .ddd/reverse/linked/shared.yaml — cross-domain types, errors
+# .ddd/reverse/linked/patterns.yaml — cross-cutting patterns (stealth HTTP, encryption, etc.)
 ```
 
 Ask user to confirm domain groupings.
@@ -378,6 +389,7 @@ Now read ONLY codex.yaml + chains.yaml (both small — always fit in context). M
 - `B` codes → `batch` node (iterating an operation over a collection)
 - `if`/branching → `decision` node
 - status codes at chain end → `terminal` node
+- Recurring utility patterns across flows → `cross_cutting_patterns` in `architecture.yaml`
 
 Generate all flow specs, domain specs, schema specs, and system-level specs.
 
@@ -424,6 +436,7 @@ After generating specs, measure how much of the codebase is represented. Write c
 3. **Model coverage**: data models in ORM vs schema specs generated
 4. **Event coverage**: events published/consumed in code vs event nodes in specs
 5. **Function coverage**: exported functions vs functions referenced in flows
+6. **Cross-cutting patterns**: recurring utilities detected vs patterns documented
 
 **Coverage report format:**
 ```yaml
@@ -547,6 +560,7 @@ Schemas: user, session, order, order_item, payment
 Total flows: 9
 
 Coverage: {overall}% ({files covered}/{files total} files, {entry points covered}/{total} entry points, {models covered}/{total} models)
+Cross-cutting patterns: {N} detected
 
 Files created:
   ddd-project.json

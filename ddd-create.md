@@ -11,7 +11,16 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
 1. **Fetch the DDD Usage Guide**: Run `gh api repos/mhcandan/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all YAML formats, node types, spec fields, connection patterns, and conventions. It is your primary reference for creating correct specs.
 
-2. **Understand the project**: Read the user's description from `$ARGUMENTS`.
+2. **Check if this is an existing project**: Look for `ddd-project.json` in the current directory.
+   - If `ddd-project.json` already exists:
+     - Read `specs/architecture.yaml` — especially the `cross_cutting_patterns` section
+     - Read existing `specs/domains/*/domain.yaml` files for event wiring patterns
+     - Read `.ddd/annotations/` for accumulated implementation wisdom
+     - When creating new flows, automatically apply cross-cutting patterns from `architecture.yaml` to matching nodes (e.g., stealth_http to external fetches, soft_delete to reads, encryption to credential writes)
+     - Inform user: "Found existing project with N cross-cutting patterns. New flows will inherit: pattern1, pattern2, ..."
+   - If greenfield project (no `ddd-project.json`): proceed as before, but generate a `cross_cutting_patterns: {}` placeholder section in `architecture.yaml`
+
+3. **Understand the project**: Read the user's description from `$ARGUMENTS`.
 
    **If `--from` flag is present**, read the referenced design file first:
    - **Local image files** (PNG, JPG, SVG, etc.) — Read the file using the Read tool (it supports images). Extract: screens/pages, UI components, navigation flows, data entities visible in mockups, user interactions, API endpoints implied by forms/buttons.
@@ -65,7 +74,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
 5. **Create supplementary spec files**:
    - `specs/system.yaml` — project identity, tech stack, environments
-   - `specs/architecture.yaml` — project structure, naming conventions, dependencies, infrastructure, API design, testing, deployment
+   - `specs/architecture.yaml` — project structure, naming conventions, dependencies, infrastructure, API design, testing, deployment. Include a `cross_cutting_patterns: {}` placeholder section for patterns discovered during implementation.
    - `specs/config.yaml` — required and optional environment variables
    - `specs/shared/errors.yaml` — error codes with HTTP status mappings (cover at least: VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, DUPLICATE_ENTRY, RATE_LIMITED, INTERNAL_ERROR)
    - `specs/shared/types.yaml` — shared enums and value objects (if project has enums reused across 2+ schemas)
@@ -167,6 +176,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Shared enums referenced by schemas exist in `specs/shared/types.yaml`
    - `service_call` nodes reference integrations defined in `system.yaml` (if integrations section exists)
    - Agent flows have agent_loop with tools (at least one `is_terminal: true`)
+   - If this is an existing project with `cross_cutting_patterns`, verify new flows apply relevant patterns
 
 10. **Shortfall report** (only if `--shortfalls` flag is present in `$ARGUMENTS`): Generate `specs/shortfalls.yaml` documenting every DDD framework limitation you encountered. Be brutally honest — this report exists to improve DDD, not to make it look good.
 

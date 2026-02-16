@@ -1,6 +1,6 @@
 # DDD Scaffold
 
-Set up the project skeleton and shared infrastructure from DDD specs before implementing flows. This is the first step of Session B — it creates the project foundation that `/ddd-implement` builds on.
+Set up the project skeleton and shared infrastructure from DDD specs before implementing flows. This is the first step of Phase 3 (Build) — it creates the project foundation that `/ddd-implement` builds on.
 
 ## Instructions
 
@@ -72,6 +72,13 @@ Set up the project skeleton and shared infrastructure from DDD specs before impl
    - Test utilities (factory functions for models, mock helpers)
    - Example test to verify setup works
 
+   **Cross-cutting utilities** from `specs/architecture.yaml` → `cross_cutting_patterns` (if exists):
+   - For each pattern that has a `utility` field:
+     - Generate the utility file at the specified path (e.g., `src/utils/stealth-http.ts`)
+     - Use the pattern's `config`, and `convention` to shape the utility implementation
+     - Add exports to a barrel file if the project uses one
+   - If no `cross_cutting_patterns` section exists, skip this step
+
 6. **Create environment files:**
    - `.env.example` from `specs/config.yaml` (all variables with placeholder values)
    - `.env` with development defaults (if safe — no real secrets)
@@ -87,8 +94,8 @@ Set up the project skeleton and shared infrastructure from DDD specs before impl
    - If either fails, fix and retry
 
 9. **Initialize `.ddd/` tracking:**
-   - Create `.ddd/mapping.yaml` with empty `flows:` section
-   - This file will be populated by `/ddd-implement`
+   - Create `.ddd/mapping.yaml` with empty `flows:` section (populated by `/ddd-implement`)
+   - Create `.ddd/annotations/` directory with `.gitkeep` (populated by `/ddd-reflect`)
 
 10. **Summary**: After scaffolding, show:
     ```
