@@ -80,20 +80,25 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `layout` with flow positions (space flows vertically with ~200px gaps)
 
 7. **Create flow YAML files**: For each flow, create `specs/domains/{domain-id}/flows/{flow-id}.yaml` with:
-   - `flow` metadata (id, name, type, domain, description)
+   - `flow` metadata (id, name, type, domain, description). Optionally add `emits: string[]` and `listens_to: string[]` to summarize the flow's event surface.
    - `trigger` node with `spec.event` set to one of these conventions:
      - `HTTP {METHOD} {path}` for API endpoints
      - `cron {expression}` for scheduled jobs. Add `job_config` to the trigger spec with queue, concurrency, timeout, and retry settings
      - `event:{EventName}` for event-driven flows
      - `webhook {path}` for webhook handlers
      - `manual` for admin-triggered flows
+     - `shortcut {keys}` for keyboard shortcut triggers (e.g., `shortcut Cmd+K`)
+     - `timer {interval_ms}` for interval/polling triggers (e.g., `timer 10000`)
+     - `ui:{action}` for UI action triggers (e.g., `ui:DragDrop`)
+     - `ipc:{event}` for native IPC event triggers (e.g., `ipc:spec-files-changed`)
      - The label can match the event value or be more descriptive
    - For flows called as sub-flows, add a `contract` section to the flow metadata with `inputs` and `outputs`
    - `nodes` array — design the complete node graph:
      - Always start with `input` node after trigger for API flows (validate incoming data)
      - Use `decision` nodes for branching logic (always wire both `true` and `false`)
-     - Use `data_store` for database operations (set `operation`, `model`, `data`/`query`)
+     - Use `data_store` for data storage operations. Set `store_type` to `'database'` (default), `'filesystem'`, or `'memory'`. For database: set `operation`, `model`, `data`/`query`. For filesystem: set `path`, `content`, `create_parents`. For memory: set `store`, `selector`. Optionally set `safety: 'strict'` for null-safe code generation on reads.
      - Use `service_call` for external API calls (set `method`, `url`, `error_mapping`)
+     - Use `ipc_call` for local IPC or native function calls — Tauri commands, Electron IPC, React Native bridge (set `command`, `args`, `return_type`, optionally `bridge` and `timeout_ms`)
      - Use `event` nodes to publish/consume domain events (set `direction` to `'emit'` or `'consume'`, `event_name`, and `payload`)
      - Use `loop` for iteration, `parallel` for concurrent operations
      - Use `collection` for in-memory data transformations (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten)
@@ -111,6 +116,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `decision` → `"true"` / `"false"`
      - `data_store` → `"success"` / `"error"`
      - `service_call` → `"success"` / `"error"`
+     - `ipc_call` → `"success"` / `"error"`
      - `loop` → `"body"` / `"done"`
      - `parallel` → `"branch-0"`, `"branch-1"`, ... / `"done"`
      - `guardrail` → `"pass"` / `"block"`
