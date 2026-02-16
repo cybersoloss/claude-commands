@@ -76,11 +76,13 @@ Create a complete DDD (Design Driven Development) project from a software projec
 6. **Create domain YAML files**: For each domain, create `specs/domains/{domain-id}/domain.yaml` with:
    - `name`, `description`
    - `flows` array (id, name, description, type)
+   - `stores` array (optional) — declare in-memory state stores with `name`, `shape`, `selectors`, `access_pattern` (e.g., Zustand/Redux stores). Referenced by `data_store` nodes with `store_type: memory`.
+   - `on_error` (optional) — domain-level error hook with `emit_event` name. `/ddd-implement` adds this to all error terminals.
    - `publishes_events` and `consumes_events` (cross-domain event wiring). Include `payload` field in events to document event data shape
    - `layout` with flow positions (space flows vertically with ~200px gaps)
 
 7. **Create flow YAML files**: For each flow, create `specs/domains/{domain-id}/flows/{flow-id}.yaml` with:
-   - `flow` metadata (id, name, type, domain, description). Optionally add `emits: string[]` and `listens_to: string[]` to summarize the flow's event surface.
+   - `flow` metadata (id, name, type, domain, description). Optionally add `emits: string[]` and `listens_to: string[]` to summarize the flow's event surface. For flows triggered by keyboard shortcuts, add `keyboard_shortcut` (e.g., `"Cmd+K"`).
    - `trigger` node with `spec.event` set to one of these conventions:
      - `HTTP {METHOD} {path}` for API endpoints
      - `cron {expression}` for scheduled jobs. Add `job_config` to the trigger spec with queue, concurrency, timeout, and retry settings
@@ -96,7 +98,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `nodes` array — design the complete node graph:
      - Always start with `input` node after trigger for API flows (validate incoming data)
      - Use `decision` nodes for branching logic (always wire both `true` and `false`)
-     - Use `data_store` for data storage operations. Set `store_type` to `'database'` (default), `'filesystem'`, or `'memory'`. For database: set `operation`, `model`, `data`/`query`. For filesystem: set `path`, `content`, `create_parents`. For memory: set `store`, `selector`. Optionally set `safety: 'strict'` for null-safe code generation on reads.
+     - Use `data_store` for data storage operations. Set `store_type` to `'database'` (default), `'filesystem'`, or `'memory'`. For database: set `operation` (create/read/update/delete/upsert), `model`, `data`/`query`. For filesystem: set `path`, `content`, `create_parents`. For memory: set `store`, `selector`, and prefer memory operations (`get`/`set`/`merge`/`reset`/`subscribe`/`update_where`). Use `update_where` with `predicate` + `patch` for array item updates. Optionally set `safety: 'strict'` for null-safe code generation on reads.
      - Use `service_call` for external API calls (set `method`, `url`, `error_mapping`)
      - Use `ipc_call` for local IPC or native function calls — Tauri commands, Electron IPC, React Native bridge (set `command`, `args`, `return_type`, optionally `bridge` and `timeout_ms`)
      - Use `event` nodes to publish/consume domain events (set `direction` to `'emit'` or `'consume'`, `event_name`, and `payload`)
