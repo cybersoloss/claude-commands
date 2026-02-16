@@ -18,8 +18,6 @@ This installs all commands (general dev + DDD) into `~/.claude/commands/`. Resta
 cd ~/.claude/commands && git pull
 ```
 
-`git pull` automatically re-installs commands via a post-merge hook.
-
 ## Commands
 
 ### Quick Reference

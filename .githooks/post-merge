@@ -1,3 +1,0 @@
-#!/bin/bash
-# Auto-install commands after git pull
-"$(git rev-parse --show-toplevel)/install.sh"
