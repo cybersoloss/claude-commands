@@ -1,6 +1,6 @@
 # DDD Commands Reference
 
-Eight Claude Code slash commands for the [Design Driven Development](https://github.com/mhcandan/DDD) workflow.
+Nine Claude Code slash commands for the [Design Driven Development](https://github.com/mhcandan/DDD) workflow.
 
 ## Overview
 
@@ -13,6 +13,7 @@ Eight Claude Code slash commands for the [Design Driven Development](https://git
 /ddd-status     Quick read-only project overview
 /ddd-update     Natural language → updated specs
 /ddd-sync       Keep specs and code aligned
+/ddd-evolve     Analyze shortfall reports → prioritized evolution plan
 ```
 
 ### Workflow
@@ -21,6 +22,7 @@ Eight Claude Code slash commands for the [Design Driven Development](https://git
 New project:      /ddd-create → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test
 Existing project: /ddd-reverse → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test
 Iterate:          /ddd-status → /ddd-update → /ddd-implement → /ddd-test → /ddd-sync
+Evolve DDD:       /ddd-create --shortfalls → (repeat across projects) → /ddd-evolve → /ddd-evolve --apply
 ```
 
 ---
@@ -432,6 +434,52 @@ Run tests for implemented flows without re-generating code.
 ### Output
 
 Table with domain/flow, test counts, pass/fail, and failure analysis with suggestions.
+
+---
+
+## /ddd-evolve
+
+Analyze DDD shortfall reports, critically evaluate each gap, and produce a prioritized recommendation plan for human decision-making.
+
+### Usage
+
+```
+/ddd-evolve <shortfalls.yaml> [<shortfalls2.yaml> ...]
+/ddd-evolve --apply <evolution-plan.yaml>
+```
+
+### Examples
+
+```
+# Analyze shortfalls from one project
+/ddd-evolve ~/code/my-app/specs/shortfalls.yaml
+
+# Analyze across multiple projects for stronger signal
+/ddd-evolve ~/code/proj-a/specs/shortfalls.yaml ~/code/proj-b/specs/shortfalls.yaml ~/code/proj-c/specs/shortfalls.yaml
+
+# Apply approved changes from evolution plan
+/ddd-evolve --apply ddd-evolution-plan.yaml
+```
+
+### What it does
+
+1. Reads all shortfall files and deduplicates across projects
+2. Critically evaluates each shortfall through 6 filters:
+   - **Already possible?** — check if DDD can already do it
+   - **Frequency test** — how many projects reported it (1 = weak, 3+ = systemic)
+   - **Specificity test** — actionable or vague?
+   - **Scope test** — breaking vs additive vs docs-only
+   - **Workaround quality** — blocked vs lossy vs adequate
+   - **Design intent** — intentional limitation or real gap?
+3. Classifies each as: `REAL_GAP`, `ENHANCEMENT`, `VAGUE`, `ALREADY_POSSIBLE`, `BY_DESIGN`, or `PROJECT_SPECIFIC`
+4. Produces a tiered evolution plan with `decision: null` fields for human approval
+5. With `--apply`: executes approved items (updates spec, commands, and tool code)
+
+### Output
+
+- `ddd-evolution-plan.yaml` with tiered recommendations
+- Summary table showing real gaps, enhancements, and not-actionable items
+- Recommended execution order for approved items
 
 ---
 
