@@ -4,17 +4,17 @@ Nine Claude Code slash commands for the [Design Driven Development](https://gith
 
 ## Overview
 
-```
-/ddd-create     Design a new project from description → YAML specs
-/ddd-reverse    Reverse-engineer existing code → YAML specs
-/ddd-scaffold   Set up project skeleton from specs (Session B first step)
-/ddd-implement  Read specs → generate code + tests
-/ddd-test       Run tests for implemented flows
-/ddd-status     Quick read-only project overview
-/ddd-update     Natural language → updated specs
-/ddd-sync       Keep specs and code aligned
-/ddd-evolve     Analyze shortfall reports → prioritized evolution plan
-```
+| Command | Options | Description |
+|---------|---------|-------------|
+| `/ddd-create` | `--shortfalls` | Design a new project from description → YAML specs |
+| `/ddd-reverse` | `--output`, `--domains`, `--merge`, `--strategy` | Reverse-engineer existing code → YAML specs |
+| `/ddd-scaffold` | — | Set up project skeleton from specs (Session B first step) |
+| `/ddd-implement` | `--all`, `domain`, `domain/flow` | Read specs → generate code + tests |
+| `/ddd-test` | `--all`, `--coverage`, `domain`, `domain/flow` | Run tests for implemented flows |
+| `/ddd-status` | `--json` | Quick read-only project overview |
+| `/ddd-update` | `--add-flow`, `--add-domain`, `domain/flow` | Natural language → updated specs |
+| `/ddd-sync` | `--discover`, `--fix-drift`, `--full` | Keep specs and code aligned |
+| `/ddd-evolve` | `--review`, `--apply` | Analyze shortfall reports → review → apply approved changes |
 
 ### Workflow
 
@@ -22,7 +22,7 @@ Nine Claude Code slash commands for the [Design Driven Development](https://gith
 New project:      /ddd-create → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test
 Existing project: /ddd-reverse → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test
 Iterate:          /ddd-status → /ddd-update → /ddd-implement → /ddd-test → /ddd-sync
-Evolve DDD:       /ddd-create --shortfalls → (repeat across projects) → /ddd-evolve → /ddd-evolve --apply
+Evolve DDD:       /ddd-create --shortfalls → /ddd-evolve → /ddd-evolve --review → /ddd-evolve --apply
 ```
 
 ---
