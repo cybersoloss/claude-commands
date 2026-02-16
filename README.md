@@ -63,19 +63,53 @@ Run `/helpmecode` for the complete guide.
 
 ### DDD (Design Driven Development) Commands
 
-Design software visually as flow graphs, generate YAML specs, then implement with AI. See `/DDD-commands` for full reference.
+<!-- NOTE: When adding or changing DDD commands, update this section AND /DDD-commands reference -->
 
-| Command | Description |
-|---------|-------------|
-| `/ddd-create` | Describe a project → full DDD spec structure (`--shortfalls` for gap analysis) |
-| `/ddd-reverse` | Reverse-engineer existing code → DDD specs |
-| `/ddd-scaffold` | Set up project skeleton from specs |
-| `/ddd-implement` | Read specs → generate code + tests |
-| `/ddd-test` | Run tests for implemented flows |
-| `/ddd-status` | Quick read-only project overview |
-| `/ddd-update` | Natural language → updated specs |
-| `/ddd-sync` | Keep specs and code aligned |
-| `/ddd-evolve` | Analyze shortfall reports → prioritized evolution plan |
+Design software visually as flow graphs, generate YAML specs, then implement with AI. See `/DDD-commands` for full reference with detailed docs.
+
+**Workflows:**
+```
+New project:      /ddd-create → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test
+Existing project: /ddd-reverse → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test
+Iterate:          /ddd-status → /ddd-update → /ddd-implement → /ddd-test → /ddd-sync
+Evolve DDD:       /ddd-create --shortfalls → /ddd-evolve → human approves → /ddd-evolve --apply
+```
+
+| Command | Options | Description |
+|---------|---------|-------------|
+| `/ddd-create` | `--shortfalls` | Describe a project → full DDD spec structure |
+| `/ddd-reverse` | `--output`, `--domains`, `--merge`, `--strategy` | Reverse-engineer existing code → DDD specs |
+| `/ddd-scaffold` | — | Set up project skeleton from specs |
+| `/ddd-implement` | `--all`, `domain`, `domain/flow` | Read specs → generate code + tests |
+| `/ddd-test` | `--all`, `--coverage`, `domain`, `domain/flow` | Run tests for implemented flows |
+| `/ddd-status` | `--json` | Quick read-only project overview |
+| `/ddd-update` | `--add-flow`, `--add-domain`, `domain/flow` | Natural language → updated specs |
+| `/ddd-sync` | `--discover`, `--fix-drift`, `--full` | Keep specs and code aligned |
+| `/ddd-evolve` | `--apply` | Analyze shortfall reports → prioritized evolution plan |
+
+**Examples:**
+```bash
+# Design a new project
+/ddd-create A SaaS platform for restaurant orders. Node.js, Express, PostgreSQL.
+
+# Design with gap analysis
+/ddd-create An AI moderation service. TypeScript, Hono, Anthropic API. --shortfalls
+
+# Reverse-engineer existing code
+/ddd-reverse ~/code/my-app --strategy compiler
+
+# Implement all flows
+/ddd-implement --all
+
+# Update a specific flow
+/ddd-update users/user-register add rate limiting before input
+
+# Check project state
+/ddd-status
+
+# Analyze DDD framework gaps across projects
+/ddd-evolve ~/proj-a/specs/shortfalls.yaml ~/proj-b/specs/shortfalls.yaml
+```
 
 ### Utility Commands
 
