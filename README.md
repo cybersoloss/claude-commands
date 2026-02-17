@@ -1,8 +1,10 @@
 # Claude Code Commands
 
-Custom slash commands for AI-native software development with Claude Code.
+A curated collection of slash commands for AI-native software development with Claude Code.
 
-Built on insights from McKinsey research, Jellyfish, Sonar, and Cursor.
+**DDD commands** (Design Driven Development) are original work — the methodology, spec format, and all 12 commands. See the [DDD repo](https://github.com/cybersoloss/DDD) for documentation.
+
+**All other commands** (code verification, workflow, team & process, utility) are curated from third-party sources and distributed here for healthy code practices. Built on insights from McKinsey research, Jellyfish, Sonar, and Cursor.
 
 ## Installation
 
@@ -17,6 +19,8 @@ This installs all commands (general dev + DDD) into `~/.claude/commands/`. Resta
 ```bash
 cd ~/.claude/commands && git pull
 ```
+
+`git pull` automatically fetches the latest DDD commands via a post-merge hook.
 
 ## Commands
 
@@ -68,9 +72,9 @@ Run `/helpmecode` for the complete guide.
 | `/notes-search` | Search Apple Notes by keyword |
 | `/helpmecode` | This command guide |
 
-## DDD Commands
+## DDD Commands (Original)
 
-12 [Design Driven Development](https://github.com/mhcandan/DDD) commands are included in this repo. See the DDD repo for methodology documentation.
+12 [Design Driven Development](https://github.com/cybersoloss/DDD) commands are included in this repo. These are original commands for the DDD methodology. See the DDD repo for documentation.
 
 ## Usage
 
@@ -103,13 +107,15 @@ Run `/helpmecode` for the complete guide.
 3. Repeatability
 4. Evidence
 
-## Sources
+## Sources & Attribution
 
-Built on insights from:
+The non-DDD commands are curated from third-party insights:
 - McKinsey research on AI in software development
 - Andrew Lau, CEO of Jellyfish
 - Tariq Shaukat, CEO of Sonar
 - Cursor workflow patterns
+
+We do not claim authorship of these commands — they are distributed here for the sake of healthy code practices.
 
 ## License
 
