@@ -77,11 +77,23 @@ Parse the argument to determine what to update:
    - Every flow still has exactly one trigger
    - All paths from trigger reach a terminal (no dead ends)
    - No orphaned nodes (all reachable from trigger)
-   - Decision nodes have both true and false branches
    - Node IDs are unique within the flow
    - All connections reference valid node IDs
+   - Branching nodes have all output paths wired:
+     - Decision: both `true` and `false` branches
+     - Input: both `valid` and `invalid` paths
+     - Data Store, Service Call, IPC Call, LLM Call, Parse, Crypto: both `success` and `error` paths
+     - Loop: both `body` and `done` paths
+     - Parallel: all `branch-N` paths plus `done`
+     - Cache: both `hit` and `miss` paths
+     - Collection: both `result` and `empty` paths
+     - Guardrail: both `pass` and `block` paths
+     - Agent Loop, Batch: both `done` and `error` paths
+     - Transaction: both `committed` and `rolled_back` paths
+     - Smart Router: connections for each `rules[].id` value
+     - Human Gate: connections for each `approval_options[].id` value
    - Event wiring is consistent (published events match consumed events across domains)
-   - Agent flows have at least one agent_loop with tools and a terminal tool
+   - Agent flows have at least one agent_loop with `model`, tools, and a terminal tool
 
 7. **Preserve existing data**: When updating a flow:
    - Keep all nodes that aren't being changed — don't regenerate the entire flow

@@ -114,7 +114,7 @@ Parse the argument to determine scope:
    - `human_gate` → dynamic handles from `approval_options[].id` values
 
    **Terminal nodes → HTTP responses**: Use `status` and `body` fields from terminal spec:
-   - `status` → HTTP status code (e.g., 201, 400, 409)
+   - `status` → HTTP status code (e.g., 201, 422, 409)
    - `body` → response body shape (values starting with `$.` are variable references)
    - Map `body.error` values to error codes defined in `specs/shared/errors.yaml` for consistent error responses
 
