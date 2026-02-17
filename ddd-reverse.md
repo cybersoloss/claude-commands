@@ -90,6 +90,17 @@ For each entry point, read the handler and trace through called functions to bui
 - Encryption/hashing/signing → `crypto` node
 - Bulk/batch operations over collections → `batch` node
 - Multi-step atomic DB operations → `transaction` node
+- Local IPC / native bridge calls (Tauri, Electron) → `ipc_call` node
+- Cache lookups / cache-before-fetch patterns → `cache` node
+- Deliberate waits, rate limiting, sleep → `delay` node
+- Pure data reshaping / field mapping → `transform` node
+- LLM agent loops with tool dispatch → `agent_loop` node
+- Input/output validation guards → `guardrail` node
+- Human approval workflows → `human_gate` node
+- Multi-agent coordination → `orchestrator` node
+- Routing logic to different agents/handlers → `smart_router` node
+- Agent context transfer → `handoff` node
+- Parallel agent teams → `agent_group` node
 - Response/return → `terminal` node (outcome, status, body)
 - Error handling → `terminal` on error paths
 
@@ -541,6 +552,8 @@ Wire with proper `sourceHandle` values:
 - `crypto` → `"success"` / `"error"`
 - `batch` → `"done"` / `"error"`
 - `transaction` → `"committed"` / `"rolled_back"`
+- `ipc_call` → `"success"` / `"error"`
+- `cache` → `"hit"` / `"miss"`
 - All other nodes → single output connection
 
 ### Summary report

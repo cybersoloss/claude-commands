@@ -82,6 +82,10 @@ Parse the argument to determine scope:
    - `smart_router` → routing logic from `rules` and/or `llm_routing`
    - `handoff` → agent transfer with context passing per `mode` (transfer/consult/collaborate)
    - `agent_group` → agent team coordination with shared memory
+   - `ipc_call` → local IPC or native function call (e.g., Tauri invoke, Electron IPC)
+   - `cache` → cache check before expensive operations (get/set/invalidate on cache store)
+   - `delay` → deliberate wait (rate limiting, scheduling) with `duration_ms` or `until`
+   - `transform` → structured data mapping between formats using `input_schema`/`output_schema`/`mapping`
    - `collection` → collection operation (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten) on input
    - `parse` → structured extraction from raw format (rss, atom, html, xml, json, csv, markdown)
    - `crypto` → cryptographic operation (encrypt, decrypt, hash, sign, verify, generate_key)
@@ -95,6 +99,11 @@ Parse the argument to determine scope:
    - `service_call` → `"success"` path (continue) / `"error"` path (use `error_mapping` to map HTTP status codes to error codes)
    - `loop` → `"body"` path (loop body) / `"done"` path (after loop completes)
    - `parallel` → `"branch-0"`, `"branch-1"`, etc. (parallel branches) / `"done"` path (join point)
+   - `ipc_call` → `"success"` path (continue) / `"error"` path (IPC error handling)
+   - `cache` → `"hit"` path (use cached value) / `"miss"` path (fetch fresh data)
+   - `guardrail` → `"pass"` path (continue) / `"block"` path (blocked terminal)
+   - `agent_loop` → `"done"` path (final answer) / `"error"` path (max iterations or failure)
+   - `llm_call` → `"success"` path (continue) / `"error"` path (LLM error handling)
    - `smart_router` → dynamic route names as handle IDs
    - `collection` → `"result"` path / `"empty"` path
    - `parse` → `"success"` path / `"error"` path
@@ -102,6 +111,7 @@ Parse the argument to determine scope:
    - `batch` → `"done"` path / `"error"` path
    - `transaction` → `"committed"` path / `"rolled_back"` path
    - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
+   - `human_gate` → dynamic handles from `approval_options[].id` values
 
    **Terminal nodes → HTTP responses**: Use `status` and `body` fields from terminal spec:
    - `status` → HTTP status code (e.g., 201, 400, 409)

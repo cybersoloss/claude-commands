@@ -2,7 +2,7 @@
 
 A curated collection of slash commands for AI-native software development with Claude Code.
 
-**DDD commands** (Design Driven Development) are original work — the methodology, spec format, and all 12 commands. See the [DDD repo](https://github.com/cybersoloss/DDD) for documentation.
+**DDD commands** (Design Driven Development) are original work — the methodology, spec format, and all 11 commands. See the [DDD repo](https://github.com/cybersoloss/DDD) for documentation.
 
 **All other commands** (code verification, workflow, team & process, utility) are curated from third-party sources and distributed here for healthy code practices. Built on insights from McKinsey research, Jellyfish, Sonar, and Cursor.
 
@@ -74,7 +74,7 @@ Run `/helpmecode` for the complete guide.
 
 ## DDD Commands (Original)
 
-12 [Design Driven Development](https://github.com/cybersoloss/DDD) commands are included in this repo. These are original commands for the DDD methodology. See the DDD repo for documentation.
+11 [Design Driven Development](https://github.com/cybersoloss/DDD) commands are included in this repo. These are original commands for the DDD methodology. See the DDD repo for documentation.
 
 ## Usage
 
