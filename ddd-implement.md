@@ -84,8 +84,8 @@ Parse the argument to determine scope:
    - `agent_group` → agent team coordination with shared memory
    - `ipc_call` → local IPC or native function call (e.g., Tauri invoke, Electron IPC)
    - `cache` → cache check before expensive operations (get/set/invalidate on cache store)
-   - `delay` → deliberate wait (rate limiting, scheduling) with `duration_ms` or `until`
-   - `transform` → structured data mapping between formats using `input_schema`/`output_schema`/`mapping`
+   - `delay` → deliberate wait (rate limiting, scheduling) with `min_ms`, `max_ms`, `strategy`
+   - `transform` → structured data mapping between formats using `input_schema`/`output_schema`/`field_mappings`
    - `collection` → collection operation (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten) on input
    - `parse` → structured extraction from raw format (rss, atom, html, xml, json, csv, markdown)
    - `crypto` → cryptographic operation (encrypt, decrypt, hash, sign, verify, generate_key)

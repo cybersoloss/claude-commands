@@ -139,6 +139,8 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `batch` → `"done"` / `"error"`
      - `transaction` → `"committed"` / `"rolled_back"`
      - `cache` → `"hit"` / `"miss"`
+     - `smart_router` → dynamic route IDs (from `rules[].id`)
+     - `human_gate` → dynamic option IDs (from `approval_options[].id`)
      - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
    - Position nodes vertically with ~130px spacing, branch error terminals to the right
    - `metadata` with created and modified timestamps (current ISO)
@@ -168,6 +170,9 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Transaction nodes have committed/rolled_back paths wired
    - Cache nodes have hit/miss paths wired
    - Guardrail nodes have pass/block paths wired
+   - IPC call nodes have success/error paths wired
+   - LLM call nodes have success/error paths wired
+   - Agent loop nodes have done/error paths wired
    - Terminal nodes have `status` and `body` for HTTP-triggered flows
    - Error terminals reference error codes from `specs/shared/errors.yaml`
    - Published events have matching consumers across domains (or note warnings)
