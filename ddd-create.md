@@ -88,6 +88,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `stores` array (optional) — declare in-memory state stores with `name`, `shape`, `selectors`, `access_pattern` (e.g., Zustand/Redux stores). Referenced by `data_store` nodes with `store_type: memory`.
    - `on_error` (optional) — domain-level error hook with `emit_event` name. `/ddd-implement` adds this to all error terminals.
    - `publishes_events` and `consumes_events` (cross-domain event wiring). Include `payload` field in events to document event data shape
+   - `event_groups` (optional) — named collections of events for use in multi-event triggers. Define `name`, `description`, and `events` array. Referenced as `event_group:{name}` in trigger `event` fields.
    - `layout` with flow positions (space flows vertically with ~200px gaps)
 
 7. **Create flow YAML files**: For each flow, create `specs/domains/{domain-id}/flows/{flow-id}.yaml` with:
@@ -102,6 +103,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `timer {interval_ms}` for interval/polling triggers (e.g., `timer 10000`)
      - `ui:{action}` for UI action triggers (e.g., `ui:DragDrop`)
      - `ipc:{event}` for native IPC event triggers (e.g., `ipc:spec-files-changed`)
+     - `event_group:{name}` for triggers that consume a named group of events (define event_groups in domain.yaml)
      - The label can match the event value or be more descriptive
    - For flows called as sub-flows, add a `contract` section to the flow metadata with `inputs` and `outputs`
    - `nodes` array — design the complete node graph:

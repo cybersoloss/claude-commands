@@ -73,7 +73,7 @@ For small codebases (< 30 files) where everything fits in context.
 **B3. Extract flows**: For each domain, scan for entry points:
 - HTTP routes → trigger `HTTP {METHOD} {path}`
 - Cron/scheduled jobs → trigger `cron {expression}` with `job_config`
-- Event listeners → trigger `event:{EventName}`
+- Event listeners → trigger `event:{EventName}` (or `event_group:{name}` if consuming a group of events defined in domain.yaml)
 - WebSocket/SSE → trigger `ws {path}` or `sse {path}`
 
 For each entry point, read the handler and trace through called functions to build the node graph:
