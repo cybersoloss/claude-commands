@@ -30,6 +30,11 @@ Restart Claude Code to load the commands.
 cd claude-commands && git pull && ./install.sh
 ```
 
+**Uninstall:**
+```bash
+rm ~/.claude/commands/ddd-*.md ~/.claude/commands/DDD-commands.md
+```
+
 ## Commands
 
 ### Phase 1: Create
