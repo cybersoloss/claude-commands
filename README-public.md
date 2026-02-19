@@ -19,21 +19,127 @@ cd ~/.claude/commands && git pull
 
 ## Commands
 
-| Phase | Command | What it does |
-|-------|---------|-------------|
-| Create | `/ddd-create` | Describe a project in natural language → full YAML spec structure. Use `--from` for design files, `--shortfalls` for gap analysis. |
-| Create | `/ddd-reverse` | Reverse-engineer existing code → YAML specs (6 strategies by codebase size) |
-| Any | `/ddd-update` | Natural language change request → updated YAML specs |
-| Build | `/ddd-scaffold` | Set up project skeleton from specs |
-| Build | `/ddd-implement` | Read specs → generate flow code + tests, update mapping |
-| Build | `/ddd-test` | Run tests for implemented flows |
-| Reflect | `/ddd-sync` | Sync mapping, discover untracked code, fix drifted implementations |
-| Reflect | `/ddd-reflect` | Capture implementation wisdom as annotations |
-| Reflect | `/ddd-promote` | Move approved annotations into permanent specs |
-| Any | `/ddd-status` | Quick read-only overview of project implementation state |
-| Meta | `/ddd-evolve` | Analyze shortfall reports → review → apply approved changes |
+### Phase 1: Create
 
-See [DDD-commands.md](DDD-commands.md) for detailed documentation of each command with examples and options.
+**`/ddd-create <description> [--from <path-or-url>] [--shortfalls]`**
+
+Generate a complete spec structure from a project description.
+
+| Option | Purpose |
+|--------|---------|
+| `--from <path-or-url>` | Use a design file as input — images (PNG, JPG), PDFs, markdown, YAML, or URLs (Figma, Miro, web pages) |
+| `--shortfalls` | Generate `specs/shortfalls.yaml` documenting framework gaps encountered during design |
+
+```bash
+/ddd-create A SaaS platform for restaurant orders. Node.js, Express, PostgreSQL.
+/ddd-create --from ~/designs/wireframes.png E-commerce platform
+/ddd-create --from https://figma.com/file/abc123 Social media dashboard --shortfalls
+```
+
+### Phase 3: Build
+
+**`/ddd-scaffold`**
+
+Set up project skeleton and shared infrastructure from specs. No arguments — reads `system.yaml`, `architecture.yaml`, schemas, and generates package config, directory structure, database models, error classes, config loader, test setup.
+
+**`/ddd-implement [scope]`**
+
+Generate working code and tests from specs.
+
+| Scope | Example |
+|-------|---------|
+| `--all` | `/ddd-implement --all` — all domains, all flows |
+| `<domain>` | `/ddd-implement users` — all flows in a domain |
+| `<domain/flow>` | `/ddd-implement users/user-register` — single flow |
+| *(empty)* | Interactive — shows flows and asks |
+
+**`/ddd-test [scope] [--coverage]`**
+
+Run tests for implemented flows.
+
+| Scope | Example |
+|-------|---------|
+| `--all` | `/ddd-test --all` |
+| `<domain>` | `/ddd-test users` |
+| `<domain/flow>` | `/ddd-test users/user-register` |
+| `--coverage` | `/ddd-test --all --coverage` — include coverage report |
+
+### Phase 4: Reflect
+
+**`/ddd-reverse <project-path> [flags]`**
+
+Reverse-engineer existing code into specs. Auto-selects strategy by codebase size.
+
+| Flag | Purpose | Default |
+|------|---------|---------|
+| `--output <path>` | Where to write specs | Same as project path |
+| `--domains <d1,d2>` | Only reverse specific domains | All |
+| `--merge` | Merge with existing specs instead of overwriting | Overwrite |
+| `--strategy <name>` | Override strategy: `baseline` (<30 files), `index` (30–80), `swap` (80–150), `bottom-up` (150–300), `compiler` (300–500), `codex` (500+) | Auto by file count |
+
+**`/ddd-reflect [scope]`**
+
+Capture implementation wisdom — patterns code has that specs don't describe. Writes annotations to `.ddd/annotations/`.
+
+| Scope | Example |
+|-------|---------|
+| `--all` | `/ddd-reflect --all` |
+| `<domain>` | `/ddd-reflect monitoring` |
+| `<domain/flow>` | `/ddd-reflect monitoring/check-social-sources` |
+
+**`/ddd-promote [scope]`**
+
+Move approved annotations into permanent specs.
+
+| Scope | Example |
+|-------|---------|
+| `--review` | `/ddd-promote --review` — interactive review of each candidate |
+| `--all` | `/ddd-promote --all` — promote all approved annotations |
+| `<domain/flow>` | `/ddd-promote monitoring/check-social-sources` |
+
+### Cross-cutting (Any Phase)
+
+**`/ddd-update [scope] <change description>`**
+
+Update specs from natural language.
+
+| Scope | Example |
+|-------|---------|
+| `<domain/flow>` | `/ddd-update users/user-register add rate limiting` |
+| `<domain>` | `/ddd-update users add email verification flow` |
+| `--add-flow <domain>` | `/ddd-update --add-flow orders add refund-order flow` |
+| `--add-domain` | `/ddd-update --add-domain add notifications domain with email and push flows` |
+
+**`/ddd-sync [flags]`**
+
+Keep specs and implementation aligned.
+
+| Flag | What it does |
+|------|-------------|
+| *(none)* | Sync `.ddd/mapping.yaml` with current implementation state |
+| `--discover` | Scan for untracked code, suggest new flow specs |
+| `--fix-drift` | Re-implement drifted flows from updated specs |
+| `--full` | All of the above |
+
+**`/ddd-status [--json]`**
+
+Read-only overview showing each flow's status (up to date, drifted, stale, not implemented). Use `--json` for machine-readable output.
+
+### Meta
+
+**`/ddd-evolve`**
+
+Analyze shortfall reports and produce prioritized evolution plans.
+
+| Mode | Usage |
+|------|-------|
+| Analyze | `/ddd-evolve specs/shortfalls.yaml` or `/ddd-evolve --dir ~/code/proj-a --dir ~/code/proj-b` |
+| Review | `/ddd-evolve --review ddd-evolution-plan.yaml` — interactive approve/defer/reject |
+| Apply | `/ddd-evolve --apply ddd-evolution-plan.yaml` — execute approved changes |
+
+## Full Reference
+
+See [DDD-commands.md](DDD-commands.md) for detailed documentation including what each command does step-by-step, output formats, and extended examples.
 
 ## Typical Workflows
 
