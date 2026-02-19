@@ -9,14 +9,17 @@ Slash commands for the [Design Driven Development](https://github.com/cybersolos
 ## Installation
 
 ```bash
-git clone https://github.com/cybersoloss/claude-commands.git ~/.claude/commands
+git clone https://github.com/cybersoloss/claude-commands.git
+cd claude-commands && ./install.sh
 ```
+
+This copies the 11 DDD command files into `~/.claude/commands/`. Safe to run if you already have other commands there — it won't overwrite non-DDD files.
 
 Restart Claude Code to load the commands.
 
-**Update:**
+**Update:** Re-run `install.sh` after pulling new versions:
 ```bash
-cd ~/.claude/commands && git pull
+cd claude-commands && git pull && ./install.sh
 ```
 
 ## Commands
