@@ -62,8 +62,16 @@ Parse the argument to determine scope:
    - `HTTP {METHOD} {path}` → route handler (e.g., Express route, FastAPI endpoint)
    - `cron {expression}` → scheduled job (e.g., node-cron, BullMQ repeatable). If the trigger has `job_config`, configure the job queue (e.g., BullMQ) with the specified concurrency, timeout, retry, and dead_letter settings
    - `event:{EventName}` → event listener/consumer (e.g., message queue subscriber)
+   - `event_group:{name}` → multi-event listener consuming a named group of events (defined in domain.yaml `event_groups`)
    - `webhook {path}` → webhook handler route
    - `manual` → CLI command or admin endpoint
+   - `shortcut {keys}` → keyboard shortcut handler (e.g., `shortcut Cmd+K`)
+   - `timer {interval_ms}` → interval/polling handler (e.g., `setInterval`, polling loop)
+   - `ui:{action}` → UI action handler (e.g., drag-drop, click)
+   - `ipc:{event}` → native IPC event handler (e.g., Tauri command listener, Electron IPC)
+   - `sse {path}` → Server-Sent Events endpoint (streaming response with event source)
+   - `ws {path}` → WebSocket endpoint (bidirectional connection handler)
+   - `pattern:{EventName}` → event pattern trigger (aggregated/correlated events)
 
    **Follow the node graph** from trigger through all paths to terminal nodes. Each node becomes real code:
    - `process` → service function call
@@ -176,11 +184,17 @@ Parse the argument to determine scope:
    ```yaml
    flows:
      domain-id/flow-id:
+       spec: specs/domains/domain-id/flows/flow-id.yaml
        specHash: (sha256 of the flow YAML content)
        implementedAt: (current ISO timestamp)
+       mode: new|update
        files:
          - src/path/to/file1.ts
          - src/path/to/file2.ts
+       fileHashes:
+         src/path/to/file1.ts: (sha256 of file content)
+         src/path/to/file2.ts: (sha256 of file content)
+       syncState: synced
    ```
 
 11. **Summary**: After all flows are done, show a summary table:

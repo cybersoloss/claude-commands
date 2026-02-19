@@ -104,6 +104,9 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `ui:{action}` for UI action triggers (e.g., `ui:DragDrop`)
      - `ipc:{event}` for native IPC event triggers (e.g., `ipc:spec-files-changed`)
      - `event_group:{name}` for triggers that consume a named group of events (define event_groups in domain.yaml)
+     - `sse {path}` for Server-Sent Events endpoints (e.g., `sse /api/updates`)
+     - `ws {path}` for WebSocket endpoints (e.g., `ws /api/live`)
+     - `pattern:{EventName}` for event pattern triggers that aggregate multiple events
      - The label can match the event value or be more descriptive
    - For flows called as sub-flows, add a `contract` section to the flow metadata with `inputs` and `outputs`
    - `nodes` array — design the complete node graph:
@@ -343,7 +346,8 @@ Create a complete DDD (Design Driven Development) project from a software projec
     Next steps:
       1. Open the project in DDD Tool to visualize and validate
       2. Review and refine flows in the canvas
-      3. Run /ddd-implement --all to generate code
+      3. Run /ddd-scaffold to set up project skeleton
+      4. Run /ddd-implement --all to generate code
     ```
 
 $ARGUMENTS

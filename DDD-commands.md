@@ -7,11 +7,10 @@ Phase 1: CREATE        Phase 2: DESIGN         Phase 3: BUILD          Phase 4: 
 Human intent → Specs   Human reviews in Tool   Specs → Code            Code wisdom → Specs
 
 /ddd-create            (DDD Tool)              /ddd-scaffold           /ddd-reverse
-/ddd-update                                    /ddd-implement          /ddd-sync --discover
-                                               /ddd-test               /ddd-reflect
-                                                                       /ddd-promote
+                                               /ddd-implement          /ddd-reflect
+                                               /ddd-test               /ddd-promote
 
-Cross-cutting (any phase): /ddd-status
+Cross-cutting (any phase): /ddd-status, /ddd-update, /ddd-sync
 Meta-level: /ddd-evolve
 ```
 
@@ -304,7 +303,7 @@ Synchronize specs and implementation state.
 |---|---|
 | *(no flag)* | Sync `.ddd/mapping.yaml` with current implementation state |
 | `--discover` | Also scan for untracked code and suggest new flow specs |
-| `--fix-drift` | Re-implement flows where specs drifted from code |
+| `--fix-drift` | Resolve drift using decision tree: metadata-only → update hash, code-ahead → reverse into specs, new-logic → re-implement from spec |
 | `--full` | All of the above: sync + discover + fix drift |
 
 ### Examples
