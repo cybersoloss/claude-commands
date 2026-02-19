@@ -6,9 +6,9 @@ Eleven Claude Code slash commands for the [Design Driven Development](https://gi
 Phase 1: CREATE        Phase 2: DESIGN         Phase 3: BUILD          Phase 4: REFLECT
 Human intent → Specs   Human reviews in Tool   Specs → Code            Code wisdom → Specs
 
-/ddd-create            (DDD Tool)              /ddd-scaffold           /ddd-reverse
-                                               /ddd-implement          /ddd-reflect
-                                               /ddd-test               /ddd-promote
+/ddd-create            (DDD Tool)              /ddd-scaffold           /ddd-reflect
+/ddd-reverse                                   /ddd-implement          /ddd-promote
+                                               /ddd-test
 
 Cross-cutting (any phase): /ddd-status, /ddd-update, /ddd-sync
 Meta-level: /ddd-evolve
@@ -22,7 +22,7 @@ Meta-level: /ddd-evolve
 | 3 Build | `/ddd-scaffold` | — | Set up project skeleton from specs (first step of Phase 3) |
 | 3 Build | `/ddd-implement` | `--all`, `domain`, `domain/flow` | Read specs → generate code + tests |
 | 3 Build | `/ddd-test` | `--all`, `--coverage`, `domain`, `domain/flow` | Run tests for implemented flows |
-| 4 Reflect | `/ddd-reverse` | `--output`, `--domains`, `--merge`, `--strategy` | Reverse-engineer existing code → YAML specs |
+| 1 Create | `/ddd-reverse` | `--output`, `--domains`, `--merge`, `--strategy` | Reverse-engineer existing code → YAML specs |
 | 4 Reflect | `/ddd-reflect` | `--all`, `domain`, `domain/flow` | Capture implementation wisdom as annotations |
 | 4 Reflect | `/ddd-promote` | `--all`, `--review`, `domain/flow` | Move approved annotations into permanent specs |
 | Any | `/ddd-status` | `--json` | Quick read-only project overview |

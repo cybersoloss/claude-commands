@@ -6,6 +6,14 @@ Slash commands for the [Design Driven Development](https://github.com/cybersolos
 
 > **Note:** The abbreviation "DDD" is used in command names for brevity. This is not related to Eric Evans' Domain-Driven Design, which is an entirely separate methodology.
 
+## Prerequisites
+
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed
+- [GitHub CLI](https://cli.github.com/) (`gh`) — authenticated with `gh auth login`
+- `jq` — install via `brew install jq` (macOS) or `apt install jq` (Linux)
+
+Commands fetch the DDD Usage Guide from GitHub at runtime via `gh api`, so network access and `gh` auth are required.
+
 ## Installation
 
 ```bash
