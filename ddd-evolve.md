@@ -328,10 +328,10 @@ When `$ARGUMENTS` contains `--apply` and a path to an evolution plan:
 4. After confirmation, execute changes in dependency order (phase 1 first, then phase 2).
 
 5. For each approved item, make the actual changes:
-   - **spec changes** → edit `~/dev/DDD/DDD-USAGE-GUIDE.md`
-   - **command changes** → edit `~/.claude/commands/ddd-create.md` (and other affected commands)
-   - **tool changes** → edit files in `~/dev/ddd-tool/src/`
-   - **validator changes** → edit `~/dev/ddd-tool/src/utils/flow-validator.ts`
+   - **spec changes** → edit `DDD-USAGE-GUIDE.md` in the DDD repo
+   - **command changes** → edit the affected command files (e.g., `ddd-create.md`)
+   - **tool changes** → edit source files in the ddd-tool repo (`src/`)
+   - **validator changes** → edit `src/utils/flow-validator.ts` in the ddd-tool repo
 
 6. After all changes:
    - Update `meta.status: applied` and `applied_at: {ISO timestamp}` in the plan file
