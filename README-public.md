@@ -13,11 +13,19 @@ git clone https://github.com/cybersoloss/claude-commands.git
 cd claude-commands && ./install.sh
 ```
 
+Or manually:
+
+```bash
+git clone https://github.com/cybersoloss/claude-commands.git
+mkdir -p ~/.claude/commands
+cp claude-commands/ddd-*.md claude-commands/DDD-commands.md ~/.claude/commands/
+```
+
 This copies the 11 DDD command files into `~/.claude/commands/`. Safe to run if you already have other commands there — it won't overwrite non-DDD files.
 
 Restart Claude Code to load the commands.
 
-**Update:** Re-run `install.sh` after pulling new versions:
+**Update:** Re-run `install.sh` (or the `cp` command) after pulling new versions:
 ```bash
 cd claude-commands && git pull && ./install.sh
 ```
