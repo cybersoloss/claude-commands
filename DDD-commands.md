@@ -1,6 +1,6 @@
 # DDD Commands Reference
 
-Eleven Claude Code slash commands for the [Design Driven Development](https://github.com/mhcandan/DDD) four-phase lifecycle.
+Eleven Claude Code slash commands for the [Design Driven Development](https://github.com/cybersoloss/DDD) four-phase lifecycle.
 
 ```
 Phase 1: CREATE        Phase 2: DESIGN         Phase 3: BUILD          Phase 4: REFLECT
@@ -81,7 +81,7 @@ Generate a complete DDD spec structure from a project description.
 
 ### What it does
 
-1. Fetches the [DDD Usage Guide](https://github.com/mhcandan/DDD/blob/main/DDD-USAGE-GUIDE.md) from GitHub
+1. Fetches the [DDD Usage Guide](https://github.com/cybersoloss/DDD/blob/main/DDD-USAGE-GUIDE.md) from GitHub
 2. Parses the description (asks clarifying questions if brief)
 3. Creates full spec structure:
    - `ddd-project.json` — project config, domain list

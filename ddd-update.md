@@ -138,7 +138,7 @@ Parse the argument to determine what to update:
 When creating new nodes, **fetch the DDD Usage Guide** for the full node type reference:
 
 ```bash
-gh api repos/mhcandan/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d
+gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d
 ```
 
 This guide defines all node types, their required spec fields, connection patterns (sourceHandle values), and conventions. Always refer to it when adding or modifying nodes.

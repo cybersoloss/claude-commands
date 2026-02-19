@@ -13,7 +13,7 @@ git clone https://github.com/cybersoloss/claude-commands.git ~/.claude/commands
 ~/.claude/commands/install.sh
 ```
 
-This installs all commands (general dev + DDD) into `~/.claude/commands/`. Restart Claude Code to load them.
+This installs all commands (general dev + Design Driven Development) into `~/.claude/commands/`. Restart Claude Code to load them.
 
 **Update commands:**
 ```bash
@@ -72,9 +72,9 @@ Run `/helpmecode` for the complete guide.
 | `/notes-search` | Search Apple Notes by keyword |
 | `/helpmecode` | This command guide |
 
-## DDD Commands (Original)
+## Design Driven Development Commands (Original)
 
-11 [Design Driven Development](https://github.com/cybersoloss/DDD) commands are included in this repo. These are original commands for the DDD methodology. See the DDD repo for documentation.
+11 [Design Driven Development](https://github.com/cybersoloss/DDD) commands are included in this repo. These are original commands for the Design Driven Development methodology. See the [Design Driven Development repo](https://github.com/cybersoloss/DDD) for documentation.
 
 ## Usage
 

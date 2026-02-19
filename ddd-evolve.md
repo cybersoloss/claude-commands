@@ -31,7 +31,7 @@ Analyze DDD shortfall reports from one or more projects, critically evaluate eac
 
 ### Default mode: Analyze shortfalls
 
-1. **Fetch the DDD Usage Guide**: Run `gh api repos/mhcandan/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. You need this to evaluate whether shortfalls are genuine gaps or already addressable within the current spec.
+1. **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. You need this to evaluate whether shortfalls are genuine gaps or already addressable within the current spec.
 
 2. **Resolve shortfall file paths**: Collect all shortfall files from `$ARGUMENTS`:
    - **Direct paths** — use as-is (e.g., `~/code/proj-a/specs/shortfalls.yaml`)

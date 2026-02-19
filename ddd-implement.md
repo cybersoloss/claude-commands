@@ -41,7 +41,7 @@ Parse the argument to determine scope:
 
    **IMPORTANT — Cross-cutting patterns**: If `specs/architecture.yaml` contains a `cross_cutting_patterns` section, read it carefully. These are project-wide conventions that apply to ALL flows, even if individual flow specs don't mention them. They MUST be applied during implementation. See step 7 for details.
 
-4. **Fetch the DDD Usage Guide**: Run `gh api repos/mhcandan/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all node types, spec fields, connection patterns, and conventions. Use it as your reference for understanding node specs during implementation.
+4. **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all node types, spec fields, connection patterns, and conventions. Use it as your reference for understanding node specs during implementation.
 
 5. **Understand the flow spec**: Each flow YAML contains:
    - `flow:` — metadata (id, name, type, domain)

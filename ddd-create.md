@@ -9,7 +9,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
 ## Instructions
 
-1. **Fetch the DDD Usage Guide**: Run `gh api repos/mhcandan/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all YAML formats, node types, spec fields, connection patterns, and conventions. It is your primary reference for creating correct specs.
+1. **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all YAML formats, node types, spec fields, connection patterns, and conventions. It is your primary reference for creating correct specs.
 
 2. **Check if this is an existing project**: Look for `ddd-project.json` in the current directory.
    - If `ddd-project.json` already exists:
