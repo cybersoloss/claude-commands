@@ -1,5 +1,7 @@
 # Design Driven Development — Claude Code Commands
 
+[![Alpha](https://img.shields.io/badge/status-alpha-orange.svg)]() [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Slash commands for the [Design Driven Development](https://github.com/cybersoloss/DDD) workflow in Claude Code.
 
 > **Note:** The abbreviation "DDD" is used in command names for brevity. This is not related to Eric Evans' Domain-Driven Design, which is an entirely separate methodology.
