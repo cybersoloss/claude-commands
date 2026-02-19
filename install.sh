@@ -1,5 +1,5 @@
 #!/bin/bash
-# Install all Claude Code commands (general dev + DDD)
+# Install DDD commands for Claude Code
 # Usage: git clone https://github.com/cybersoloss/claude-commands.git && ./claude-commands/install.sh
 set -e
 
@@ -9,10 +9,8 @@ TARGET="$HOME/.claude/commands"
 mkdir -p "$TARGET"
 
 count=0
-for f in "$DIR"/*.md; do
+for f in "$DIR"/ddd-*.md "$DIR"/DDD-commands.md; do
   [ -f "$f" ] || continue
-  name="$(basename "$f")"
-  [ "$name" = "README.md" ] && continue
   cp "$f" "$TARGET/"
   count=$((count + 1))
 done
