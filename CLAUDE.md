@@ -10,7 +10,7 @@ Slash commands for Claude Code — DDD workflow commands (`ddd-*.md`) plus gener
 - `origin` → github.com/mhcandan/claude-commands (private, master repo)
 - `public` → github.com/cybersoloss/claude-commands (public mirror)
 
-**Push to both:** `git push-all` — pushes to origin normally, then pushes to public with `CLAUDE.md` and `.claude/` excluded (force-push). These stay on mhcandan only, never on cybersoloss.
+**Push to both:** `git push-all` — pushes to origin, then runs `push-public.sh` for the public mirror. Only DDD commands + OSS files go to cybersoloss — non-DDD commands (code-review, security-scan, notes-*, etc.) stay private on mhcandan only.
 
 **GitHub accounts:** `mhcandan` (primary dev), `cybersoloss` (public). mhcandan is collaborator on cybersoloss repos — no account switching needed.
 
