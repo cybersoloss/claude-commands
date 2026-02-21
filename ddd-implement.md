@@ -244,14 +244,14 @@ Parse the argument to determine scope:
    - `guardrail` → `"pass"` path (continue) / `"block"` path (blocked terminal)
    - `agent_loop` → `"done"` path (final answer) / `"error"` path (max iterations or failure)
    - `llm_call` → `"success"` path (continue) / `"error"` path (LLM error handling)
-   - `smart_router` → dynamic route names as handle IDs
+   - `smart_router` → dynamic route IDs (from `rules[].id`)
    - `collection` → `"result"` path / `"empty"` path
    - `parse` → `"success"` path / `"error"` path
    - `crypto` → `"success"` path / `"error"` path
    - `batch` → `"done"` path / `"error"` path
    - `transaction` → `"committed"` path / `"rolled_back"` path
    - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
-   - `human_gate` → dynamic handles from `approval_options[].id` values
+   - `human_gate` → dynamic option IDs (from `approval_options[].id`)
 
    **Connection error behavior:** When a connection has a `behavior` field, implement accordingly:
    - `continue` — catch errors and proceed to the next node (log the error)
@@ -334,7 +334,7 @@ Parse the argument to determine scope:
        files:
          - src/path/to/file1.ts
          - src/path/to/file2.ts
-       syncState: synced
+       syncState: in_sync
 
    pages:
      page-id:
@@ -345,7 +345,7 @@ Parse the argument to determine scope:
        files:
          - src/app/page-id/page.tsx
          - src/components/page-id/section-name.tsx
-       syncState: synced
+       syncState: in_sync
    ```
 
 15. **Summary**: After all implementations are done, show a summary table:

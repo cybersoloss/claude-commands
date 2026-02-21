@@ -23,10 +23,10 @@ Set up the project skeleton and shared infrastructure from DDD specs before impl
 
    | Pillar | Items | Count |
    |--------|-------|-------|
-   | Logic | Backend skeleton files: entry point, config loader, error handler, shared types, middleware, integration clients, event infrastructure, test setup, cross-cutting utilities | {N} |
-   | Interface | Pages, layout components, shared components, theme config, API client, state management stores | {N} |
    | Data | Schema/model files, migration files, seed files (migration/fixture/script), index definitions | {N} |
+   | Interface | Pages, layout components, shared components, theme config, API client, state management stores | {N} |
    | Infrastructure | Docker files, startup scripts, port documentation, service configs | {N} |
+   | Logic | Backend skeleton files: entry point, config loader, error handler, shared types, middleware, integration clients, event infrastructure, test setup, cross-cutting utilities | {N} |
 
    This plan is your commitment — every item listed must be scaffolded.
 

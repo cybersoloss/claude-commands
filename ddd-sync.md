@@ -44,10 +44,10 @@ Synchronize the DDD project specs with the current implementation state across a
 
    | Pillar | Items to Check | Count |
    |--------|---------------|-------|
-   | Logic | {list of flows from mapping + specs} | {N} |
-   | Interface | {list of pages from mapping + specs} | {N} |
    | Data | {list of schemas from specs} | {N} |
+   | Interface | {list of pages from mapping + specs} | {N} |
    | Infrastructure | {services from spec} | {N} |
+   | Logic | {list of flows from mapping + specs} | {N} |
 
    This plan is your commitment — every item must be checked for drift.
 
@@ -57,12 +57,7 @@ Synchronize the DDD project specs with the current implementation state across a
 
    **Interface is the most commonly skipped pillar.** If the plan includes ANY pages, all must be checked. Data and Infrastructure are also frequently omitted from sync — check them explicitly.
 
-5. **Scan the implementation**:
-   - For each mapped flow, check if the implementation files still exist
-   - For each mapped page, check if the page component files still exist
-   - Look for any new source files that aren't mapped yet (backend routes, page components)
-
-6. **Bidirectional drift analysis** (CRITICAL — do NOT skip):
+5. **Bidirectional drift analysis** (CRITICAL — do NOT skip):
 
    Perform this analysis for ALL four pillars. Follow the processing order from the sync plan: Data → Interface → Infrastructure → Logic.
 
@@ -75,7 +70,7 @@ Synchronize the DDD project specs with the current implementation state across a
    c. **Classify the drift** (same categories as `/ddd-status`):
       - **Metadata-only** → Update hash, no further action
       - **Spec enriched, code covers it** → Update hash after verification
-      - **Code ahead of spec** → Flag for `/ddd-reverse`, do NOT update hash yet
+      - **Code ahead of spec** → Flag for `/ddd-reflect`, do NOT update hash yet
       - **New spec logic** → Flag for `/ddd-implement`, do NOT update hash yet
 
    **Data (schema) drift:**
@@ -105,7 +100,7 @@ Synchronize the DDD project specs with the current implementation state across a
 
    **Metadata updates:** When modifying any spec file, update `metadata.modified` to the current ISO timestamp.
 
-7. **Update mapping.yaml** (only for verified-in-sync entries):
+6. **Update mapping.yaml** (only for verified-in-sync entries):
    - For flows that are genuinely in sync (metadata-only or spec-enriched with code coverage), compute and update the `specHash`
    - Update the `files` list with all source files that are part of the implementation
    - Update `implementedAt` timestamp only if implementation files have actually changed
@@ -113,7 +108,7 @@ Synchronize the DDD project specs with the current implementation state across a
    - Set `syncState` for each entry. Values: `in_sync`, `spec_ahead`, `code_ahead`, `diverged`, `new_logic`
    - Set `annotationCount` if annotations exist for the entry
 
-8. **Detect new patterns** (if `--discover` or `--full` flag):
+7. **Detect new patterns** (if `--discover` or `--full` flag):
 
    This is a three-phase operation: **Analyze → Approve → Apply**
 
@@ -146,7 +141,7 @@ Synchronize the DDD project specs with the current implementation state across a
    - Update architecture.yaml with approved cross-cutting patterns
    - Update mapping.yaml hashes for all changes
 
-9. **Fix drift** (if `--fix-drift` or `--full` flag):
+8. **Fix drift** (if `--fix-drift` or `--full` flag):
 
    **WARNING:** `--fix-drift` re-implements code from specs, overwriting existing files. If you have manual edits you want to keep, commit them first or use `/ddd-reflect` to capture changes as annotations before re-implementing.
 
@@ -154,7 +149,7 @@ Synchronize the DDD project specs with the current implementation state across a
 
    For each drifted flow:
    - **Metadata-only drift** → Update hash (no code change)
-   - **Code ahead of spec** → Run `/ddd-reverse` logic to enrich the spec first, then update hash
+   - **Code ahead of spec** → Run `/ddd-reflect` logic to enrich the spec first, then update hash
    - **New spec logic** → Re-implement:
      - Read the updated flow spec
      - Read the existing implementation files from mapping
@@ -162,12 +157,12 @@ Synchronize the DDD project specs with the current implementation state across a
      - Run tests and fix until passing
      - Update mapping.yaml with new specHash and timestamp
 
-10. **Report**:
+9. **Report**:
     - Show a summary of what was synced across all pillars:
 
       **Logic (flows):**
       - Flows verified in sync (hash updated)
-      - Flows with code ahead of spec (needs `/ddd-reverse`)
+      - Flows with code ahead of spec (needs `/ddd-reflect`)
       - Flows with new spec logic (needs `/ddd-implement`)
       - Flows with missing implementation
 
@@ -207,14 +202,15 @@ Synchronize the DDD project specs with the current implementation state across a
 
     - Save the full report to `.ddd/reconciliations/{timestamp}.yaml` for historical tracking
 
-11. **Next steps**: Based on findings, suggest the appropriate next commands:
+10. **Next steps**: Based on findings, suggest the appropriate next commands:
     - Flows with code ahead of spec: "Run `/ddd-reflect {domain/flow}` to capture implementation wisdom, then `/ddd-promote --review`"
     - Flows with new spec logic: "Run `/ddd-implement {domain/flow}` to update code"
     - Pages with code ahead of spec: "Run `/ddd-reflect --ui {page-id}` to capture UI wisdom"
     - Pages with new spec sections: "Run `/ddd-implement --ui {page-id}` to update page"
-    - Schemas with code ahead of spec: "Run `/ddd-reverse --schemas` to update schema specs from code"
-    - Schemas with spec ahead of code: "Run `/ddd-implement --schemas` to update ORM models"
-    - Infrastructure drift: "Run `/ddd-reverse --infra` to update infrastructure spec, or `/ddd-implement --infra` to update configs"
+    - Schemas with code ahead of spec: "Run `/ddd-reflect --schema` to capture schema wisdom, then `/ddd-promote --review`"
+    - Schemas with spec ahead of code: "Run `/ddd-implement --schema` to update ORM models"
+    - Infrastructure drift (code ahead): "Run `/ddd-reflect --infra` to capture infrastructure wisdom, then `/ddd-promote --review`"
+    - Infrastructure drift (spec ahead): "Run `/ddd-implement --infra` to update configs"
     - Untracked code discovered: "Run `/ddd-reverse` to generate specs from existing code"
     - All in sync: "All pillars are in sync — no action needed"
 

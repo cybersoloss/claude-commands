@@ -39,14 +39,14 @@ Show a quick read-only overview of the DDD project's implementation state across
    |------------|---------------|-------------------|
    | **Metadata-only** | Only `metadata.modified`, `metadata.updated`, `position` fields, or formatting changed. No nodes, connections, or spec logic changed. | `/ddd-sync` — safe to update hash only |
    | **Spec enriched, code already covers it** | Spec added detail (e.g., new field description) but the implementation code already handles it. | `/ddd-sync` — verify and update hash |
-   | **Code has details spec doesn't** | Implementation has patterns (error handling, caching, stealth HTTP, encryption) that the spec doesn't describe. | `/ddd-reverse {domain/flow}` first to enrich specs, then `/ddd-sync` |
+   | **Code has details spec doesn't** | Implementation has patterns (error handling, caching, stealth HTTP, encryption) that the spec doesn't describe. | `/ddd-reflect {domain/flow}` first to capture wisdom, then `/ddd-promote --review`, then `/ddd-sync` |
    | **Spec has new logic code doesn't** | New nodes, connections, tools, or business logic were added to the spec that the code does not implement. | `/ddd-implement {domain/flow}` — only case where re-implementation is appropriate |
 
    **WARNING:** Never recommend `/ddd-implement` without first confirming the drift is type 4 (new logic). Re-implementing a flow overwrites existing code, which can destroy working implementation details that the spec doesn't capture.
 
 5. **Check scaffold state** across all four pillars:
 
-   **Backend (Logic):**
+   **Logic:**
    - Does `package.json` (or equivalent) exist?
    - Does the main entry point exist (e.g., `src/app.ts`, `src/server/index.ts`)?
    - Does error handling middleware exist?
@@ -131,7 +131,7 @@ Show a quick read-only overview of the DDD project's implementation state across
 
 9. **Suggest next actions** based on what's found — using the SAFE recommendation rules:
 
-   **Backend (Logic):**
+   **Logic:**
    - If no scaffold: "Run `/ddd-scaffold` to set up the project"
    - If not-implemented flows exist: "Run `/ddd-implement {scope}` to generate code"
    - If drifted (metadata or spec enriched): "Run `/ddd-sync` to update hashes"

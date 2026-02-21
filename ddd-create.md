@@ -77,10 +77,10 @@ Create a complete DDD (Design Driven Development) project from a software projec
    ── Four-Pillar Plan ──────────────────────────────────────────────────
    Pillar          Items Found                    Will Generate
    ─────────────── ────────────────────────────── ──────────────────────
-   Logic           {N} domains, {M} flows         {M} flow YAMLs
    Data            {N} schemas                    {N} schema YAMLs
    Interface       {N} pages                      pages.yaml + {N} page YAMLs
    Infrastructure  {N} services                   infrastructure.yaml
+   Logic           {N} domains, {M} flows         {M} flow YAMLs
    ──────────────────────────────────────────────────────────────────────
    ```
 
@@ -99,7 +99,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
    Generate specs in this order, outputting a checkpoint after each pillar:
 
-   1. **system/shared** → `system.yaml`, `architecture.yaml`, `config.yaml`, `errors.yaml`, `types.yaml`
+   1. **system/shared** (Step 8) → `system.yaml`, `architecture.yaml`, `config.yaml`, `errors.yaml`, `types.yaml`
       → Checkpoint: "✓ System: {N} shared files created"
    2. **Data** (Step 9) → `schemas/_base.yaml`, per-model schemas
       → Checkpoint: "✓ Data: {N} schema files created"

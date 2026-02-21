@@ -27,10 +27,13 @@ Parse `$ARGUMENTS` to determine scope:
    - `ddd-project.json` — domain list
    - `.ddd/mapping.yaml` — implementation tracking (both `flows:` and `pages:` sections)
    - `specs/architecture.yaml` — current `cross_cutting_patterns` section
+   - `specs/domains/*/flows/*.yaml` — flow specs (promotion targets for flow-specific details)
+   - `specs/schemas/*.yaml` — schema specs (promotion targets for schema details)
+   - `specs/infrastructure.yaml` — infrastructure spec (promotion target for infra details)
    - `specs/shared/errors.yaml` — current error codes
    - `specs/shared/types.yaml` — current shared types (if exists)
    - `specs/ui/pages.yaml` — page registry (if exists)
-   - `specs/ui/{page-id}.yaml` — per-page specs (if exists)
+   - `specs/ui/{page-id}.yaml` — per-page specs (promotion targets for page details)
    - `.ddd/annotations/` — all annotation files (including `annotations/ui/` for page annotations)
 
 3. **Load all annotations**: Read every `.yaml` file in `.ddd/annotations/` (recursively by domain subdirectories). Group annotations by status:
@@ -208,7 +211,7 @@ Parse `$ARGUMENTS` to determine scope:
 11. **Update mapping.yaml**: Since spec files have changed:
    - Recompute `specHash` for any flow specs that were modified
    - Update `annotationCount` (decrement by promoted count)
-   - Update `syncState` to `synced` if the promotion brought spec in line with code
+   - Update `syncState` to `in_sync` if the promotion brought spec in line with code
 
 12. **Report what was promoted**:
    ```
@@ -288,7 +291,7 @@ Parse `$ARGUMENTS` to determine scope:
    - No duplicate pattern IDs in cross_cutting_patterns
 
 6. **Next steps**: After promotion, suggest:
-   - "Run `/ddd-sync` to update mapping hashes for modified specs"
+   - "Run `/ddd-sync` to verify project-wide alignment"
    - "Run `/ddd-implement {scope}` if promoted patterns require code changes"
    - "Run `/ddd-status` to verify the project state"
    - If remaining candidates exist: "Run `/ddd-promote --review` to review remaining candidates"

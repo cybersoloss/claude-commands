@@ -26,7 +26,11 @@ Parse `$ARGUMENTS` to determine scope:
    - `ddd-project.json` — domain list
    - `.ddd/mapping.yaml` — implementation tracking (both `flows:` and `pages:` sections)
    - `specs/architecture.yaml` — especially `cross_cutting_patterns` section (reference for classifying findings)
+   - `specs/domains/*/flows/*.yaml` — flow specs (needed for spec vs code comparison)
+   - `specs/schemas/*.yaml` — schema specs (needed for schema vs ORM comparison)
    - `specs/ui/pages.yaml` — page registry (if exists)
+   - `specs/ui/{page-id}.yaml` — per-page specs (needed for page vs component comparison)
+   - `specs/infrastructure.yaml` — infrastructure spec (needed for infra vs config comparison)
    - `.ddd/annotations/` — existing annotations (to skip duplicates)
 
 3. **Resolve scope**: Parse `$ARGUMENTS` using the table above.
@@ -81,7 +85,9 @@ Parse `$ARGUMENTS` to determine scope:
       | `query_optimization` | Views, computed columns, denormalization |
       | `custom` | Project-specific data patterns |
 
-   e–f. Apply the same duplicate and already-specified checks.
+   e. **Check for duplicates**: Read existing `.ddd/annotations/schemas/{model}.yaml` if it exists. Skip findings that match existing annotations (same type + same applies_to context).
+
+   f. **Check for already-specified patterns**: If the finding is already described in the schema spec (e.g., the spec already lists an index or constraint), skip it — it's not "wisdom" if the spec already knows.
 
    **Checkpoint:** Output "Data complete: {N}/{N} schemas reflected" (with actual counts matching the plan).
 
@@ -116,7 +122,7 @@ Parse `$ARGUMENTS` to determine scope:
       | `error_handling` | Error boundaries, retry buttons, offline banners, toast notifications |
       | `custom` | Project-specific UI patterns not matching above categories |
 
-   e–f. Apply the same duplicate and already-specified checks as for schemas.
+   e–f. Apply the same duplicate and already-specified checks as in step 5 (check `.ddd/annotations/ui/{page-id}.yaml` for duplicates; skip findings already described in the page spec).
 
    **Checkpoint:** Output "Interface complete: {N}/{N} pages reflected" (with actual counts matching the plan).
 
@@ -145,7 +151,7 @@ Parse `$ARGUMENTS` to determine scope:
       | `resource_limits` | Memory, CPU, connection pools, rate limits |
       | `custom` | Project-specific infrastructure patterns |
 
-   e–f. Apply the same duplicate and already-specified checks.
+   e–f. Apply the same duplicate and already-specified checks as in step 5 (check `.ddd/annotations/infrastructure.yaml` for duplicates; skip findings already described in the infrastructure spec).
 
    **Checkpoint:** Output "Infrastructure complete: {N}/{N} infrastructure specs reflected" (with actual counts matching the plan).
 
@@ -193,6 +199,7 @@ Parse `$ARGUMENTS` to determine scope:
    - `.ddd/annotations/schemas/{model}.yaml` (for schemas)
    - `.ddd/annotations/infrastructure.yaml` (for infrastructure)
 
+   **Flow annotations** (`.ddd/annotations/{domain}/{flow}.yaml`):
    ```yaml
    flow: {domain}/{flow-id}
    captured_at: "{ISO timestamp}"
@@ -217,6 +224,64 @@ Parse `$ARGUMENTS` to determine scope:
          file: {relative path}
          lines: "{start-end}"
    ```
+
+   **Page annotations** (`.ddd/annotations/ui/{page-id}.yaml`):
+   ```yaml
+   page: {page-id}
+   captured_at: "{ISO timestamp}"
+   captured_from: reflect
+   patterns:
+     - id: {nanoid(8)}
+       type: {category}
+       description: >
+         {What the code does that the page spec doesn't capture}
+       applies_to_sections: [{section-ids where this applies}]
+       code_evidence:
+         file: {relative path to component file}
+         lines: "{start-end}"
+         snippet: >
+           {Brief code excerpt — max 5 lines}
+       status: candidate
+   ```
+
+   **Schema annotations** (`.ddd/annotations/schemas/{model}.yaml`):
+   ```yaml
+   schema: {model}
+   captured_at: "{ISO timestamp}"
+   captured_from: reflect
+   patterns:
+     - id: {nanoid(8)}
+       type: {category}
+       description: >
+         {What the ORM/DB implementation does that the schema spec doesn't capture}
+       code_evidence:
+         file: {relative path to schema/migration file}
+         lines: "{start-end}"
+         snippet: >
+           {Brief code excerpt — max 5 lines}
+       status: candidate
+   ```
+
+   **Infrastructure annotations** (`.ddd/annotations/infrastructure.yaml`):
+   ```yaml
+   infrastructure: true
+   captured_at: "{ISO timestamp}"
+   captured_from: reflect
+   patterns:
+     - id: {nanoid(8)}
+       type: {category}
+       description: >
+         {What the infrastructure implementation does that the spec doesn't capture}
+       applies_to_services: [{service-ids where this applies}]
+       code_evidence:
+         file: {relative path to docker-compose, Dockerfile, or script}
+         lines: "{start-end}"
+         snippet: >
+           {Brief code excerpt — max 5 lines}
+       status: candidate
+   ```
+
+   **Note:** The `implementation_details` section in flow annotations provides informational context for `/ddd-promote` reviewers — it helps them understand what each node does beyond the spec, but promote acts on the `patterns` array, not on `implementation_details` directly.
 
    If the annotation file already exists (from a previous reflect), merge new findings — append to `patterns` array, skip duplicates.
 
