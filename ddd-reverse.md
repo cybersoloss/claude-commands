@@ -32,7 +32,7 @@ The user can override with `--strategy <name>`. If overriding, use the specified
 
 ## Phase 0: Setup (all strategies)
 
-1. **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all YAML formats, node types, spec fields, connection patterns, and conventions. It is your primary reference for creating correct specs.
+1. **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all YAML formats, node types, spec fields, connection patterns, UI spec format, infrastructure spec format, and conventions. It is your primary reference for creating correct specs.
 
 2. **Detect tech stack**: Read project configuration files to identify the stack:
    - `package.json` / `tsconfig.json` — Node.js/TypeScript, framework (Express, Fastify, NestJS, Next.js, Hono, etc.), dependencies

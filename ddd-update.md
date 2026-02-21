@@ -35,7 +35,7 @@ Parse the argument to determine what to update:
    - `specs/ui/{page-id}.yaml` — per-page specs (if updating a specific page)
    - `specs/infrastructure.yaml` — services, ports, deployment (if updating infrastructure)
 
-3. **Fetch the DDD Usage Guide** (if adding or modifying nodes): Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all node types, their required spec fields, connection patterns (sourceHandle values), and conventions. Use it as your reference when adding or modifying nodes.
+3. **Fetch the DDD Usage Guide** (if adding or modifying nodes): Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all YAML formats, node types, spec fields, connection patterns, UI spec format, infrastructure spec format, and conventions. Use it as your reference when adding or modifying nodes.
 
 4. **Understand the user's request**: The user will describe what they want to change in natural language. Examples:
 
