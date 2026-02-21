@@ -76,6 +76,8 @@ Run `/helpmecode` for the complete guide.
 
 11 [Design Driven Development](https://github.com/cybersoloss/DDD) commands are included in this repo. These are original commands for the Design Driven Development methodology. See the [Design Driven Development repo](https://github.com/cybersoloss/DDD) for documentation.
 
+All DDD commands now generate specs across four foundational pillars — **Logic** (backend flows), **Data** (schemas), **Interface** (UI pages), and **Infrastructure** (services). `/ddd-create` includes a pillar coverage check that detects when input skews toward one pillar (e.g., backend-heavy descriptions with no frontend detail) and proactively asks for the missing context. `/ddd-implement` and `/ddd-promote` accept `--schema` and `--infra` scope flags for pillar-targeted operations.
+
 ## Usage
 
 ```bash

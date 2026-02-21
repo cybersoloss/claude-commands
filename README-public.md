@@ -49,7 +49,7 @@ rm ~/.claude/commands/ddd-*.md ~/.claude/commands/DDD-commands.md
 
 **`/ddd-create <description> [--from <path-or-url>] [--shortfalls]`**
 
-Generate a complete spec structure from a project description.
+Generate a complete spec structure from a project description. Covers all four pillars — **Logic** (flows), **Data** (schemas), **Interface** (UI pages), **Infrastructure** (services). Includes a pillar coverage check that detects input bias (e.g., backend-heavy with no frontend detail) and proactively asks for missing context.
 
 | Option | Purpose |
 |--------|---------|
@@ -77,6 +77,8 @@ Generate working code and tests from specs.
 | `--all` | `/ddd-implement --all` — all domains, all flows |
 | `<domain>` | `/ddd-implement users` — all flows in a domain |
 | `<domain/flow>` | `/ddd-implement users/user-register` — single flow |
+| `--schema` | `/ddd-implement --schema` — regenerate data layer from schemas |
+| `--infra` | `/ddd-implement --infra` — regenerate infrastructure from specs |
 | *(empty)* | Interactive — shows flows and asks |
 
 **`/ddd-test [scope] [--coverage]`**
@@ -123,6 +125,8 @@ Move approved annotations into permanent specs.
 |-------|---------|
 | `--review` | `/ddd-promote --review` — interactive review of each candidate |
 | `--all` | `/ddd-promote --all` — promote all approved annotations |
+| `--schema` | `/ddd-promote --schema` — promote schema-related annotations |
+| `--infra` | `/ddd-promote --infra` — promote infrastructure-related annotations |
 | `<domain/flow>` | `/ddd-promote monitoring/check-social-sources` |
 
 ### Cross-cutting (Any Phase)

@@ -40,6 +40,28 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - **Multiple files** — If `--from` is specified multiple times or points to a directory, read all files and synthesize.
 
    After reading the design file, extract across **all four pillars**:
+
+   **Input pillar coverage check** (when using `--from`):
+   After reading the input file, assess which pillars are explicitly covered vs. only implied:
+
+   | Pillar | Explicitly covered if... | Only implied if... |
+   |--------|--------------------------|-------------------|
+   | Logic | File describes specific features, workflows, API endpoints, background jobs | File mentions "the app does X" without decomposing into operations |
+   | Data | File defines data models, schemas, entity relationships, field types | File mentions "stores X" or "database" without defining structure |
+   | Interface | File describes specific pages/screens, wireframes, navigation, component layouts | File mentions "dashboard" or "web app" without listing pages |
+   | Infrastructure | File describes tech stack, services, deployment, ports | File mentions "PostgreSQL" or "Redis" without service topology |
+
+   **If Interface is only implied but Logic is explicitly covered** (the most common bias pattern), proactively ask:
+
+   "Your product definition describes backend features in detail ({N} identifiable flows) but the frontend is only implied — I can see it's a {web/mobile/desktop} app but specific pages aren't described. Before I proceed, can you tell me:
+   1. What are the main pages/screens the user sees?
+   2. What's the primary task on each page?
+   3. What does the navigation look like?
+
+   Or I can infer pages from the backend features — but this often under-generates (the last gtdos run inferred 6 pages for 56 flows; a real app this size typically needs 15-25 pages)."
+
+   If the user provides frontend details, incorporate them. If they say to infer, proceed but flag this in the pillar coverage matrix (Step 4) as "Interface: inferred (⚠ may under-generate)".
+
    - **Logic**: Domains (bounded contexts), flows (API endpoints, background jobs, event handlers), events (cross-domain triggers), agent/AI flows
    - **Data**: Entities, relationships, fields, indexes (query patterns), seed data (initial/reference data), enums
    - **Interface**: Pages/screens, navigation structure, component layouts, forms with fields and validation, data bindings to backend flows, loading/error/empty states, theme/branding
@@ -78,6 +100,77 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - **Infrastructure** is assumed present for any multi-service project or any project with a database.
    **Do not silently skip any pillar.** When in doubt, generate specs — it's easier to remove unwanted specs than to discover missing ones during implementation.
 
+3.5. **Frontend Design Pass** (MANDATORY for user-facing projects — do NOT skip):
+
+   This step designs the frontend independently of the backend. The goal is to think like a frontend developer: "What does the user need to see and do?" — not "What backend flows exist?"
+
+   **Step A — List every user task** from the product description:
+   Go through the product definition and extract every task a user performs directly. Focus on verbs: "the user processes...", "the user reviews...", "the user configures...". Output a user task table:
+
+   ```
+   ── User Tasks ──────────────────────────────────────────────────────────
+   #   Task                              Frequency        Complexity
+   ─── ───────────────────────────────── ──────────────── ──────────
+   1   Process inbox items               Daily            High (AI assist)
+   2   View GTD dashboard                Multiple/day     Low (read-only)
+   3   Review next actions by category   Daily            Medium
+   4   Conduct daily review              Daily            Medium (guided)
+   5   Conduct weekly review             Weekly           High (guided)
+   6   Configure connectors              Once/rare        Medium (forms)
+   7   Edit TELOS documents              Rare             Low (text edit)
+   8   Manage taxonomy (contexts, areas) Rare             Low (list edit)
+   9   View project details + health     Weekly           Medium
+   10  Manage deterministic rules        Rare             High (multi-field)
+   ...
+   ──────────────────────────────────────────────────────────────────────────
+   ```
+
+   **Step B — Group tasks into pages:**
+   Map each task to a page. Some tasks share a page (e.g., "view dashboard" and "check sync status" are both on the dashboard page). Some tasks need their own page (e.g., "process inbox items" is complex enough for a dedicated page). Output the grouping:
+
+   ```
+   ── Page ↔ Task Mapping ─────────────────────────────────────────────────
+   Page                Tasks                          Layout Notes
+   ─────────────────── ────────────────────────────── ──────────────────
+   dashboard           #2 (dashboard), sync status    Stat cards + lists
+   inbox               #1 (process items)             Item detail + actions
+   items               #3 (view by category)          Filterable list/grid
+   project-detail      #9 (project health)            Detail card + items
+   review              #4 (daily), #5 (weekly)        Guided steps
+   settings/general    #7 (TELOS), #8 (taxonomy)      Tabs with forms
+   settings/connectors #6 (connector config)          List + setup wizard
+   settings/rules      #10 (manage rules)             List + complex form
+   ──────────────────────────────────────────────────────────────────────────
+   ```
+
+   **Step C — Page architecture table** (the key artifact):
+   For each page, determine data sources and actions. This bridges frontend to backend:
+
+   ```
+   ── Page Architecture ────────────────────────────────────────────────────
+   Page              Data Sources (backend flows)    Actions (forms/buttons)
+   ───────────────── ────────────────────────────── ────────────────────────
+   dashboard         dashboard/get-dashboard-stats   → inbox (navigate)
+                     dashboard/get-todays-actions    → review (navigate)
+                     capture/get-sync-status
+   inbox             gtd-engine/get-next-inbox-item  categorize, enrich, skip
+                     intelligence/classify-item      accept/reject AI
+   items             gtd-engine/list-items           edit, delete, move
+                     (filtered by category)          bulk categorize
+   ...
+   ──────────────────────────────────────────────────────────────────────────
+   ```
+
+   **Step D — Reasonableness check:**
+   Compare the page count against the product scope:
+   - Count user tasks identified in Step A
+   - Count pages after grouping in Step B
+   - **Heuristic**: For a typical web app, expect ~1 page per 2-3 distinct user tasks. If tasks:pages ratio exceeds 4:1, consider splitting pages.
+   - **Ratio check against flows**: If backend flows:frontend pages ratio exceeds 8:1 for a user-facing app, flag as likely under-generating pages.
+   - If either check fails, list the tasks that don't have dedicated pages and consider whether they need one.
+
+   The page architecture table from Step C replaces the simpler "Identified Pages" extraction table from Step 3 as the primary driver for UI spec generation in Step 10.
+
 4. **Pillar coverage matrix** (MANDATORY — do NOT skip):
 
    Before generating any spec files, output a four-pillar plan table showing exactly what you will generate. This makes gaps visible before work begins:
@@ -93,12 +186,35 @@ Create a complete DDD (Design Driven Development) project from a software projec
    ──────────────────────────────────────────────────────────────────────
    ```
 
+   **Reasonableness checks** (prevents technically-passing but practically-insufficient coverage):
+
+   ```
+   ── Reasonableness ─────────────────────────────────────────────────────
+   Check                                    Result
+   ──────────────────────────────────────── ──────────────────────────────
+   User tasks identified:                   {N}
+   Pages planned:                           {M}
+   Tasks-to-pages ratio:                    {N/M}:1  {OK if ≤3:1, WARN if >3:1}
+   Flows planned:                           {F}
+   Flows-to-pages ratio:                    {F/M}:1  {OK if ≤8:1, WARN if >8:1}
+   Interface source:                        Explicit / Inferred (⚠)
+   ──────────────────────────────────────────────────────────────────────────
+   ```
+
+   If any check shows WARN:
+   - Review the page architecture table from Step 3.5
+   - Consider: are there user tasks without dedicated pages?
+   - Consider: are there pages trying to do too much (>4 distinct tasks)?
+   - If the ratios are high because many flows are internal/background (not user-facing), explain this in the table
+   - If the ratios are high because pages are genuinely missing, add them before proceeding
+
    **Completeness enforcement rules:**
    - If the product description mentions **any** frontend/UI elements (pages, screens, dashboard, forms, navigation, user interface) → Interface row MUST have items. If it shows 0 pages, STOP and ask the user: "Your description mentions frontend elements but I haven't identified specific pages. What pages/screens should the app have?"
    - If the product description mentions **any** database, data storage, or models → Data row MUST have items.
    - If the product description mentions **any** services, ports, or deployment → Infrastructure row MUST have items.
    - Logic row should always have items (every project has at least one flow).
    - **Frontend framework rule**: If `system.yaml` will include a frontend framework (Next.js, React, Vue, Svelte, Angular, Remix, Nuxt, etc.), Interface row MUST have items — no exceptions. If no frontend framework is listed, explicitly confirm with the user that the project is API-only before skipping Interface.
+   - **Page count reasonableness**: If the page architecture table (Step 3.5) identified {N} user tasks but the plan shows fewer than {N/3} pages, WARN and review grouping decisions. If the product has a frontend framework in its tech stack and the plan shows fewer than 4 pages, WARN (most real apps need at least 4-5 pages).
 
    **If any pillar shows 0 items but the description implies it should have items**, pause and ask the user before proceeding. Do NOT silently generate a partial project.
 
@@ -113,7 +229,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    2. **Data** (Step 9) → `schemas/_base.yaml`, per-model schemas
       → Checkpoint: "✓ Data: {N} schema files created"
    3. **Interface** (Step 10) → `pages.yaml`, per-page specs
-      → Checkpoint: "✓ Interface: {N} page specs created — matches {N} pages from extraction table"
+      → Checkpoint: "✓ Interface: {N} page specs created — matches {N} pages from page architecture table"
       → **GATE: If pages planned > 0 but pages created == 0, STOP HERE. Do not proceed to Infrastructure or Logic. Generate the missing UI specs now.**
    4. **Infrastructure** (Step 11) → `infrastructure.yaml`
       → Checkpoint: "✓ Infrastructure: infrastructure.yaml created with {N} services"
@@ -193,7 +309,9 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
 10. **Create UI specs** (Interface pillar): Generate `specs/ui/pages.yaml` and per-page spec files.
 
-   **Per-page generation loop** — for EACH page in the extraction table from Step 3:
+   **Per-page generation loop** — for EACH page in the page architecture table from Step 3.5:
+
+   The page architecture table already identifies data sources and actions for each page. Use this as the starting point — don't re-derive from scratch:
 
    1. Create `specs/ui/{page-id}.yaml`
    2. Identify which backend flows provide data to this page (→ `data_source` references)
@@ -207,7 +325,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    6. Add the page to `pages.yaml` → `navigation` items
    7. Verify: the page has ≥1 section or form (no empty specs)
 
-   After completing the loop, verify: **number of page spec files == number of rows in Step 3 extraction table**. If not, identify and generate the missing pages before proceeding.
+   After completing the loop, verify: **number of page spec files == number of rows in Step 3.5 page architecture table**. If not, identify and generate the missing pages before proceeding.
 
    **pages.yaml** — the page registry:
    - `app_type` — web, mobile, desktop, or cli
@@ -480,16 +598,16 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
    **Pillar completeness gate** (BLOCKER — must pass before finishing):
 
-   Compare generated specs against the pillar plan from Step 4 AND the page extraction table from Step 3:
+   Compare generated specs against the pillar plan from Step 4 AND the page architecture table from Step 3.5:
 
    | Check | Pass condition | If fail |
    |-------|---------------|---------|
    | Logic | Plan listed {M} flows → {M} flow YAMLs exist | Generate missing flows |
    | Data | Plan listed {N} schemas → {N} schema YAMLs exist | Generate missing schemas |
-   | Interface | Extraction table listed {P} pages → {P} page spec YAMLs exist + pages.yaml | **STOP — generate ALL missing page specs before proceeding** |
+   | Interface | Page architecture table listed {P} pages → {P} page spec YAMLs exist + pages.yaml | **STOP — generate ALL missing page specs before proceeding** |
    | Infrastructure | Plan listed infrastructure → infrastructure.yaml exists | Generate it |
 
-   **Interface receives special enforcement** because it is the pillar most likely to be skipped. Count the files in `specs/ui/` and compare to the extraction table. Zero tolerance for missing pages.
+   **Interface receives special enforcement** because it is the pillar most likely to be skipped. Count the files in `specs/ui/` and compare to the page architecture table. Zero tolerance for missing pages.
 
    If ANY check fails, go back to the relevant generation step and create the missing specs. Do NOT finish the command with incomplete pillar coverage.
 
@@ -730,6 +848,14 @@ Create a complete DDD (Design Driven Development) project from a software projec
       Infrastructure: {S} services          ████
 
       Status: ✓ All pillars covered (or ⚠ Interface: 0 pages — INCOMPLETE)
+
+    Frontend design quality:
+      User tasks identified: {N}
+      Pages generated: {M}
+      Tasks-to-pages ratio: {ratio}:1
+      Frontend source: Explicit (from product definition) / Inferred (from backend flows)
+      Pages with data bindings: {P}/{M} (percentage)
+      Orphan flows (no UI binding): {list of flows not referenced by any page}
 
     Shortfalls: (only if --shortfalls flag was used)
       specs/shortfalls.yaml — 12 shortfalls (2 critical, 4 high, 3 medium, 3 low)
