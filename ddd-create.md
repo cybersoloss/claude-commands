@@ -347,16 +347,18 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `actions` and `item_actions` for user interactions (navigate, call flow)
      - `empty_state` for when data is absent
    - `forms` — forms with:
-     - `fields` — each with `name`, `type` (text, number, select, multi-select, search-select, date, datetime, date-range, textarea, toggle, tag-input, file, color, slider), `label`, `placeholder`, `required`, `default`, `options`/`options_source`, `validation`, `visible_when`
+     - `fields` — each with `name`, `type` (text, number, select, multi-select, search-select, date, datetime, date-range, textarea, toggle, tag-input, file, color, slider, markdown), `label`, `placeholder`, `required`, `default`, `options`/`options_source`, `validation`, `visible_when`. For `type: markdown`, optionally add `markdown_config: { mode: toggle|split, toolbar: true, min_height: 300 }`
      - `submit` — backend flow to call (`flow`), button label, `loading_label`, `success` ({message, redirect, action}), `error` ({message, retry}), optional `args`
+     - `auto_save` — optional; replaces `submit` for document/settings forms: `{ debounce_ms, flow, key_field? }`. No submit button rendered; generates debounced save with Saving/Saved/Error status indicator.
    - `state` — client-side store reference, initial API calls on page load, realtime subscription
    - `loading` — loading state style (skeleton, spinner, blur)
    - `error` — error state style (retry-banner, error-page, toast)
    - `refresh` — data refresh strategy (pull-to-refresh, auto-30s, manual, none)
+   - `keyboard_shortcuts` — optional page-level shortcuts: `[{ keys: "Cmd+N", label: "...", action: { type: call_flow|navigate|toggle, flow?: "domain/flow-id", args?: {}, path?: "/route" } }]`. For global shortcuts, add at top level of `pages.yaml`.
 
    **Per-component-type field specs** — when designing sections, use the correct component type and its required fields:
-   - `stat-card` — `value` ($.field), `subtitle`, `urgency` (with `field`, `rules` array of `{threshold, level, color}`), `actions` (e.g., `click: {navigate: /path}`)
-   - `item-list` — `data_source`, `item_template` with `title`/`subtitle`/`badge`/`timestamp`, `item_actions`, `empty_state`, optional `pagination` or `virtual_scroll`, optional `interactions` (array of `{pattern, update_flow}` — supported patterns: `reorder`, `bulk-select`, `inline-edit`)
+   - `stat-card` — `value` ($.field), `subtitle`, `urgency` (with `field`, `rules` array of `{threshold, level, color}`), `actions` (e.g., `click: {navigate: /path}`), optional `trend` (`{ value: "$.prev_count", direction: auto|up|down, format: delta|percent|raw }`)
+   - `item-list` — `data_source`, `item_template` with `title`/`subtitle`/`badge`/`timestamp`, `item_actions`, `empty_state`, optional `pagination` or `virtual_scroll`, optional `interactions` (array of `{pattern, update_flow}` — supported patterns: `reorder`, `bulk-select`, `inline-edit`), optional `group_by` (`{ field: "$.category", label_field?: "$.label", show_count?: true, collapsible?: false }` — renders sticky section headers between groups)
    - `card-grid` — `data_source`, `columns` (responsive: desktop/tablet/mobile), `item_template` with `image`/`title`/`description`/`footer`, `item_actions`, `empty_state`, optional `interactions` (same as item-list)
    - `detail-card` — `data_source`, `fields` mapping with `$.field` syntax (fields can have `editable: true` + `update_flow` for inline editing), `actions` (edit, delete, archive), optional `tabs` for multi-section details
    - `button-group` — `buttons` array with `label`, `flow` (backend flow reference), optional `args`, `variant` (primary/secondary/danger), `icon`, `visible_when`, `confirm`/`confirm_message`
@@ -467,12 +469,12 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `nodes` array — design the complete node graph:
      - Always start with `input` node after trigger for API flows (validate incoming data)
      - Use `decision` nodes for branching logic (always wire both `true` and `false`)
-     - Use `data_store` for data storage operations. Set `store_type` to `'database'` (default), `'filesystem'`, or `'memory'`. For database: set `operation` (create/read/update/delete/upsert/create_many/update_many/delete_many), `model`, `data`/`query`. Optional: `include` (join related models), `upsert_key` (conflict key for upsert), `returning` (fields to return), `safety: 'strict'` (null-safe reads). For filesystem: set `path`, `content`, `create_parents`. For memory: set `store`, `selector`, and prefer memory operations (`get`/`set`/`merge`/`reset`/`subscribe`/`update_where`). Use `update_where` with `predicate` + `patch` for array item updates.
-     - Use `service_call` for external API calls (set `method`, `url`, `error_mapping`). Optional: `integration` (reference to `system.yaml` integration ID), `request_config` (headers, timeout, auth override)
+     - Use `data_store` for data storage operations. Set `store_type` to `'database'` (default), `'filesystem'`, or `'memory'`. For database: set `operation` (create/read/update/delete/upsert/create_many/update_many/delete_many/aggregate), `model`, `data`/`query`. Optional: `include` (join related models), `upsert_key` (conflict key for upsert), `returning` (return affected records — valid for all operation types, not just bulk), `safety: 'strict'` (null-safe reads), `aggregate_fields` (for `aggregate` operation: array of `{function, field, alias}`), `group_by` (for `aggregate`: list of field names). For filesystem: set `path`, `content`, `create_parents`. For memory: set `store`, `selector`, and prefer memory operations (`get`/`set`/`merge`/`reset`/`subscribe`/`update_where`). Use `update_where` with `predicate` + `patch` for array item updates.
+     - Use `service_call` for external API calls (set `method`, `url`, `error_mapping`). Optional: `integration` (reference to `system.yaml` integration ID), `request_config` (headers, timeout, auth override), `oauth_config` (automatic OAuth2 token refresh: `{token_store, refresh_url, client_id_env, client_secret_env}` — omit when `integration` already defines `auth.type: oauth2`)
      - Use `ipc_call` for local IPC or native function calls — Tauri commands, Electron IPC, React Native bridge (set `command`, `args`, `return_type`, optionally `bridge`, `timeout_ms`, and `result_condition` for conditional success/error routing)
      - Use `event` nodes to publish/consume domain events (set `direction` to `'emit'` or `'consume'`, `event_name`, and `payload`). Optional advanced fields: `payload_source` (expression for dynamic payload), `target_queue`, `priority`, `delay_ms` (delayed emit), `dedup_key`
-     - Use `loop` for iteration (set `collection`, `iterator`; optional: `accumulate` for collecting results, `body_start` to specify first node in loop body, `on_error` for per-iteration error handling), `parallel` for concurrent operations (optional: conditional `branches` with `condition` per branch)
-     - Use `collection` for in-memory data transformations (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten, first, last). Use `first`/`last` with optional `count` to extract elements from sorted collections
+     - Use `loop` for iteration (set `collection`, `iterator`; optional: `accumulate` for collecting results, `body_start` to specify first node in loop body, `on_error` for per-iteration error handling), `parallel` for concurrent operations (optional: conditional `branches` with `condition` per branch, `output_key` per branch for explicit result namespacing, `failure_policy: 'best_effort'` for dashboard-style flows where individual branch failures should not block the done handle)
+     - Use `collection` for in-memory data transformations (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten, first, last, join). Use `first`/`last` with optional `count` to extract elements from sorted collections. Use `join` to cross-reference two arrays (set `input` as left array, `right` as right array, `on` as join predicate, `join_type` as `inner|left|anti`)
      - Use `parse` for structured extraction from raw formats (rss, atom, html, xml, json, csv, markdown)
      - Use `crypto` for encrypt/decrypt/hash/sign/verify operations
      - Use `batch` for executing an operation against each item in a collection with concurrency control
@@ -481,7 +483,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Use `delay` for rate limiting or wait/throttle between steps (set `min_ms`)
      - Use `transform` for data mapping (set `input_schema`, `output_schema`, `field_mappings` for schema-to-schema; or set `mode: 'expression'` with computed `field_mappings` for response shaping without schema refs)
      - Use `sub_flow` to call reusable flows from other domains (set `flow_ref` as `domain/flow-id`)
-     - Use `llm_call` for single LLM invocations — specify `model`, `prompt`, `temperature`, `max_tokens`, and optionally `structured_output` for typed responses, `context_sources` (array of data references to inject into prompt context)
+     - Use `llm_call` for single LLM invocations — specify `model`, `prompt`, `temperature`, `max_tokens`, and optionally `structured_output` for typed responses (properties support `{ type: string, ref: my_enum }` to resolve enum values from `shared/types.yaml` without duplication), `context_sources` (array of data references to inject into prompt context)
      - Use `agent_loop` for autonomous agent iterations — specify `tools` (array with at least one `is_terminal: true`), `max_iterations`, `model`
      - Use `guardrail` for input/output validation in agent flows — specify `checks` array, inline and sequential
      - Use `human_gate` for async human approval in agent flows — specify `notification_channels`, `approval_options` (array of `{id, label, description?, requires_input?}`), `timeout` ({duration?, action?: escalate/auto_approve/auto_reject}), `context_for_human`
@@ -512,7 +514,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `smart_router` → dynamic route IDs (from `rules[].id`)
      - `human_gate` → dynamic option IDs (from `approval_options[].id`)
      - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
-   - Connections support optional fields: `behavior` for error handling (`continue`/`stop`/`retry`/`circuit_break`), `data` for annotating what data flows between nodes (e.g., `data: "userId, email"`), and `label` for human-readable edge labels on the canvas.
+   - Connections support optional fields: `behavior` for error handling (`continue`/`stop`/`retry`/`circuit_break`), `data` for annotating what data flows between nodes (e.g., `data: "userId, email"`), `label` for human-readable edge labels on the canvas, and `condition` for single-step optional processing (e.g., `condition: "$.changed_fields.length > 0"` — when false at runtime, this edge is skipped; use this instead of a decision node when the guard only leads to one optional step).
    - Position nodes vertically with ~130px spacing, branch error terminals to the right
    - `metadata` with created and modified timestamps (current ISO). **For existing projects:** when modifying any existing spec file (schema, UI page, infrastructure, domain), also update its `metadata.modified` to the current ISO timestamp.
    - **Shortfall tracking** (if `--shortfalls` flag is present): As you design each flow, mentally track every time you:
@@ -581,7 +583,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Destructive actions (delete, archive, remove) have `confirm: true` and `confirm_message`
    - Shared components extracted when same UI pattern appears in 2+ pages
    - `state.initial_fetch` covers all `data_source` flows needed on first page load
-   - Form field `type` values are from the valid enum: text, number, select, multi-select, search-select, date, datetime, date-range, textarea, toggle, tag-input, file, color, slider
+   - Form field `type` values are from the valid enum: text, number, select, multi-select, search-select, date, datetime, date-range, textarea, toggle, tag-input, file, color, slider, markdown
    - `item_actions` and button `action` flow references exist as valid backend flows
    - Pages with realtime data have `refresh` strategy defined (not left as default)
    - Theme in `pages.yaml` is fully specified (colors, fonts, radius) — no placeholder values
