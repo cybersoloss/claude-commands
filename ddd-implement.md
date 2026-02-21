@@ -1,6 +1,6 @@
 # DDD Implement
 
-Implement DDD-designed specs across Logic (backend flows) and Interface (UI pages). Generates backend flow code from flow specs and frontend page components from UI page specs. Supports implementing the entire project, a specific domain, a specific flow, or specific pages.
+Implement DDD-designed specs across all four pillars — Logic (backend flows), Interface (UI pages), Data (schemas), and Infrastructure (services). Generates backend flow code, frontend page components, database schemas, and infrastructure configs from specs.
 
 ## Scope Resolution
 
@@ -13,7 +13,10 @@ Parse the argument to determine scope:
 | `domain-name/flow-name` | Single flow | `/ddd-implement users/user-registration` |
 | `--ui` | All UI pages only (no backend flows) | `/ddd-implement --ui` |
 | `--ui page-id` | Single UI page | `/ddd-implement --ui dashboard` |
-| *(empty)* | Interactive — list available flows and ask | `/ddd-implement` |
+| `--schema` | Regenerate ORM/database schema from all schema specs | `/ddd-implement --schema` |
+| `--schema model-name` | Regenerate a single model's schema | `/ddd-implement --schema user` |
+| `--infra` | Regenerate infrastructure configs from infrastructure spec | `/ddd-implement --infra` |
+| *(empty)* | Interactive — list available items across all pillars and ask | `/ddd-implement` |
 
 ## Instructions
 
@@ -32,6 +35,12 @@ Parse the argument to determine scope:
    **If `--ui`**: Implement all UI pages from `specs/ui/`. Skip backend flows.
 
    **If `--ui page-id`**: Implement a single UI page from `specs/ui/{page-id}.yaml`.
+
+   **If `--schema`**: Regenerate the ORM/database schema from all `specs/schemas/*.yaml` files. This re-runs the schema generation that `/ddd-scaffold` does initially — use it after schema spec changes.
+
+   **If `--schema model-name`**: Regenerate only the specified model's schema definition from `specs/schemas/{model}.yaml`.
+
+   **If `--infra`**: Regenerate infrastructure configs from `specs/infrastructure.yaml`. This re-runs the infrastructure scaffold — use it after infrastructure spec changes (new services, port changes, dependency updates).
 
 3. **Read the specs for each flow/page**:
    - `ddd-project.json` — project config, tech stack
@@ -238,13 +247,39 @@ Parse the argument to determine scope:
    - Arrange sections according to the layout type (sidebar, full, centered, split, stacked)
    - Position sections using their `position` values (top, main, sidebar, footer, etc.)
 
-9. **Write tests**: Create tests covering:
+9. **Implement schemas** (when scope includes schemas — `--all`, `--schema`, or `--schema model-name`):
+
+   Read `specs/schemas/_base.yaml` for base fields and each `specs/schemas/{model}.yaml`. Regenerate the ORM schema:
+
+   - **ORM models**: Update the database schema file (e.g., `prisma/schema.prisma`, Drizzle schema, TypeORM entities) to match the spec:
+     - Fields with types, constraints (`required`, `unique`, `default`), and descriptions
+     - Relationships (foreign keys, has_many, has_one, many_to_many)
+     - Base fields from `_base.yaml` applied to all models
+   - **Indexes**: Generate database indexes from the schema `indexes` section — fields, unique constraints, index types (btree, hash, gin, gist)
+   - **State transitions**: If the schema has `transitions`, update or generate state machine validation helpers
+   - **Seed data**: Update seed scripts from the schema `seed` section — migration seeds, fixture seeds, script seeds
+   - **Migration**: Run the ORM's schema sync or generate a migration (e.g., `prisma db push` or `prisma migrate dev`)
+   - Preserve any manual customizations in the ORM schema that aren't covered by specs (e.g., custom middleware, hooks)
+
+10. **Implement infrastructure** (when scope includes infrastructure — `--all` or `--infra`):
+
+    Read `specs/infrastructure.yaml`. Regenerate infrastructure configs:
+
+    - **Startup scripts**: Update `package.json` scripts — `dev` per service, `dev:all` using concurrently, `setup` commands
+    - **Docker**: Update `docker-compose.yaml` with services, ports, volumes, depends_on, health checks matching the spec
+    - **Port config**: Ensure all service ports match the spec — update env files, config loaders, and API client base URLs
+    - **Health checks**: Update or add health check endpoints/commands for each service
+    - Preserve any manual infrastructure customizations not covered by specs
+
+11. **Write tests**: Create tests covering:
    - **Backend**: Happy path through the flow, each decision branch, error/terminal states, input validation rules from input node specs
    - **Frontend**: Page renders without errors, data fetching calls correct API endpoints, form validation works, form submission calls correct backend flow
+   - **Schema**: ORM schema validates, migrations apply cleanly, seed data loads
+   - **Infrastructure**: Services start, health checks pass, ports don't conflict
 
-10. **Run tests and fix**: Run the test suite. If tests fail, fix the implementation. Keep iterating until all tests pass.
+12. **Run tests and fix**: Run the test suite. If tests fail, fix the implementation. Keep iterating until all tests pass.
 
-11. **Update mapping**: After each flow/page is successfully implemented, update `.ddd/mapping.yaml`:
+13. **Update mapping**: After each flow/page is successfully implemented, update `.ddd/mapping.yaml`:
    ```yaml
    flows:
      domain-id/flow-id:
@@ -269,7 +304,7 @@ Parse the argument to determine scope:
        syncState: synced
    ```
 
-12. **Summary**: After all flows and pages are done, show a summary table:
+14. **Summary**: After all implementations are done, show a summary table:
     ```
     Backend:
     Domain/Flow                  Status    Files  Tests
@@ -284,7 +319,7 @@ Parse the argument to determine scope:
     settings                     ✓ done    2         3
     ```
 
-13. **Next steps**: After implementation, suggest:
+15. **Next steps**: After implementation, suggest:
     - "Run `/ddd-test --all` to verify all implementations"
     - "Open the DDD Tool to review the implementation state"
     - "Run `/ddd-sync` to update mapping hashes and detect any remaining drift"

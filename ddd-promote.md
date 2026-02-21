@@ -1,6 +1,6 @@
 # DDD Promote
 
-Move approved annotations into permanent specs. This is how implementation wisdom — captured by `/ddd-reflect` — becomes part of the design. Promoted patterns are written to `architecture.yaml`, flow specs, UI page specs, or shared spec files.
+Move approved annotations into permanent specs across all four pillars (Logic, Data, Interface, Infrastructure). This is how implementation wisdom — captured by `/ddd-reflect` — becomes part of the design. Promoted patterns are written to `architecture.yaml`, flow specs, UI page specs, schema specs, infrastructure specs, or shared spec files.
 
 ## Scope Resolution
 
@@ -14,6 +14,9 @@ Parse `$ARGUMENTS` to determine scope:
 | `{domain}/{flow}` | Scope to specific flow's annotations | `/ddd-promote monitoring/check-social-sources` |
 | `--ui` | All UI page annotations | `/ddd-promote --ui` |
 | `--ui {page-id}` | Scope to specific page's annotations | `/ddd-promote --ui dashboard` |
+| `--schema` | All schema annotations | `/ddd-promote --schema` |
+| `--schema {model}` | Scope to specific model's annotations | `/ddd-promote --schema user` |
+| `--infra` | Infrastructure annotations | `/ddd-promote --infra` |
 | *(empty)* | Interactive — same as `--review` | `/ddd-promote` |
 
 ## Instructions
@@ -50,6 +53,8 @@ Parse `$ARGUMENTS` to determine scope:
      - **Flow-specific detail** → will be added to the flow spec YAML (node spec enrichment, observability, or security section)
      - **Page-specific detail** → will be added to the page spec YAML (section enrichment, state, loading, or accessibility config)
      - **Shared UI pattern** → will be added to `specs/ui/pages.yaml` `shared_components` section
+     - **Schema detail** → will be added to `specs/schemas/{model}.yaml` (new index, constraint, seed, transition)
+     - **Infrastructure detail** → will be added to `specs/infrastructure.yaml` (new service config, health check, startup detail)
      - **Shared type/error** → will be added to `shared/types.yaml` or `shared/errors.yaml`
    - Update annotation status to `approved` or `dismissed`
    - After review, proceed to promotion of approved items
@@ -77,6 +82,21 @@ Parse `$ARGUMENTS` to determine scope:
    - Read only `.ddd/annotations/ui/{page-id}.yaml`
    - If `--review` is also present (or no other flag), enter interactive review for that page
    - If `--all` is also present, promote all approved annotations for that page
+
+   **If `--schema`**: Scope to all schema annotations.
+   - Read all `.ddd/annotations/schemas/*.yaml` files
+   - If `--review` is also present (or no other flag), enter interactive review for all schemas
+   - If `--all` is also present, promote all approved schema annotations
+
+   **If `--schema {model}`**: Scope to that model's annotations.
+   - Read only `.ddd/annotations/schemas/{model}.yaml`
+   - If `--review` is also present (or no other flag), enter interactive review for that model
+   - If `--all` is also present, promote all approved annotations for that model
+
+   **If `--infra`**: Scope to infrastructure annotations.
+   - Read `.ddd/annotations/infrastructure.yaml`
+   - If `--review` is also present (or no other flag), enter interactive review for infrastructure
+   - If `--all` is also present, promote all approved infrastructure annotations
 
 5. **Promote approved annotations**: For each annotation with status `approved`:
 
@@ -120,6 +140,26 @@ Parse `$ARGUMENTS` to determine scope:
    If the same UI pattern (e.g., a reusable data table, modal, or form component) appears in annotations for 2+ pages:
    - Add to `specs/ui/pages.yaml` → `shared_components` section with `id`, `name`, `description`, `props`
    - Update page specs to reference the shared component ID
+
+   **Schema details** (patterns about database/ORM implementation):
+
+   Read the schema spec YAML (`specs/schemas/{model}.yaml`). Enrich the appropriate section(s):
+   - If the detail is about an index → add to the schema's `indexes` section
+   - If the detail is about a constraint → add to the relevant field's `constraints` or add a top-level `constraints` section
+   - If the detail is about seed data → add/update the schema's `seed` section
+   - If the detail is about state transitions → add/update the schema's `transitions` section
+   - If the detail is about a migration pattern → add to the schema's description or a `notes` field
+   - Preserve all existing schema fields — only add, never remove
+
+   **Infrastructure details** (patterns about deployment/services):
+
+   Read `specs/infrastructure.yaml`. Enrich the appropriate service(s):
+   - If the detail is about a health check → add/update the service's `health` field
+   - If the detail is about resource limits → add a `resources` section on the service
+   - If the detail is about startup orchestration → update `startup_order` or add `wait_for` config
+   - If the detail is about Docker config → add/update the service's `docker` section (volumes, networks, build args)
+   - If the detail is about dev tooling → add to the service's `dev_command` or add a top-level `scripts` section
+   - Preserve all existing infrastructure fields — only add, never remove
 
    **Shared types/errors**:
 
