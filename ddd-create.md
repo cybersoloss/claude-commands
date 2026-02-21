@@ -125,6 +125,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
        infrastructure.yaml
        shared/
          errors.yaml
+         types.yaml
        schemas/
          _base.yaml
          {model}.yaml (one per data model)
@@ -142,6 +143,11 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
 8. **Create system and shared spec files**:
    - `specs/system.yaml` — project identity, tech stack, environments. If the project has external API integrations, add an `integrations:` section with base_url, auth, rate_limits, retry, and timeout_ms per integration.
+   - `zones` — group related domains into visual zones (e.g., `{id: "auth-zone", name: "Authentication", domains: ["users", "sessions"]}`)
+   - `schedules` — surface cron schedules at L1 (e.g., `{frequency: "0 */4 * * *", label: "Every 4 hours", flows: ["discovery/keyword-search"]}`)
+   - `data_flows` — inter-zone directed data flow arrows for L1 visualization
+   - `characteristics` — system-level badges (e.g., "Event-driven", "6 external APIs")
+   - `pipelines` — cross-domain event chains that trace end-to-end pipelines
    - `specs/architecture.yaml` — project structure, naming conventions, dependencies, infrastructure, API design, testing, deployment. Include a `cross_cutting_patterns: {}` placeholder section for patterns discovered during implementation.
    - `specs/config.yaml` — required and optional environment variables
    - `specs/shared/errors.yaml` — error codes with HTTP status mappings (cover at least: VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, DUPLICATE_ENTRY, RATE_LIMITED, INTERNAL_ERROR)
@@ -172,7 +178,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Design indexes based on actual query patterns from flows (check `data_store` node `query` fields)
    - Include seed data for any enum or reference table that the app needs on first run
    - Define relationships explicitly — don't rely on convention (every foreign key should be documented)
-   - If a field has a finite set of values (status, role, category), define them in `specs/shared/types.yaml` and reference via `options_source`
+   - If a field has a finite set of values (status, role, category), define them in `specs/shared/types.yaml` and reference via `ref` (e.g., `ref: platform`)
    - Think about what queries the app will run most frequently and ensure those have indexes
 
 10. **Create UI specs** (Interface pillar): Generate `specs/ui/pages.yaml` and per-page spec files.
@@ -278,7 +284,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `health` — health check endpoint or command (e.g., "/health", "pg_isready")
      - `depends_on` — list of service IDs that must be running first
      - `dev_command` — command to start in development (e.g., "npx tsx watch src/server/index.ts")
-     - `setup_command` — one-time setup command (e.g., "npx prisma db push")
+     - `setup` — one-time setup command (e.g., "npx prisma db push")
    - `startup_order` — ordered list of service IDs for correct startup sequencing (datastores first, then workers, then servers)
    - `deployment` — local strategy (process-manager or docker-compose) and optional production strategy
 
@@ -301,7 +307,10 @@ Create a complete DDD (Design Driven Development) project from a software projec
    If you create an interface-role domain, verify that a matching page spec exists in `specs/ui/`. If not, go back to Step 10 and create it.
 
    - `name`, `description`
-   - `flows` array (id, name, description, type)
+   - `depends_on` — cross-domain data dependencies (array of `{domain, reason, flows_affected}`) — add when a domain reads data from another domain beyond event wiring
+   - `owns_schemas` — list of schema names this domain owns (e.g., ["User", "Session"])
+   - `flows` array — each entry: `id`, `name`, `description`, `type` (traditional or agent). Optional fields: `tags` (e.g., ["cron", "internal", "public-api"]), `criticality` (critical/high/normal/low), `throughput` (e.g., "~500 items/day")
+   - `groups` — visual grouping of flows at L2 (array of `{id, name, flows}`) — optional, for organizing large domains
    - `stores` array (optional) — declare in-memory state stores with `name`, `shape`, `selectors`, `access_pattern` (e.g., Zustand/Redux stores). Referenced by `data_store` nodes with `store_type: memory`.
    - `on_error` (optional) — domain-level error hook with `emit_event` name. `/ddd-implement` adds this to all error terminals.
    - `publishes_events` and `consumes_events` (cross-domain event wiring). Include `payload` field in events to document event data shape
@@ -329,7 +338,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `nodes` array — design the complete node graph:
      - Always start with `input` node after trigger for API flows (validate incoming data)
      - Use `decision` nodes for branching logic (always wire both `true` and `false`)
-     - Use `data_store` for data storage operations. Set `store_type` to `'database'` (default), `'filesystem'`, or `'memory'`. For database: set `operation` (create/read/update/delete/upsert), `model`, `data`/`query`. For filesystem: set `path`, `content`, `create_parents`. For memory: set `store`, `selector`, and prefer memory operations (`get`/`set`/`merge`/`reset`/`subscribe`/`update_where`). Use `update_where` with `predicate` + `patch` for array item updates. Optionally set `safety: 'strict'` for null-safe code generation on reads.
+     - Use `data_store` for data storage operations. Set `store_type` to `'database'` (default), `'filesystem'`, or `'memory'`. For database: set `operation` (create/read/update/delete/upsert/create_many/update_many/delete_many), `model`, `data`/`query`. For filesystem: set `path`, `content`, `create_parents`. For memory: set `store`, `selector`, and prefer memory operations (`get`/`set`/`merge`/`reset`/`subscribe`/`update_where`). Use `update_where` with `predicate` + `patch` for array item updates. Optionally set `safety: 'strict'` for null-safe code generation on reads.
      - Use `service_call` for external API calls (set `method`, `url`, `error_mapping`)
      - Use `ipc_call` for local IPC or native function calls — Tauri commands, Electron IPC, React Native bridge (set `command`, `args`, `return_type`, optionally `bridge` and `timeout_ms`)
      - Use `event` nodes to publish/consume domain events (set `direction` to `'emit'` or `'consume'`, `event_name`, and `payload`)
@@ -343,6 +352,15 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Use `delay` for rate limiting or wait/throttle between steps (set `min_ms`)
      - Use `transform` for pure field mapping between schemas (set `input_schema`, `output_schema`, `field_mappings`)
      - Use `sub_flow` to call reusable flows from other domains (set `flow_ref` as `domain/flow-id`)
+     - Use `llm_call` for single LLM invocations — specify `model`, `prompt`, `temperature`, `max_tokens`, and optionally `structured_output` for typed responses
+     - Use `agent_loop` for autonomous agent iterations — specify `tools` (array with at least one `is_terminal: true`), `max_iterations`, `model`
+     - Use `guardrail` for input/output validation in agent flows — specify `checks` array, inline and sequential
+     - Use `human_gate` for async human approval in agent flows — specify `prompt`, `timeout`, `actions`
+     - Use `orchestrator` for multi-step agent task decomposition — specify `strategy`, `model`, `agents`
+     - Use `smart_router` for intelligent 3+ way routing (works in both traditional and agent flows) — specify `routes` array with conditions
+     - Use `handoff` for agent-to-agent control transfer — specify `target_agent`, `context`
+     - Use `agent_group` for multi-agent collaboration — specify `agents`, `strategy` (round_robin/consensus/debate)
+     > **Note:** For complete node spec fields (including advanced fields like trigger `filter`/`debounce_ms`, terminal `response_type`/`headers`, data_store `include`/`upsert_key`, event `payload_source`/`priority`/`delay_ms`, llm_call `context_sources`, loop `accumulate`, ipc_call `result_condition`, service_call `integration`/`request_config`, process `category`), refer to the fetched DDD Usage Guide Section 6.
      - End every path with a `terminal` node (set `outcome`, `status`, `body`)
    - Wire all connections with proper `sourceHandle` values:
      - `input` → `"valid"` / `"invalid"`
@@ -364,6 +382,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `smart_router` → dynamic route IDs (from `rules[].id`)
      - `human_gate` → dynamic option IDs (from `approval_options[].id`)
      - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
+   - Connections support an optional `behavior` field for error handling: `continue` (ignore error, proceed), `stop` (halt flow), `retry` (retry with backoff), `circuit_break` (fail-fast after threshold). Use when the error handling strategy differs per connection.
    - Position nodes vertically with ~130px spacing, branch error terminals to the right
    - `metadata` with created and modified timestamps (current ISO)
    - **Shortfall tracking** (if `--shortfalls` flag is present): As you design each flow, mentally track every time you:
@@ -445,7 +464,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Ports don't conflict between services
    - Backend port matches `system.yaml` environment URL
    - Every service has a `dev_command` — the project must be runnable locally
-   - Datastores have `setup_command` for initial setup (schema creation, migrations)
+   - Datastores have `setup` for initial setup (schema creation, migrations)
 
    **Pillar completeness gate** (BLOCKER — must pass before finishing):
 

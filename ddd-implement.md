@@ -204,7 +204,7 @@ Parse the argument to determine scope:
    **Follow the node graph** from trigger through all paths to terminal nodes. Each node becomes real code:
    - `process` → service function call
    - `decision` → if/else or switch using the `condition` field
-   - `data_store` → database query (ORM call matching `operation`: create/read/update/delete on `model`)
+   - `data_store` → database CRUD operations (`create`, `read`, `update`, `delete`, `upsert`, `create_many`, `update_many`, `delete_many`). For `upsert`, use `upsert_key` field for conflict resolution. For `include` field, implement eager-loading of related records (joins). For `returning` field on bulk ops, return the affected records. Check `safety` field — if `strict`, generate null-safe code with explicit checks.
    - `service_call` → HTTP client call (method, url, headers, body, timeout, retry). If `system.yaml` has an `integrations:` section and the service_call URL matches an integration's `base_url`, use the integration's auth, retry, and rate limit config
    - `event` → event emission (emit) or subscription handler (consume)
    - `loop` → for/forEach over `collection` with `iterator` variable, optional `break_condition`
@@ -228,6 +228,10 @@ Parse the argument to determine scope:
    - `batch` → execute operation template against each item in input collection with concurrency control
    - `transaction` → atomic multi-step database operation with rollback on error
 
+   > **Advanced node fields:** The fetched DDD Usage Guide Section 6 defines additional fields per node type that affect implementation: trigger `filter` (event payload filtering — eliminates unnecessary decision nodes), trigger `debounce_ms`, terminal `response_type` (json/stream/sse/empty) and `headers`, data_store `include` (eager-loading joins) and `upsert_key`, event `payload_source`/`target_queue`/`priority`/`delay_ms`/`dedup_key`, llm_call `context_sources` (structured variable bindings), loop `accumulate` (result collection across iterations) and `body_start`, ipc_call `result_condition`, service_call `integration` (references system.yaml) and `request_config`, process `category`/`inputs`/`outputs`, parallel conditional `branches`. Always check the spec for these fields and implement them when present.
+
+   When implementing nodes inside `loop` or `parallel` containers, respect the `parentId` field to maintain proper scoping of variables and execution context.
+
    **Wire connections using `sourceHandle`** — nodes with multiple output paths use `sourceHandle` values:
    - `input` → `"valid"` path (continue) / `"invalid"` path (validation error terminal)
    - `decision` → `"true"` path / `"false"` path
@@ -248,6 +252,13 @@ Parse the argument to determine scope:
    - `transaction` → `"committed"` path / `"rolled_back"` path
    - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
    - `human_gate` → dynamic handles from `approval_options[].id` values
+
+   **Connection error behavior:** When a connection has a `behavior` field, implement accordingly:
+   - `continue` — catch errors and proceed to the next node (log the error)
+   - `stop` — re-throw the error to halt the flow
+   - `retry` — wrap in retry logic with exponential backoff (default: 3 attempts, 1000ms base delay)
+   - `circuit_break` — implement circuit breaker pattern (fail-fast after consecutive failures, with cooldown period)
+   If no `behavior` is specified, default to `stop` (propagate errors).
 
    **Terminal nodes → HTTP responses**: Use `status` and `body` fields from terminal spec:
    - `status` → HTTP status code (e.g., 201, 422, 409)
