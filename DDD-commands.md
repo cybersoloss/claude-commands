@@ -1,6 +1,6 @@
 # DDD Commands Reference
 
-Eleven Claude Code slash commands for the [Design Driven Development](https://github.com/cybersoloss/DDD) four-phase lifecycle.
+Eleven Claude Code slash commands for the [Design Driven Development](https://github.com/cybersoloss/DDD) four-phase lifecycle. DDD covers four foundational pillars: **Logic** (backend flows), **Data** (schemas, indexes, seed), **Interface** (UI pages, forms, navigation), and **Infrastructure** (services, ports, deployment).
 
 ```
 Phase 1: CREATE        Phase 2: DESIGN         Phase 3: BUILD          Phase 4: REFLECT
@@ -18,9 +18,9 @@ Meta-level: /ddd-evolve
 
 | Phase | Command | Options | Description |
 |-------|---------|---------|-------------|
-| 1 Create | `/ddd-create` | `--from`, `--shortfalls` | Design a new project from description or design file → YAML specs |
-| 3 Build | `/ddd-scaffold` | — | Set up project skeleton from specs (first step of Phase 3) |
-| 3 Build | `/ddd-implement` | `--all`, `domain`, `domain/flow` | Read specs → generate code + tests |
+| 1 Create | `/ddd-create` | `--from`, `--shortfalls` | Design a new project → YAML specs across all four pillars (logic, data, interface, infrastructure) |
+| 3 Build | `/ddd-scaffold` | — | Set up project skeleton — backend, frontend, data, infrastructure — from specs |
+| 3 Build | `/ddd-implement` | `--all`, `--ui`, `domain`, `domain/flow`, `--ui page-id` | Read specs → generate backend flow code, frontend pages, and tests |
 | 3 Build | `/ddd-test` | `--all`, `--coverage`, `domain`, `domain/flow` | Run tests for implemented flows |
 | 1 Create | `/ddd-reverse` | `--output`, `--domains`, `--merge`, `--strategy` | Reverse-engineer existing code → YAML specs |
 | 4 Reflect | `/ddd-reflect` | `--all`, `domain`, `domain/flow` | Capture implementation wisdom as annotations |
@@ -56,7 +56,7 @@ Generate a complete DDD spec structure from a project description.
 
 | Flag | Purpose |
 |------|---------|
-| `--from <path-or-url>` | Use a design file as reference input. Supports images (PNG, JPG), PDFs, markdown, text, YAML, and URLs (Figma, Miro, web pages). Extracts domains, flows, data models, events, and architecture from the design. Combine with a text description for additional context. |
+| `--from <path-or-url>` | Use a design file as reference input. Supports images (PNG, JPG), PDFs, markdown, text, YAML, and URLs (Figma, Miro, web pages). Extracts all four pillars — domains, flows, data models, UI pages, events, infrastructure, and architecture — from the design. Combine with a text description for additional context. |
 | `--shortfalls` | Generate `specs/shortfalls.yaml` — a structured report of DDD framework gaps encountered during design (7 categories). Feed into `/ddd-evolve` for analysis. |
 
 ### Examples
@@ -82,7 +82,7 @@ Generate a complete DDD spec structure from a project description.
 
 1. Fetches the [DDD Usage Guide](https://github.com/cybersoloss/DDD/blob/main/DDD-USAGE-GUIDE.md) from GitHub
 2. Parses the description (asks clarifying questions if brief)
-3. Creates full spec structure:
+3. Creates full spec structure across all four pillars:
    - `ddd-project.json` — project config, domain list
    - `specs/system.yaml` — tech stack, environments
    - `specs/architecture.yaml` — conventions, infrastructure
@@ -90,13 +90,16 @@ Generate a complete DDD spec structure from a project description.
    - `specs/shared/errors.yaml` — error codes
    - `specs/shared/types.yaml` — shared enums (if needed)
    - `specs/schemas/_base.yaml` — base model fields
-   - `specs/schemas/{model}.yaml` — one per data model
+   - `specs/schemas/{model}.yaml` — one per data model (with indexes and seed data)
    - `specs/domains/{domain}/domain.yaml` — domain config, event wiring
    - `specs/domains/{domain}/flows/{flow}.yaml` — flow graphs with nodes and connections
+   - `specs/ui/pages.yaml` — page registry, navigation, theme, shared components
+   - `specs/ui/{page-id}.yaml` — per-page specs (sections, forms, data bindings, state)
+   - `specs/infrastructure.yaml` — services, ports, startup order, deployment
 
 ### Output
 
-Shows a summary with domains, flow counts, files created, event wiring, and next steps.
+Shows a summary with domains, flow counts, pages, schemas (with indexes/seed counts), infrastructure services, files created, event wiring, and next steps.
 
 ---
 
@@ -172,7 +175,7 @@ Auto-selected based on source file count (override with `--strategy`):
 
 ## /ddd-implement
 
-Generate working code and tests from DDD specs.
+Generate working code and tests from DDD specs — backend flows, frontend pages, or both.
 
 ### Usage
 
@@ -184,15 +187,17 @@ Generate working code and tests from DDD specs.
 
 | Argument | Scope | Example |
 |---|---|---|
-| `--all` | Whole project — all domains, all flows | `/ddd-implement --all` |
+| `--all` | Whole project — all flows + all pages | `/ddd-implement --all` |
 | `domain-name` | All flows in a domain | `/ddd-implement users` |
 | `domain-name/flow-name` | Single flow | `/ddd-implement users/user-register` |
-| *(empty)* | Interactive — shows flows and asks | `/ddd-implement` |
+| `--ui` | All UI pages | `/ddd-implement --ui` |
+| `--ui page-id` | Single UI page | `/ddd-implement --ui dashboard` |
+| *(empty)* | Interactive — shows flows/pages and asks | `/ddd-implement` |
 
 ### Examples
 
 ```
-# Implement everything
+# Implement everything (backend + frontend)
 /ddd-implement --all
 
 # Implement all flows in the orders domain
@@ -201,14 +206,21 @@ Generate working code and tests from DDD specs.
 # Implement a single flow
 /ddd-implement users/user-register
 
+# Implement all UI pages
+/ddd-implement --ui
+
+# Implement a single page
+/ddd-implement --ui dashboard
+
 # Interactive mode — pick what to implement
 /ddd-implement
 ```
 
 ### What it does
 
+**Backend flows:**
 1. Finds `ddd-project.json` in current or parent directory
-2. Reads all relevant specs (system, architecture, config, errors, schemas, domain, flow)
+2. Reads all relevant specs (system, architecture, config, errors, schemas, domain, flow, infrastructure)
 3. Checks `.ddd/mapping.yaml` for existing implementations (skip if up-to-date, update if drifted)
 4. Generates code following the node graph from trigger to terminal:
    - Routes/handlers from trigger type
@@ -222,9 +234,17 @@ Generate working code and tests from DDD specs.
 6. Runs tests, fixes until passing
 7. Updates `.ddd/mapping.yaml` with spec hash, timestamp, and file list
 
+**Frontend pages (with `--ui`):**
+1. Reads `specs/ui/pages.yaml` and per-page spec files
+2. Generates page components with data fetching, sections, forms, and state management
+3. Binds UI sections to backend flows via `data_source` references
+4. Generates all form field types (text, select, search-select, date, tag-input, etc.)
+5. Writes frontend tests (renders, API calls, form validation, form submission)
+6. Updates `.ddd/mapping.yaml` pages section
+
 ### Output
 
-Summary table with domain/flow, status, file count, and test results.
+Summary tables — backend (domain/flow, status, files, tests) and frontend (page, status, sections, forms).
 
 ---
 
@@ -345,7 +365,7 @@ Summary showing:
 
 ## /ddd-scaffold
 
-Set up project skeleton and shared infrastructure from specs. Run this as the first step of Phase 3 (Build), before `/ddd-implement`.
+Set up the project skeleton and shared infrastructure across all four pillars from DDD specs. This is the first step of Phase 3 (Build), before `/ddd-implement`.
 
 ### Usage
 
@@ -355,26 +375,38 @@ Set up project skeleton and shared infrastructure from specs. Run this as the fi
 
 ### What it does
 
-1. Reads `system.yaml`, `architecture.yaml`, `config.yaml`, `errors.yaml`, `types.yaml`, and all schema files
+1. Reads all specs: `system.yaml`, `architecture.yaml`, `config.yaml`, `errors.yaml`, `types.yaml`, all schema files, `ui/pages.yaml`, and `infrastructure.yaml`
 2. Initializes the project:
-   - Package config (package.json, tsconfig, dependencies)
+   - Package config (package.json, tsconfig, dependencies — including frontend deps from pages.yaml)
    - Project directory structure from architecture spec
-3. Generates shared infrastructure:
+3. **Backend scaffold:**
    - Config loader from config.yaml
    - Error classes/handler from errors.yaml
    - Shared types from types.yaml
-   - Database schema/models from schemas/
+   - Database schema/models from schemas/ (with indexes)
+   - Seed data generation (migration seeds, test fixtures, script placeholders)
    - App entry point with middleware stack
    - Integration clients from system.yaml integrations
    - Event infrastructure (if domains use events)
    - Test configuration and utilities
-4. Creates environment files (.env.example, .gitignore)
-5. Verifies build and tests pass
-6. Initializes `.ddd/mapping.yaml`
+4. **Frontend scaffold** (from `specs/ui/`):
+   - Page files/directories per framework convention
+   - Layout components with navigation (sidebar, topbar, tabs, drawer)
+   - Shared component placeholders
+   - Theme setup from component library config
+   - Typed API client with backend URL from infrastructure.yaml
+   - State management store setup
+5. **Infrastructure scaffold** (from `specs/infrastructure.yaml`):
+   - Dev scripts in package.json for each service
+   - `dev:all` script with concurrently respecting startup_order
+   - Docker setup (Dockerfile, docker-compose.yaml) if applicable
+6. Creates environment files (.env.example, .gitignore)
+7. Verifies build and tests pass
+8. Initializes `.ddd/mapping.yaml`
 
 ### Output
 
-Summary of created files, models, error codes, integrations, and build/test status.
+Summary with backend files, frontend pages, data models (indexes, seeds), infrastructure services, error codes, integrations, and build/test status.
 
 ---
 
