@@ -205,6 +205,8 @@ Synchronize the DDD project specs with the current implementation state across a
       Status: in_sync {N}, spec_ahead {N}, code_ahead {N}, diverged {N}, untracked {N}
       ```
 
+    - Save the full report to `.ddd/reconciliations/{timestamp}.yaml` for historical tracking
+
 11. **Next steps**: Based on findings, suggest the appropriate next commands:
     - Flows with code ahead of spec: "Run `/ddd-reflect {domain/flow}` to capture implementation wisdom, then `/ddd-promote --review`"
     - Flows with new spec logic: "Run `/ddd-implement {domain/flow}` to update code"

@@ -141,7 +141,7 @@ Parse the argument to determine what to update:
 
    When **modifying a domain**, update `specs/domains/{domain}/domain.yaml`:
    - **Adding/removing flows**: Update the `flows` array and create/delete flow YAML files.
-   - **Updating events**: Update `publishes_events` or `consumes_events` arrays. If the event is cross-domain, remind the user to update the consuming/publishing domain too.
+   - **Updating events**: Update `publishes_events` or `consumes_events` arrays. Include `payload` field to document the event data shape. If the event is cross-domain, remind the user to update the consuming/publishing domain too and ensure `payload` shape is consistent between publisher and consumer.
 
    When **adding a domain**, create all required files and update `ddd-project.json`.
 

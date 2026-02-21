@@ -179,6 +179,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Include seed data for any enum or reference table that the app needs on first run
    - Define relationships explicitly — don't rely on convention (every foreign key should be documented)
    - If a field has a finite set of values (status, role, category), define them in `specs/shared/types.yaml` and reference via `ref` (e.g., `ref: platform`)
+   - Use `inherits: "{base-schema}"` when multiple schemas share a common field set beyond `_base.yaml` (e.g., all content types inheriting from a base `content` schema)
    - Think about what queries the app will run most frequently and ensure those have indexes
 
 10. **Create UI specs** (Interface pillar): Generate `specs/ui/pages.yaml` and per-page spec files.
@@ -318,7 +319,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `layout` with flow positions (space flows vertically with ~200px gaps)
 
 13. **Create flow YAML files**: For each flow, create `specs/domains/{domain-id}/flows/{flow-id}.yaml` with:
-   - `flow` metadata (id, name, type, domain, description). Optionally add `emits: string[]` and `listens_to: string[]` to summarize the flow's event surface. For flows triggered by keyboard shortcuts, add `keyboard_shortcut` (e.g., `"Cmd+K"`).
+   - `flow` metadata (id, name, type, domain, description). Optionally add `emits: string[]` and `listens_to: string[]` to summarize the flow's event surface. For flows triggered by keyboard shortcuts, add `keyboard_shortcut` (e.g., `"Cmd+K"`). For reusable parameterized flows, add `template: true` and `parameters` (array of `{name, type, default?, required?}`) — callers pass args via `sub_flow` node's `args`.
    - `trigger` node with `spec.event` set to one of these conventions:
      - `HTTP {METHOD} {path}` for API endpoints
      - `cron {expression}` for scheduled jobs. Add `job_config` to the trigger spec with queue, concurrency, timeout, and retry settings
@@ -334,15 +335,16 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `ws {path}` for WebSocket endpoints (e.g., `ws /api/live`)
      - `pattern:{EventName}` for event pattern triggers that aggregate multiple events
      - The label can match the event value or be more descriptive
+     - Optional advanced fields: `filter` (CEL expression to filter incoming events), `debounce_ms` (debounce rapid-fire triggers)
    - For flows called as sub-flows, add a `contract` section to the flow metadata with `inputs` and `outputs`
    - `nodes` array — design the complete node graph:
      - Always start with `input` node after trigger for API flows (validate incoming data)
      - Use `decision` nodes for branching logic (always wire both `true` and `false`)
-     - Use `data_store` for data storage operations. Set `store_type` to `'database'` (default), `'filesystem'`, or `'memory'`. For database: set `operation` (create/read/update/delete/upsert/create_many/update_many/delete_many), `model`, `data`/`query`. For filesystem: set `path`, `content`, `create_parents`. For memory: set `store`, `selector`, and prefer memory operations (`get`/`set`/`merge`/`reset`/`subscribe`/`update_where`). Use `update_where` with `predicate` + `patch` for array item updates. Optionally set `safety: 'strict'` for null-safe code generation on reads.
-     - Use `service_call` for external API calls (set `method`, `url`, `error_mapping`)
-     - Use `ipc_call` for local IPC or native function calls — Tauri commands, Electron IPC, React Native bridge (set `command`, `args`, `return_type`, optionally `bridge` and `timeout_ms`)
-     - Use `event` nodes to publish/consume domain events (set `direction` to `'emit'` or `'consume'`, `event_name`, and `payload`)
-     - Use `loop` for iteration, `parallel` for concurrent operations
+     - Use `data_store` for data storage operations. Set `store_type` to `'database'` (default), `'filesystem'`, or `'memory'`. For database: set `operation` (create/read/update/delete/upsert/create_many/update_many/delete_many), `model`, `data`/`query`. Optional: `include` (join related models), `upsert_key` (conflict key for upsert), `returning` (fields to return), `safety: 'strict'` (null-safe reads). For filesystem: set `path`, `content`, `create_parents`. For memory: set `store`, `selector`, and prefer memory operations (`get`/`set`/`merge`/`reset`/`subscribe`/`update_where`). Use `update_where` with `predicate` + `patch` for array item updates.
+     - Use `service_call` for external API calls (set `method`, `url`, `error_mapping`). Optional: `integration` (reference to `system.yaml` integration ID), `request_config` (headers, timeout, auth override)
+     - Use `ipc_call` for local IPC or native function calls — Tauri commands, Electron IPC, React Native bridge (set `command`, `args`, `return_type`, optionally `bridge`, `timeout_ms`, and `result_condition` for conditional success/error routing)
+     - Use `event` nodes to publish/consume domain events (set `direction` to `'emit'` or `'consume'`, `event_name`, and `payload`). Optional advanced fields: `payload_source` (expression for dynamic payload), `target_queue`, `priority`, `delay_ms` (delayed emit), `dedup_key`
+     - Use `loop` for iteration (set `over`, `as`; optional: `accumulate` for collecting results, `body_start` to specify first node in loop body), `parallel` for concurrent operations (optional: conditional `branches` with `condition` per branch)
      - Use `collection` for in-memory data transformations (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten)
      - Use `parse` for structured extraction from raw formats (rss, atom, html, xml, json, csv, markdown)
      - Use `crypto` for encrypt/decrypt/hash/sign/verify operations
@@ -352,7 +354,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Use `delay` for rate limiting or wait/throttle between steps (set `min_ms`)
      - Use `transform` for pure field mapping between schemas (set `input_schema`, `output_schema`, `field_mappings`)
      - Use `sub_flow` to call reusable flows from other domains (set `flow_ref` as `domain/flow-id`)
-     - Use `llm_call` for single LLM invocations — specify `model`, `prompt`, `temperature`, `max_tokens`, and optionally `structured_output` for typed responses
+     - Use `llm_call` for single LLM invocations — specify `model`, `prompt`, `temperature`, `max_tokens`, and optionally `structured_output` for typed responses, `context_sources` (array of data references to inject into prompt context)
      - Use `agent_loop` for autonomous agent iterations — specify `tools` (array with at least one `is_terminal: true`), `max_iterations`, `model`
      - Use `guardrail` for input/output validation in agent flows — specify `checks` array, inline and sequential
      - Use `human_gate` for async human approval in agent flows — specify `prompt`, `timeout`, `actions`
@@ -360,8 +362,9 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Use `smart_router` for intelligent 3+ way routing (works in both traditional and agent flows) — specify `routes` array with conditions
      - Use `handoff` for agent-to-agent control transfer — specify `target_agent`, `context`
      - Use `agent_group` for multi-agent collaboration — specify `agents`, `strategy` (round_robin/consensus/debate)
-     > **Note:** For complete node spec fields (including advanced fields like trigger `filter`/`debounce_ms`, terminal `response_type`/`headers`, data_store `include`/`upsert_key`, event `payload_source`/`priority`/`delay_ms`, llm_call `context_sources`, loop `accumulate`, ipc_call `result_condition`, service_call `integration`/`request_config`, process `category`), refer to the fetched DDD Usage Guide Section 6.
-     - End every path with a `terminal` node (set `outcome`, `status`, `body`)
+     - Use `process` nodes for custom logic steps — set `category` (validation/mapping/computation/formatting/aggregation/io/side_effect) to classify, `inputs`/`outputs` arrays to document data shape
+     > **Note:** For exhaustive node spec field documentation, refer to the fetched DDD Usage Guide Section 6. The fields listed above cover the most commonly needed options.
+     - End every path with a `terminal` node (set `outcome`, `status`, `body`; optional: `response_type` for streaming/SSE/file responses, `headers` for custom HTTP response headers)
    - Wire all connections with proper `sourceHandle` values:
      - `input` → `"valid"` / `"invalid"`
      - `decision` → `"true"` / `"false"`
@@ -382,7 +385,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `smart_router` → dynamic route IDs (from `rules[].id`)
      - `human_gate` → dynamic option IDs (from `approval_options[].id`)
      - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
-   - Connections support an optional `behavior` field for error handling: `continue` (ignore error, proceed), `stop` (halt flow), `retry` (retry with backoff), `circuit_break` (fail-fast after threshold). Use when the error handling strategy differs per connection.
+   - Connections support optional fields: `behavior` for error handling (`continue`/`stop`/`retry`/`circuit_break`), `data` for annotating what data flows between nodes (e.g., `data: "userId, email"`), and `label` for human-readable edge labels on the canvas.
    - Position nodes vertically with ~130px spacing, branch error terminals to the right
    - `metadata` with created and modified timestamps (current ISO)
    - **Shortfall tracking** (if `--shortfalls` flag is present): As you design each flow, mentally track every time you:

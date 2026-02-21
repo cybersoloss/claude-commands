@@ -179,6 +179,8 @@ Set up the project skeleton and shared infrastructure from DDD specs before impl
 12. **Initialize `.ddd/` tracking:**
     - Create `.ddd/mapping.yaml` with empty `flows:` and `pages:` sections (populated by `/ddd-implement`)
     - Create `.ddd/annotations/` directory with `.gitkeep` (populated by `/ddd-reflect`)
+    - Create `.ddd/autosave/` directory with `.gitkeep` (crash recovery, managed by DDD Tool)
+    - Create `.ddd/reconciliations/` directory with `.gitkeep` (reconciliation reports from `/ddd-sync`)
 
 13. **Summary**: After scaffolding, show:
     ```
