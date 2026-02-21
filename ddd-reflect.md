@@ -1,6 +1,6 @@
 # DDD Reflect
 
-Capture implementation wisdom — patterns and details that code has but specs don't describe — across both backend flows and UI pages. Creates annotation files in `.ddd/annotations/` for human review and later promotion into permanent specs via `/ddd-promote`.
+Capture implementation wisdom — patterns and details that code has but specs don't describe — across all four pillars (Logic, Data, Interface, Infrastructure). Creates annotation files in `.ddd/annotations/` for human review and later promotion into permanent specs via `/ddd-promote`.
 
 ## Scope Resolution
 
@@ -8,12 +8,15 @@ Parse `$ARGUMENTS` to determine scope:
 
 | Argument | Scope | Example |
 |----------|-------|---------|
-| `--all` | All implemented flows AND pages | `/ddd-reflect --all` |
+| `--all` | All implemented flows, pages, schemas, and infrastructure | `/ddd-reflect --all` |
 | `{domain}` | All flows in a domain | `/ddd-reflect monitoring` |
 | `{domain}/{flow}` | Single flow | `/ddd-reflect monitoring/check-social-sources` |
 | `--ui` | All implemented UI pages | `/ddd-reflect --ui` |
 | `--ui {page-id}` | Single UI page | `/ddd-reflect --ui dashboard` |
-| *(empty)* | Interactive — show flows and pages, ask which to reflect on | `/ddd-reflect` |
+| `--schema` | All schema implementations | `/ddd-reflect --schema` |
+| `--schema {model}` | Single schema model | `/ddd-reflect --schema user` |
+| `--infra` | Infrastructure implementation | `/ddd-reflect --infra` |
+| *(empty)* | Interactive — show all pillars, ask which to reflect on | `/ddd-reflect` |
 
 ## Instructions
 
@@ -27,12 +30,15 @@ Parse `$ARGUMENTS` to determine scope:
    - `.ddd/annotations/` — existing annotations (to skip duplicates)
 
 3. **Resolve scope**: Parse `$ARGUMENTS` using the table above.
-   - If no argument, show all implemented flows AND pages (from mapping.yaml) and ask the user which to reflect on
-   - If `--all`, process every flow AND every page that has an implementation in mapping.yaml
+   - If no argument, show all implemented flows, pages, schemas, and infrastructure and ask the user which to reflect on
+   - If `--all`, process every flow, every page, all schemas, and infrastructure
    - If `{domain}`, process all implemented flows in that domain
    - If `{domain}/{flow}`, process that single flow
    - If `--ui`, process all implemented pages from mapping.yaml `pages:` section
    - If `--ui {page-id}`, process that single page
+   - If `--schema`, process all schema files that have ORM implementations
+   - If `--schema {model}`, process that single schema model
+   - If `--infra`, process infrastructure implementation
 
 4. **For each flow in scope**, perform wisdom capture:
 
@@ -97,7 +103,62 @@ Parse `$ARGUMENTS` to determine scope:
 
    e–f. Apply the same duplicate and already-specified checks as for flows.
 
-5. **Write annotation files**: For each flow or page with new findings, write to `.ddd/annotations/{domain}/{flow}.yaml` (for flows) or `.ddd/annotations/ui/{page-id}.yaml` (for pages):
+4c. **For each schema in scope** (when `--schema` or `--all`), perform Data wisdom capture:
+
+   a. **Read the schema spec YAML** from `specs/schemas/{model}.yaml`
+
+   b. **Read the ORM implementation** (e.g., `prisma/schema.prisma`, Drizzle schema files, TypeORM entities)
+
+   c. **Compare spec vs code** — identify what the ORM/database implementation does that the schema spec doesn't describe:
+      - **Index choices**: Does the implementation have indexes the spec doesn't list? Composite indexes, partial indexes, or expression indexes?
+      - **Migration patterns**: Does the implementation use custom migrations beyond simple schema sync? Data migrations, backfills?
+      - **Seed data**: Does the implementation seed data the spec doesn't mention?
+      - **Constraints**: Does the implementation have CHECK constraints, exclusion constraints, or triggers not in the spec?
+      - **Query optimizations**: Are there materialized views, computed columns, or denormalized fields?
+      - **Soft-delete implementation**: Does the implementation use middleware/hooks for soft-delete that the spec doesn't capture?
+
+   d. **Classify each finding**:
+      | Category | Indicators |
+      |----------|-----------|
+      | `index_optimization` | Extra indexes, partial indexes, covering indexes |
+      | `migration_pattern` | Custom migrations, data backfills, schema versioning |
+      | `seed_data` | Additional seed data beyond spec |
+      | `constraint` | CHECK constraints, triggers, exclusion constraints |
+      | `query_optimization` | Views, computed columns, denormalization |
+      | `custom` | Project-specific data patterns |
+
+   e–f. Apply the same duplicate and already-specified checks.
+
+4d. **For infrastructure** (when `--infra` or `--all`), perform Infrastructure wisdom capture:
+
+   a. **Read the infrastructure spec** from `specs/infrastructure.yaml`
+
+   b. **Read the infrastructure implementation** (docker-compose.yaml, Dockerfile, package.json scripts, startup scripts, CI/CD configs)
+
+   c. **Compare spec vs code** — identify what the infrastructure does that the spec doesn't describe:
+      - **Docker config**: Volume mounts, network settings, environment variables, health check commands not in the spec?
+      - **Startup orchestration**: Does the implementation have wait-for scripts, health check polling, or dependency ordering beyond `startup_order`?
+      - **Dev tooling**: Are there dev scripts (lint, format, typecheck, db:reset) not captured in the spec?
+      - **CI/CD**: Are there pipeline configs (GitHub Actions, etc.) not reflected in the spec?
+      - **Resource limits**: Memory limits, CPU constraints, connection pool sizes?
+
+   d. **Classify each finding**:
+      | Category | Indicators |
+      |----------|-----------|
+      | `docker_config` | Volume mounts, networks, build args, multi-stage builds |
+      | `startup_orchestration` | Wait scripts, health polling, dependency chains |
+      | `dev_tooling` | Scripts, linters, formatters, watch modes |
+      | `ci_cd` | Pipeline configs, deployment scripts |
+      | `resource_limits` | Memory, CPU, connection pools, rate limits |
+      | `custom` | Project-specific infrastructure patterns |
+
+   e–f. Apply the same duplicate and already-specified checks.
+
+5. **Write annotation files**: For each flow, page, schema, or infrastructure with new findings, write to:
+   - `.ddd/annotations/{domain}/{flow}.yaml` (for flows)
+   - `.ddd/annotations/ui/{page-id}.yaml` (for pages)
+   - `.ddd/annotations/schemas/{model}.yaml` (for schemas)
+   - `.ddd/annotations/infrastructure.yaml` (for infrastructure)
 
    ```yaml
    flow: {domain}/{flow-id}

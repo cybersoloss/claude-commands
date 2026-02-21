@@ -10,7 +10,10 @@ Parse `$ARGUMENTS` to determine scope:
 |----------|-------|---------|
 | `--all` | Promote all approved annotations | `/ddd-promote --all` |
 | `--review` | Interactive review — present each candidate for approval | `/ddd-promote --review` |
+| `{domain}` | All annotations for a domain | `/ddd-promote monitoring` |
 | `{domain}/{flow}` | Scope to specific flow's annotations | `/ddd-promote monitoring/check-social-sources` |
+| `--ui` | All UI page annotations | `/ddd-promote --ui` |
+| `--ui {page-id}` | Scope to specific page's annotations | `/ddd-promote --ui dashboard` |
 | *(empty)* | Interactive — same as `--review` | `/ddd-promote` |
 
 ## Instructions
@@ -55,10 +58,25 @@ Parse `$ARGUMENTS` to determine scope:
    - Skip `candidate` annotations (they need review first)
    - Process only annotations with status `approved`
 
+   **If `{domain}`**: Scope to all annotations for that domain.
+   - Read all `.ddd/annotations/{domain}/*.yaml` files
+   - If `--review` is also present (or no other flag), enter interactive review for that domain
+   - If `--all` is also present, promote all approved annotations for that domain
+
    **If `{domain}/{flow}`**: Scope to that flow's annotations.
    - Read only `.ddd/annotations/{domain}/{flow}.yaml`
    - If `--review` is also present (or no other flag), enter interactive review for that flow
    - If `--all` is also present, promote all approved annotations for that flow
+
+   **If `--ui`**: Scope to all UI page annotations.
+   - Read all `.ddd/annotations/ui/*.yaml` files
+   - If `--review` is also present (or no other flag), enter interactive review for all pages
+   - If `--all` is also present, promote all approved page annotations
+
+   **If `--ui {page-id}`**: Scope to that page's annotations.
+   - Read only `.ddd/annotations/ui/{page-id}.yaml`
+   - If `--review` is also present (or no other flag), enter interactive review for that page
+   - If `--all` is also present, promote all approved annotations for that page
 
 5. **Promote approved annotations**: For each annotation with status `approved`:
 
@@ -110,7 +128,7 @@ Parse `$ARGUMENTS` to determine scope:
 
 6. **Update annotation status**: After promoting, update each annotation's status:
    - `approved` → `promoted` (if successfully written to specs)
-   - Write the updated annotation file back to `.ddd/annotations/{domain}/{flow}.yaml`
+   - Write the updated annotation file back to `.ddd/annotations/{domain}/{flow}.yaml` (for flows) or `.ddd/annotations/ui/{page-id}.yaml` (for pages)
 
 7. **Update mapping.yaml**: Since spec files have changed:
    - Recompute `specHash` for any flow specs that were modified
@@ -175,7 +193,14 @@ Parse `$ARGUMENTS` to determine scope:
 
 5. **Validate after promotion**: After writing changes, verify:
    - The flow spec YAML is still valid (proper structure, no broken references)
+   - The page spec YAML is still valid (sections, data_source references)
    - The architecture.yaml is still valid YAML
    - No duplicate pattern IDs in cross_cutting_patterns
+
+6. **Next steps**: After promotion, suggest:
+   - "Run `/ddd-sync` to update mapping hashes for modified specs"
+   - "Run `/ddd-implement {scope}` if promoted patterns require code changes"
+   - "Run `/ddd-status` to verify the project state"
+   - If remaining candidates exist: "Run `/ddd-promote --review` to review remaining candidates"
 
 $ARGUMENTS

@@ -1,6 +1,6 @@
 # DDD Implement
 
-Implement DDD-designed flows and pages from the specs directory. Generates backend flow code from flow specs and frontend page components from UI specs. Supports implementing the entire project, a specific domain, or a specific flow.
+Implement DDD-designed specs across Logic (backend flows) and Interface (UI pages). Generates backend flow code from flow specs and frontend page components from UI page specs. Supports implementing the entire project, a specific domain, a specific flow, or specific pages.
 
 ## Scope Resolution
 
@@ -255,9 +255,6 @@ Parse the argument to determine scope:
        files:
          - src/path/to/file1.ts
          - src/path/to/file2.ts
-       fileHashes:
-         src/path/to/file1.ts: (sha256 of file content)
-         src/path/to/file2.ts: (sha256 of file content)
        syncState: synced
 
    pages:
@@ -269,8 +266,6 @@ Parse the argument to determine scope:
        files:
          - src/app/page-id/page.tsx
          - src/components/page-id/section-name.tsx
-       fileHashes:
-         src/app/page-id/page.tsx: (sha256 of file content)
        syncState: synced
    ```
 
@@ -288,5 +283,11 @@ Parse the argument to determine scope:
     inbox                        ✓ done    3         1
     settings                     ✓ done    2         3
     ```
+
+13. **Next steps**: After implementation, suggest:
+    - "Run `/ddd-test --all` to verify all implementations"
+    - "Open the DDD Tool to review the implementation state"
+    - "Run `/ddd-sync` to update mapping hashes and detect any remaining drift"
+    - "When ready to capture implementation wisdom, run `/ddd-reflect --all` then `/ddd-promote --review`"
 
 $ARGUMENTS

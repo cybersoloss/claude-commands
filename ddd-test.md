@@ -1,6 +1,6 @@
 # DDD Test
 
-Run tests for DDD-implemented flows and UI pages without re-generating code. Use this after manual code edits, refactoring, or dependency updates to verify implementations still work.
+Run tests for DDD-implemented flows, UI pages, schemas, and infrastructure without re-generating code. Use this after manual code edits, refactoring, or dependency updates to verify implementations still work.
 
 ## Scope Resolution
 
@@ -8,12 +8,14 @@ Parse the argument to determine scope:
 
 | Argument | Scope | Example |
 |----------|-------|---------|
-| `--all` | All implemented flows + pages | `/ddd-test --all` |
+| `--all` | All implemented flows, pages, schemas, and infrastructure | `/ddd-test --all` |
 | `domain-name` | All flows in a domain | `/ddd-test users` |
 | `domain-name/flow-name` | Single flow | `/ddd-test users/user-register` |
 | `--ui` | All implemented UI pages | `/ddd-test --ui` |
 | `--ui page-id` | Single UI page | `/ddd-test --ui dashboard` |
-| *(empty)* | Interactive — show implemented flows/pages and ask | `/ddd-test` |
+| `--schema` | Schema/migration tests | `/ddd-test --schema` |
+| `--infra` | Infrastructure health checks | `/ddd-test --infra` |
+| *(empty)* | Interactive — show all testable items and ask | `/ddd-test` |
 
 ## Instructions
 
@@ -34,6 +36,18 @@ Parse the argument to determine scope:
    **If `--ui`**: Collect test files for all implemented UI pages from mapping.yaml `pages:` section.
 
    **If `--ui page-id`**: Collect test files for that specific page.
+
+   **If `--schema`**: Collect and run schema-related tests:
+   - ORM schema validation (e.g., `prisma validate`, `prisma db push --dry-run`)
+   - Migration tests (e.g., `prisma migrate diff`)
+   - Seed data tests (verify seed scripts run without error)
+   - If no dedicated schema tests exist, run a schema validation check against the ORM
+
+   **If `--infra`**: Run infrastructure health checks:
+   - Verify each service in `specs/infrastructure.yaml` is reachable (health endpoints, `pg_isready`, `redis-cli ping`)
+   - Verify ports match the spec
+   - Verify startup scripts exist and are valid (`npm run dev`, `npm run dev:all`)
+   - If docker-compose exists, validate it (`docker compose config`)
 
 4. **Determine the test runner**: Read `specs/architecture.yaml` → `testing` for the test framework, or detect from config files:
    - `jest.config.*` → Jest

@@ -55,7 +55,7 @@ Show a quick read-only overview of the DDD project's implementation state across
    - Does the database schema exist (e.g., `prisma/schema.prisma`)?
    - How many schemas are defined in `specs/schemas/`? How many have indexes? Seed data?
 
-   **Frontend (Interface):**
+   **Interface:**
    - Does `specs/ui/pages.yaml` exist? If yes, how many pages defined?
    - Do page component files exist (e.g., `src/app/*/page.tsx`, `src/pages/*.tsx`)?
    - Does a layout/navigation component exist?
@@ -135,11 +135,11 @@ Show a quick read-only overview of the DDD project's implementation state across
    - If no scaffold: "Run `/ddd-scaffold` to set up the project"
    - If not-implemented flows exist: "Run `/ddd-implement {scope}` to generate code"
    - If drifted (metadata or spec enriched): "Run `/ddd-sync` to update hashes"
-   - If drifted (code ahead): "Run `/ddd-reverse {domain/flow}` to capture implementation details into specs, then `/ddd-sync`"
+   - If drifted (code ahead): "Run `/ddd-reflect {domain/flow}` to capture implementation details as annotations, then `/ddd-promote --review` to write them into specs, then `/ddd-sync`"
    - If drifted (new logic): "Run `/ddd-implement {domain/flow}` to update code — WARNING: this will regenerate code, review the spec diff first"
    - If stale flows exist: "Run `/ddd-implement {domain/flow}` to regenerate missing files"
 
-   **Frontend (Interface):**
+   **Interface:**
    - If `specs/ui/pages.yaml` exists but no pages implemented: "Run `/ddd-implement --ui` to generate page components"
    - If `specs/ui/` doesn't exist but product has frontend: "Run `/ddd-update --ui` to add UI specs, or `/ddd-create` with `--from` to regenerate"
    - If pages are drifted: "Run `/ddd-implement --ui {page-id}` to update the page"

@@ -144,7 +144,7 @@ Set up the project skeleton and shared infrastructure from DDD specs before impl
    - If either fails, fix and retry
 
 10. **Initialize `.ddd/` tracking:**
-   - Create `.ddd/mapping.yaml` with empty `flows:` section (populated by `/ddd-implement`)
+   - Create `.ddd/mapping.yaml` with empty `flows:` and `pages:` sections (populated by `/ddd-implement`)
    - Create `.ddd/annotations/` directory with `.gitkeep` (populated by `/ddd-reflect`)
 
 11. **Summary**: After scaffolding, show:

@@ -35,7 +35,9 @@ Parse the argument to determine what to update:
    - `specs/ui/{page-id}.yaml` — per-page specs (if updating a specific page)
    - `specs/infrastructure.yaml` — services, ports, deployment (if updating infrastructure)
 
-3. **Understand the user's request**: The user will describe what they want to change in natural language. Examples:
+3. **Fetch the DDD Usage Guide** (if adding or modifying nodes): Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all node types, their required spec fields, connection patterns (sourceHandle values), and conventions. Use it as your reference when adding or modifying nodes.
+
+4. **Understand the user's request**: The user will describe what they want to change in natural language. Examples:
 
    **Logic (flows):**
    - "Add a rate limiting step before the process node"
@@ -67,7 +69,7 @@ Parse the argument to determine what to update:
    - "Add a worker service for background jobs"
    - "Switch deployment strategy to kubernetes"
 
-4. **Resolve the scope from the argument**:
+5. **Resolve the scope from the argument**:
 
    **If no argument**: Show the current project structure (domains, flows, pages, infrastructure) and ask the user what they want to update.
 
@@ -123,7 +125,7 @@ Parse the argument to determine what to update:
    - Update startup order
    - Change deployment strategy
 
-5. **Apply the changes to the YAML specs**:
+6. **Apply the changes to the YAML specs**:
 
    When **modifying an existing flow**, read the current flow YAML and update it:
    - **Adding a node**: Create a new node entry with proper `id`, `type`, `position`, `spec`, `label`, and `connections`. Update the upstream node's connections to include the new node. Position it logically on the canvas (below the node it follows, with ~130px vertical spacing).
@@ -143,7 +145,7 @@ Parse the argument to determine what to update:
 
    When **adding a domain**, create all required files and update `ddd-project.json`.
 
-6. **Maintain spec integrity**: After making changes, verify:
+7. **Maintain spec integrity**: After making changes, verify:
    - Every flow still has exactly one trigger
    - All paths from trigger reach a terminal (no dead ends)
    - No orphaned nodes (all reachable from trigger)
@@ -165,20 +167,20 @@ Parse the argument to determine what to update:
    - Event wiring is consistent (published events match consumed events across domains)
    - Agent flows have at least one agent_loop with `model`, tools, and a terminal tool
 
-7. **Preserve existing data**: When updating a flow:
+8. **Preserve existing data**: When updating a flow:
    - Keep all nodes that aren't being changed — don't regenerate the entire flow
    - Preserve node IDs — changing IDs would break `.ddd/mapping.yaml` references
    - Preserve positions of unchanged nodes
    - Preserve `metadata.created`, update `metadata.modified` to current ISO timestamp
    - Preserve `observability` and `security` configs on unchanged nodes
 
-8. **Handle cross-domain impacts**: If the change affects event wiring:
+9. **Handle cross-domain impacts**: If the change affects event wiring:
    - If adding a new event publication, check if any domain consumes it
    - If removing an event, warn about domains that consume it
    - If renaming an event, update all references across domains
    - List all affected files after making cross-domain changes
 
-9. **Maintain UI spec integrity** (when updating Interface pillar): After making changes, verify:
+10. **Maintain UI spec integrity** (when updating Interface pillar): After making changes, verify:
    - All `data_source` values reference valid `domain/flow-id` that exist in flow specs
    - All form field `type` values are valid (text, number, select, multi-select, search-select, date, datetime, textarea, toggle, tag-input, file, color, slider)
    - All `options_source` references point to valid spec paths (e.g., `shared/types.yaml#status`)
@@ -187,7 +189,7 @@ Parse the argument to determine what to update:
    - Navigation items reference valid page IDs
    - Shared component IDs referenced by sections exist in `pages.yaml` → `shared_components`
 
-10. **Report what changed**: After updating, show a clear summary:
+11. **Report what changed**: After updating, show a clear summary:
    ```
    Updated specs:
      specs/domains/users/flows/user-register.yaml
@@ -214,7 +216,7 @@ Parse the argument to determine what to update:
      - Run /ddd-scaffold to regenerate infrastructure scripts (if infra changed)
    ```
 
-11. **Suggest next steps**: After updating specs, tell the user:
+12. **Suggest next steps**: After updating specs, tell the user:
     - "Reload the DDD Tool to see the updated flow graph (Cmd+R)"
     - For flow changes: "Run `/ddd-implement {domain/flow}` to update the implementation"
     - For UI changes: "Run `/ddd-implement --ui {page-id}` to update the page component"
@@ -224,13 +226,7 @@ Parse the argument to determine what to update:
 
 ## Node Type Reference
 
-When creating new nodes, **fetch the DDD Usage Guide** for the full node type reference:
-
-```bash
-gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d
-```
-
-This guide defines all node types, their required spec fields, connection patterns (sourceHandle values), and conventions. Always refer to it when adding or modifying nodes.
+When creating new nodes, use the DDD Usage Guide as your reference. It defines all node types, their required spec fields, connection patterns (sourceHandle values), and conventions.
 
 ## Node ID Convention
 

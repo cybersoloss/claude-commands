@@ -99,6 +99,14 @@ Synchronize the DDD project specs with the current implementation state across a
      - (If --discover) Untracked code — backend routes, page components, infrastructure configs
      - (If --fix-drift) Flows and pages that were re-implemented or enriched
 
+8. **Next steps**: Based on findings, suggest the appropriate next commands:
+   - Flows with code ahead of spec: "Run `/ddd-reflect {domain/flow}` to capture implementation wisdom, then `/ddd-promote --review`"
+   - Flows with new spec logic: "Run `/ddd-implement {domain/flow}` to update code"
+   - Pages with code ahead of spec: "Run `/ddd-reflect --ui {page-id}` to capture UI wisdom"
+   - Pages with new spec sections: "Run `/ddd-implement --ui {page-id}` to update page"
+   - Untracked code discovered: "Run `/ddd-reverse` to generate specs from existing code"
+   - All in sync: "All flows and pages are in sync — no action needed"
+
 ## Usage
 
 The user will say something like:
