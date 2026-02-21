@@ -41,10 +41,15 @@ Create a complete DDD (Design Driven Development) project from a software projec
    **If no `--from` flag**, use the text description from `$ARGUMENTS`. If the description is brief, ask clarifying questions covering all four pillars:
    - **Logic**: What does the software do? What are the main domains? Key flows? External services? Agent/AI flows?
    - **Data**: What are the data models? Key relationships? Any initial/seed data needed?
-   - **Interface**: What pages/screens does the user see? What forms do they fill out? What does the navigation look like? What framework (React, Next.js, etc.)? Any specific UI library (shadcn/ui, MUI)?
+   - **Interface**: What pages/screens does the user see? What are the primary user tasks and which screens do they happen on? What data does the user see at a glance (dashboards, lists, cards)? What CRUD operations does the user perform directly? What forms do they fill out? What does the navigation look like? What framework (React, Next.js, etc.)? Any specific UI library (shadcn/ui, MUI)?
    - **Infrastructure**: What tech stack? (language, framework, database, cache, auth) What services need to run? Local-only or cloud deployment?
 
-   If the user provided a detailed description, proceed without asking — infer reasonable defaults for all four pillars. **Do not silently skip any pillar** — if the description mentions a frontend/UI, generate UI specs. If the description mentions a database, generate schemas with indexes. If the description lists services, generate infrastructure specs.
+   If the user provided a detailed description, proceed without asking — infer reasonable defaults for all four pillars. **Pillar assumptions** (active, not conditional):
+   - **Interface** is assumed present for any project that builds something user-facing (web app, mobile app, desktop app, dashboard, admin panel, CLI with TUI). Only pure library/SDK/headless-API projects skip Interface — and even then, confirm with the user.
+   - **Logic** is assumed present for every project (every project has at least one flow).
+   - **Data** is assumed present if any persistent storage is implied.
+   - **Infrastructure** is assumed present for any multi-service project or any project with a database.
+   **Do not silently skip any pillar.** When in doubt, generate specs — it's easier to remove unwanted specs than to discover missing ones during implementation.
 
 4. **Pillar coverage matrix** (MANDATORY — do NOT skip):
 
@@ -66,6 +71,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - If the product description mentions **any** database, data storage, or models → Data row MUST have items.
    - If the product description mentions **any** services, ports, or deployment → Infrastructure row MUST have items.
    - Logic row should always have items (every project has at least one flow).
+   - **Frontend framework rule**: If `system.yaml` will include a frontend framework (Next.js, React, Vue, Svelte, Angular, Remix, Nuxt, etc.), Interface row MUST have items — no exceptions. If no frontend framework is listed, explicitly confirm with the user that the project is API-only before skipping Interface.
 
    **If any pillar shows 0 items but the description implies it should have items**, pause and ask the user before proceeding. Do NOT silently generate a partial project.
 
@@ -166,6 +172,32 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `error` — error state style (retry-banner, error-page, toast)
    - `refresh` — data refresh strategy (pull-to-refresh, auto-30s, manual, none)
 
+   **Per-component-type field specs** — when designing sections, use the correct component type and its required fields:
+   - `stat-card` — `value` ($.field or expression), `label`, `trend` (up/down/neutral), `icon`, optional `comparison_period`
+   - `item-list` — `data_source`, `item_template` with `title`/`subtitle`/`badge`/`timestamp`, `item_actions`, `empty_state`, optional `pagination` or `virtual_scroll`
+   - `card-grid` — `data_source`, `columns` (responsive: desktop/tablet/mobile), `item_template` with `image`/`title`/`description`/`footer`, `item_actions`, `empty_state`
+   - `detail-card` — `data_source`, `fields` mapping with `$.field` syntax, `actions` (edit, delete, archive), optional `tabs` for multi-section details
+   - `button-group` — `buttons` array with `label`, `action` (navigate or call flow), `variant` (primary/secondary/danger), optional `icon`
+   - `page-header` — `title`, optional `subtitle`, `breadcrumbs`, `actions` (button-group for page-level actions)
+   - `status-bar` — `items` array with `label`, `value` ($.field), `color_when` conditions
+   - Shared component ID — reference a component from `pages.yaml` → `shared_components` by its ID
+
+   **Page inference rules** — derive UI structure from backend flows:
+   - Flow returns a list/collection → `item-list` or `card-grid` section
+   - Flow returns stats/counts/aggregates → `stat-card` section
+   - Flow returns a single record → `detail-card` section
+   - Flow accepts user input → `form`
+   - Flow performs delete/archive → `item_action` with `confirm: true`
+   - Flow returns status/state → `status-bar` section
+
+   **Shared component extraction** — if the same UI pattern appears in 2+ pages (e.g., a notification badge, an entity card, an AI suggestion panel), extract it as a shared component in `pages.yaml` → `shared_components` and reference by ID in page specs.
+
+   **Navigation inference:**
+   - 1-3 pages → topbar with tabs
+   - 4-8 pages → sidebar navigation
+   - 8+ pages → grouped sidebar with sections
+   - Mobile apps → bottom tab bar (max 5 items) + hamburger for overflow
+
    **UI spec design principles:**
    - Every `data_source` must reference an existing backend flow — this links Interface to Logic
    - Forms should reference `shared/types.yaml` for enum options where applicable
@@ -173,6 +205,20 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Specify button labels, confirmation dialogs, success messages
    - Define loading, error, and empty states for every section that fetches data
    - Think about what the user sees on first load, while waiting, when data is empty, and when errors occur
+   - **Responsive design**: specify layout stacking behavior on mobile (e.g., 3-column grid → 1-column stack), column reduction for card-grids
+   - **Accessibility**: every action button needs a `label`, form fields need `label` (not just `placeholder`)
+   - **Data flow completeness**: every section with a `data_source` must have an `empty_state` defined
+   - **Action completeness**: every destructive action (delete, archive, remove) must have `confirm: true` and `confirm_message`
+   - **Form-flow binding**: form field `name` values must match the expected fields of the backend flow's `input` node
+   - **Initial data coverage**: `state.initial_fetch` must list all flows needed to populate data on first page load
+
+   - **UI shortfall tracking** (if `--shortfalls` flag is present): As you design each page, mentally track every time you:
+     - Use a generic section description because no built-in component type fits the layout
+     - Need a component type that doesn't exist (calendar view, kanban board, timeline, tree view, map, chart)
+     - Hit a limitation in a section's or form field's configuration options
+     - Cannot express a UI interaction pattern (drag-drop reordering, inline editing, bulk selection, multi-step wizard)
+     - Cannot express responsive behavior beyond simple column stacking
+     - Cannot express animation or transition behavior (skeleton loading, page transitions, micro-interactions)
 
 11. **Create infrastructure spec** (Infrastructure pillar): Generate `specs/infrastructure.yaml` with:
    - `services` — each service with:
@@ -318,12 +364,21 @@ Create a complete DDD (Design Driven Development) project from a software projec
    **Interface (UI):**
    - Every `data_source` in UI specs references an existing backend flow (`domain/flow-id`)
    - Every page in `pages.yaml` has a corresponding `specs/ui/{page-id}.yaml` file
-   - Navigation items reference valid page IDs
+   - Navigation covers all user-reachable pages — no orphan pages unreachable from navigation
    - Form field `options_source` and `search_source` references exist
    - Forms have submit configuration pointing to valid backend flows
    - All sections that fetch data have `loading` and `error` states defined at page level
    - Every page has at least one section or form — no empty page specs
    - Shared components referenced by sections exist in `pages.yaml` → `shared_components`
+   - Every section with `data_source` has `empty_state` defined
+   - Required form fields match the expected fields of the backend flow's `input` node validation
+   - Destructive actions (delete, archive, remove) have `confirm: true` and `confirm_message`
+   - Shared components extracted when same UI pattern appears in 2+ pages
+   - `state.initial_fetch` covers all `data_source` flows needed on first page load
+   - Form field `type` values are from the valid enum: text, number, select, multi-select, search-select, date, datetime, textarea, toggle, tag-input, file, color, slider
+   - `item_actions` and button `action` flow references exist as valid backend flows
+   - Pages with realtime data have `refresh` strategy defined (not left as default)
+   - Theme in `pages.yaml` is fully specified (colors, fonts, radius) — no placeholder values
 
    **Infrastructure:**
    - Every service mentioned in `system.yaml` tech stack exists in `infrastructure.yaml`
@@ -442,6 +497,40 @@ Create a complete DDD (Design Driven Development) project from a software projec
         current_expression: "How it's represented now (duplicated per flow, custom_fields, etc.)"
         suggestion: "How DDD could represent it structurally"
 
+    ui_shortfalls:
+      # Interface pillar gaps — component types, interactions, and layout patterns
+      missing_component_types:
+        # Component types you needed but don't exist in DDD's built-in set
+        - name: "{component-type-name}"
+          severity: critical|high|medium|low
+          description: "What it would render"
+          used_instead: "What component/pattern you used as a workaround"
+          pages_affected:
+            - "{page-id}"
+          example_use_case: "Concrete scenario from this project"
+      inadequate_components:
+        # Built-in components that lack needed capabilities
+        - component: "{existing-component-type}"
+          severity: critical|high|medium|low
+          limitation: "What's missing or insufficient"
+          suggestion: "What field/option would fix it"
+          pages_affected:
+            - "{page-id}"
+      form_limitations:
+        # Form field types or form behaviors that can't be expressed
+        - severity: critical|high|medium|low
+          limitation: "What form pattern can't be expressed"
+          context: "Where in the design this came up"
+          suggestion: "Proposed solution"
+      interaction_gaps:
+        # UI interaction patterns that have no spec representation
+        - pattern: "{drag-drop|inline-edit|bulk-actions|multi-step-wizard|...}"
+          severity: critical|high|medium|low
+          description: "What the interaction does"
+          pages_affected:
+            - "{page-id}"
+          suggestion: "How DDD could represent it"
+
     summary:
       total_shortfalls: {count}
       by_severity:
@@ -455,9 +544,11 @@ Create a complete DDD (Design Driven Development) project from a software projec
     **Rules for shortfall reporting:**
     - Only include sections that have entries — omit empty sections entirely
     - Every workaround `process` node MUST be flagged — zero tolerance for silent workarounds
-    - Be specific: reference actual flow IDs, node IDs, and concrete scenarios from this project
-    - Distinguish between "doesn't exist" (missing_node_types) and "exists but insufficient" (inadequate_existing_nodes)
+    - Every generic UI section description MUST be flagged — zero tolerance for "custom component" hand-waving
+    - Be specific: reference actual flow IDs, node IDs, page IDs, and concrete scenarios from this project
+    - Distinguish between "doesn't exist" (missing_node_types / missing_component_types) and "exists but insufficient" (inadequate_existing_nodes / inadequate_components)
     - If you used `custom_fields` on any node, that's automatically a `missing_spec_fields` entry
+    - If a form uses a workaround for a field type that doesn't exist, that's a `form_limitations` entry
     - Layer gaps should evaluate what you actually used vs. what you wished you could express
 
 17. **Summary**: After creating all files, show:
@@ -470,9 +561,15 @@ Create a complete DDD (Design Driven Development) project from a software projec
       notifications (1 flow)
 
     Pages:
-      dashboard (/)
-      inbox (/inbox)
-      settings (/settings)
+      dashboard (/) — 4 sections, 0 forms, realtime refresh, sidebar layout
+      inbox (/inbox) — 2 sections, 1 form, manual refresh, centered layout
+      settings (/settings) — 1 section, 2 forms, manual refresh, sidebar layout
+
+    Shared components: 2 (notification-badge, entity-card)
+
+    UI coverage:
+      Flows with UI bindings: 4/6 (67%)
+      Flows without UI: send-email, process-webhook
 
     Schemas:
       user (3 indexes, 1 seed set)
