@@ -133,6 +133,7 @@ Parse the argument to determine scope:
      - `select`, `multi-select` → dropdown/multi-select using the component library
      - `search-select` → async search dropdown that calls `search_source` backend flow
      - `date`, `datetime` → date picker component
+     - `date-range` → date range picker with start/end
      - `toggle` → switch/toggle component
      - `tag-input` → tag input with autocomplete from `autocomplete_source`
      - `file` → file upload component
@@ -143,9 +144,10 @@ Parse the argument to determine scope:
    - For fields with `required: true`: add client-side required validation
    - For fields with `validation`: add the described validation rule
    - For fields with `visible_when`: conditionally show/hide the field
-   - Wire `submit.flow` to call the backend flow with form data
-   - Show `submit.success_message` on success
-   - Navigate to `submit.redirect` on success (if specified)
+   - Wire `submit.flow` to call the backend flow with form data (merge `submit.args` if present)
+   - Show `submit.loading_label` on the button during submission (if specified)
+   - On success: show `submit.success.message`, navigate to `submit.success.redirect` (if specified), trigger `submit.success.action` (if specified)
+   - On error: show `submit.error.message`, offer retry if `submit.error.retry` is true
 
    **State management** from `state`:
    - Connect to the specified store (if `store` references a domain.yaml store)

@@ -180,7 +180,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `strategy: fixture` for dev/test data
      - `strategy: script` for complex imports
      - Include inline `data` for small fixed datasets, or `source` and `count_estimate` for large imports
-   - `transitions` — if a schema has a status/lifecycle field with defined state transitions, document all valid state changes with `from`, `to`, and `trigger`
+   - `transitions` — if a schema has a status/lifecycle field with defined state transitions, document valid state changes with `field`, `states` (array of `{from, to[]}` entries), and `on_invalid` (reject/warn/log)
 
    **Schema design principles:**
    - Every model referenced by a `data_store` node in any flow MUST have a schema spec — no implicit models
@@ -222,15 +222,15 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
    **Per-page specs** (`specs/ui/{page-id}.yaml`) — for each page:
    - `sections` — visual sections with:
-     - `component` type (stat-card, item-list, card-grid, detail-card, button-group, page-header, status-bar, or shared component ID)
+     - `component` type (stat-card, item-list, card-grid, detail-card, button-group, page-header, status-bar, chart, filter-bar, or shared component ID)
      - `data_source` referencing a backend flow in `domain/flow-id` format
      - `fields` mapping data using `$.field` syntax
      - `item_template` for list/grid items
      - `actions` and `item_actions` for user interactions (navigate, call flow)
      - `empty_state` for when data is absent
    - `forms` — forms with:
-     - `fields` — each with `name`, `type` (text, number, select, multi-select, search-select, date, datetime, textarea, toggle, tag-input, file, color, slider), `label`, `placeholder`, `required`, `default`, `options`/`options_source`, `validation`, `visible_when`
-     - `submit` — backend flow to call, button label, success message, redirect
+     - `fields` — each with `name`, `type` (text, number, select, multi-select, search-select, date, datetime, date-range, textarea, toggle, tag-input, file, color, slider), `label`, `placeholder`, `required`, `default`, `options`/`options_source`, `validation`, `visible_when`
+     - `submit` — backend flow to call (`flow`), button label, `loading_label`, `success` ({message, redirect, action}), `error` ({message, retry}), optional `args`
    - `state` — client-side store reference, initial API calls on page load, realtime subscription
    - `loading` — loading state style (skeleton, spinner, blur)
    - `error` — error state style (retry-banner, error-page, toast)
@@ -463,7 +463,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Destructive actions (delete, archive, remove) have `confirm: true` and `confirm_message`
    - Shared components extracted when same UI pattern appears in 2+ pages
    - `state.initial_fetch` covers all `data_source` flows needed on first page load
-   - Form field `type` values are from the valid enum: text, number, select, multi-select, search-select, date, datetime, textarea, toggle, tag-input, file, color, slider
+   - Form field `type` values are from the valid enum: text, number, select, multi-select, search-select, date, datetime, date-range, textarea, toggle, tag-input, file, color, slider
    - `item_actions` and button `action` flow references exist as valid backend flows
    - Pages with realtime data have `refresh` strategy defined (not left as default)
    - Theme in `pages.yaml` is fully specified (colors, fonts, radius) — no placeholder values
