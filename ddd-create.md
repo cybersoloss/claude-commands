@@ -71,7 +71,11 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
    Wait for the user to confirm the plan before proceeding to spec generation.
 
-5. **Create the project directory structure**:
+5. **Generation order** (IMPORTANT — prevents pillar starvation):
+
+   Generate specs in this order: **system/shared → Data → Interface → Infrastructure → Logic (domains + flows)**. Logic (flows) is last because it's the most detail-heavy pillar and can consume disproportionate effort. By generating Data, Interface, and Infrastructure first, you ensure no pillar gets starved of attention. The final quality checks (step 15) will catch any cross-references between pillars.
+
+6. **Create the project directory structure**:
 
    ```
    {project}/
@@ -96,22 +100,44 @@ Create a complete DDD (Design Driven Development) project from a software projec
              {flow-id}.yaml (one per flow)
    ```
 
-6. **Create `ddd-project.json`**: List all domains with name and description.
+7. **Create `ddd-project.json`**: List all domains with name and description.
 
-7. **Create supplementary spec files**:
-   - `specs/system.yaml` — project identity, tech stack, environments
+8. **Create system and shared spec files**:
+   - `specs/system.yaml` — project identity, tech stack, environments. If the project has external API integrations, add an `integrations:` section with base_url, auth, rate_limits, retry, and timeout_ms per integration.
    - `specs/architecture.yaml` — project structure, naming conventions, dependencies, infrastructure, API design, testing, deployment. Include a `cross_cutting_patterns: {}` placeholder section for patterns discovered during implementation.
    - `specs/config.yaml` — required and optional environment variables
    - `specs/shared/errors.yaml` — error codes with HTTP status mappings (cover at least: VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, DUPLICATE_ENTRY, RATE_LIMITED, INTERNAL_ERROR)
    - `specs/shared/types.yaml` — shared enums and value objects (if project has enums reused across 2+ schemas)
-   - `specs/schemas/_base.yaml` — base model fields (id, created_at, updated_at, deleted_at)
-   - `specs/schemas/{model}.yaml` — one per data model, with fields, relationships, and:
-     - `indexes` — database indexes for common query patterns. Include unique indexes for natural keys, composite indexes for filtered queries, GIN indexes for array fields. Each index has `fields`, optional `unique`, `type`, and `description`.
-     - `seed` — initial data needed for the system to function. Use `strategy: migration` for immutable reference data (enums, categories), `strategy: fixture` for dev/test data, `strategy: script` for complex imports. Include inline `data` for small fixed datasets, or `source` and `count_estimate` for large imports.
-     - `transitions` — if a schema has a status/lifecycle field with defined state transitions
-   - If the project has external API integrations, add an `integrations:` section to `specs/system.yaml` with base_url, auth, rate_limits, retry, and timeout_ms per integration
 
-8. **Create UI specs**: Generate `specs/ui/pages.yaml` and per-page spec files.
+9. **Create schema specs** (Data pillar): Generate `specs/schemas/_base.yaml` and per-model schema files.
+
+   **_base.yaml** — base model fields shared by all schemas:
+   - `id` (UUID or auto-increment), `created_at`, `updated_at`, `deleted_at` (if soft-delete applies)
+
+   **Per-model specs** (`specs/schemas/{model}.yaml`) — for each data model:
+   - `fields` — every field with name, type, constraints (required, unique, default), and description
+   - `relationships` — foreign keys, has_many, has_one, many_to_many with referenced models
+   - `indexes` — database indexes for common query patterns:
+     - Unique indexes for natural keys (email, slug, external IDs)
+     - Composite indexes for filtered queries (status + created_at, tenant_id + category)
+     - GIN indexes for array or JSONB fields
+     - Each index has `fields`, optional `unique`, `type` (btree/hash/gin/gist), and `description`
+   - `seed` — initial data needed for the system to function:
+     - `strategy: migration` for immutable reference data (enums, categories, roles)
+     - `strategy: fixture` for dev/test data
+     - `strategy: script` for complex imports
+     - Include inline `data` for small fixed datasets, or `source` and `count_estimate` for large imports
+   - `transitions` — if a schema has a status/lifecycle field with defined state transitions, document all valid state changes with `from`, `to`, and `trigger`
+
+   **Schema design principles:**
+   - Every model referenced by a `data_store` node in any flow MUST have a schema spec — no implicit models
+   - Design indexes based on actual query patterns from flows (check `data_store` node `query` fields)
+   - Include seed data for any enum or reference table that the app needs on first run
+   - Define relationships explicitly — don't rely on convention (every foreign key should be documented)
+   - If a field has a finite set of values (status, role, category), define them in `specs/shared/types.yaml` and reference via `options_source`
+   - Think about what queries the app will run most frequently and ensure those have indexes
+
+10. **Create UI specs** (Interface pillar): Generate `specs/ui/pages.yaml` and per-page spec files.
 
    **pages.yaml** — the page registry:
    - `app_type` — web, mobile, desktop, or cli
@@ -148,12 +174,29 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Define loading, error, and empty states for every section that fetches data
    - Think about what the user sees on first load, while waiting, when data is empty, and when errors occur
 
-9. **Create infrastructure spec**: Generate `specs/infrastructure.yaml` with:
-   - `services` — each service with id, type (server/datastore/worker/proxy), runtime/engine, entry point, port, health check, dependencies, dev command, setup command
-   - `startup_order` — ordered list of service IDs for correct startup sequencing
+11. **Create infrastructure spec** (Infrastructure pillar): Generate `specs/infrastructure.yaml` with:
+   - `services` — each service with:
+     - `id` — unique service identifier (e.g., "backend", "database", "cache")
+     - `type` — server, datastore, worker, or proxy
+     - `runtime` or `engine` — e.g., "node", "postgresql", "redis"
+     - `entry` — entry point file or image (e.g., "src/server/index.ts", "postgres:16")
+     - `port` — the port this service listens on
+     - `health` — health check endpoint or command (e.g., "/health", "pg_isready")
+     - `depends_on` — list of service IDs that must be running first
+     - `dev_command` — command to start in development (e.g., "npx tsx watch src/server/index.ts")
+     - `setup_command` — one-time setup command (e.g., "npx prisma db push")
+   - `startup_order` — ordered list of service IDs for correct startup sequencing (datastores first, then workers, then servers)
    - `deployment` — local strategy (process-manager or docker-compose) and optional production strategy
 
-10. **Create domain YAML files**: For each domain, create `specs/domains/{domain-id}/domain.yaml` with:
+   **Infrastructure design principles:**
+   - Every service mentioned in `system.yaml` tech stack MUST appear in `infrastructure.yaml` — no implicit services
+   - Ports must not conflict — assign unique ports to each service
+   - `depends_on` must form a DAG (no circular dependencies) and `startup_order` must respect it
+   - Include health checks for every service — this enables startup scripts to wait for readiness
+   - If the project uses Docker, include image versions (e.g., "postgres:16", not just "postgres")
+   - Think about what a new developer needs to run `dev` successfully — every service, every setup step
+
+12. **Create domain YAML files** (Logic pillar): For each domain, create `specs/domains/{domain-id}/domain.yaml` with:
    - `name`, `description`
    - `flows` array (id, name, description, type)
    - `stores` array (optional) — declare in-memory state stores with `name`, `shape`, `selectors`, `access_pattern` (e.g., Zustand/Redux stores). Referenced by `data_store` nodes with `store_type: memory`.
@@ -162,7 +205,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `event_groups` (optional) — named collections of events for use in multi-event triggers. Define `name`, `description`, and `events` array. Referenced as `event_group:{name}` in trigger `event` fields.
    - `layout` with flow positions (space flows vertically with ~200px gaps)
 
-11. **Create flow YAML files**: For each flow, create `specs/domains/{domain-id}/flows/{flow-id}.yaml` with:
+13. **Create flow YAML files**: For each flow, create `specs/domains/{domain-id}/flows/{flow-id}.yaml` with:
    - `flow` metadata (id, name, type, domain, description). Optionally add `emits: string[]` and `listens_to: string[]` to summarize the flow's event surface. For flows triggered by keyboard shortcuts, add `keyboard_shortcut` (e.g., `"Cmd+K"`).
    - `trigger` node with `spec.event` set to one of these conventions:
      - `HTTP {METHOD} {path}` for API endpoints
@@ -229,9 +272,9 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Resort to `custom_fields` to express something that should be a first-class field
      - Cannot express a cross-cutting concern (auth, logging, rate limiting, monitoring) structurally
 
-12. **Node ID convention**: Use `{type}-{8-char-random}` format (e.g., `input-xK9mR2vL`, `process-aPq3nW8j`).
+14. **Node ID convention**: Use `{type}-{8-char-random}` format (e.g., `input-xK9mR2vL`, `process-aPq3nW8j`).
 
-13. **Quality checks**: Before finishing, verify:
+15. **Quality checks**: Before finishing, verify:
 
    **Logic (flows):**
    - Every flow has exactly one trigger
@@ -262,24 +305,35 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - If this is an existing project with `cross_cutting_patterns`, verify new flows apply relevant patterns
 
    **Data (schemas):**
-   - Every schema referenced by `data_store` nodes exists in `specs/schemas/`
-   - Schemas have `indexes` for fields commonly used in queries (check flow `data_store` nodes for query patterns)
+   - Every model referenced by `data_store` nodes in any flow exists in `specs/schemas/`
+   - Every schema has `fields` with types and constraints — no empty or stub schemas
+   - Schemas have `indexes` for fields commonly used in queries (check flow `data_store` node `query` fields for query patterns)
    - Schemas with fixed enum values have `seed` data with `strategy: migration`
    - Relationships between schemas are consistent (foreign keys reference existing models)
+   - Foreign key fields exist in the schema that references another model
+   - If a field is used in multiple schemas (e.g., status enum), it's defined in `specs/shared/types.yaml`
+   - Every schema with a status/lifecycle field has `transitions` defined
+   - `_base.yaml` exists and all schemas inherit common fields (id, timestamps)
 
    **Interface (UI):**
-   - Every `data_source` in UI specs references an existing backend flow
+   - Every `data_source` in UI specs references an existing backend flow (`domain/flow-id`)
    - Every page in `pages.yaml` has a corresponding `specs/ui/{page-id}.yaml` file
    - Navigation items reference valid page IDs
    - Form field `options_source` and `search_source` references exist
    - Forms have submit configuration pointing to valid backend flows
    - All sections that fetch data have `loading` and `error` states defined at page level
+   - Every page has at least one section or form — no empty page specs
+   - Shared components referenced by sections exist in `pages.yaml` → `shared_components`
 
    **Infrastructure:**
+   - Every service mentioned in `system.yaml` tech stack exists in `infrastructure.yaml`
    - All services referenced in `depends_on` exist in the services list
-   - `startup_order` includes all services
+   - `depends_on` has no circular dependencies
+   - `startup_order` includes all services and respects `depends_on` ordering
    - Ports don't conflict between services
    - Backend port matches `system.yaml` environment URL
+   - Every service has a `dev_command` — the project must be runnable locally
+   - Datastores have `setup_command` for initial setup (schema creation, migrations)
 
    **Pillar completeness** (CRITICAL — final gate):
    - Compare generated specs against the pillar plan from step 4
@@ -288,7 +342,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - If the plan listed infrastructure but no `infrastructure.yaml` was generated → STOP and generate it
    - Every pillar committed to in step 4 must have corresponding spec files
 
-14. **Shortfall report** (only if `--shortfalls` flag is present in `$ARGUMENTS`): Generate `specs/shortfalls.yaml` documenting every DDD framework limitation you encountered. Be brutally honest — this report exists to improve DDD, not to make it look good.
+16. **Shortfall report** (only if `--shortfalls` flag is present in `$ARGUMENTS`): Generate `specs/shortfalls.yaml` documenting every DDD framework limitation you encountered. Be brutally honest — this report exists to improve DDD, not to make it look good.
 
     ```yaml
     # DDD Shortfall Report
@@ -406,7 +460,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
     - If you used `custom_fields` on any node, that's automatically a `missing_spec_fields` entry
     - Layer gaps should evaluate what you actually used vs. what you wished you could express
 
-15. **Summary**: After creating all files, show:
+17. **Summary**: After creating all files, show:
     ```
     Created DDD Project: {project-name}
 
