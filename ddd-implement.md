@@ -1,6 +1,6 @@
 # DDD Implement
 
-Implement DDD-designed flows from the specs directory. Supports implementing the entire project, a specific domain, or a specific flow.
+Implement DDD-designed flows and pages from the specs directory. Generates backend flow code from flow specs and frontend page components from UI specs. Supports implementing the entire project, a specific domain, or a specific flow.
 
 ## Scope Resolution
 
@@ -8,9 +8,11 @@ Parse the argument to determine scope:
 
 | Argument | Scope | Example |
 |----------|-------|---------|
-| `--all` | Whole project — all domains, all flows | `/ddd-implement --all` |
+| `--all` | Whole project — all domains, all flows, all pages | `/ddd-implement --all` |
 | `domain-name` | All flows in a domain | `/ddd-implement users` |
 | `domain-name/flow-name` | Single flow | `/ddd-implement users/user-registration` |
+| `--ui` | All UI pages only (no backend flows) | `/ddd-implement --ui` |
+| `--ui page-id` | Single UI page | `/ddd-implement --ui dashboard` |
 | *(empty)* | Interactive — list available flows and ask | `/ddd-implement` |
 
 ## Instructions
@@ -19,29 +21,36 @@ Parse the argument to determine scope:
 
 2. **Resolve the scope from the argument**:
 
-   **If no argument**: List all domains and their flows with implementation status (check `.ddd/mapping.yaml`). Show which are implemented (with date), which have drift, and which are new. Ask the user what to implement.
+   **If no argument**: List all domains and their flows with implementation status (check `.ddd/mapping.yaml`). Also list UI pages with implementation status. Show which are implemented (with date), which have drift, and which are new. Ask the user what to implement.
 
-   **If `--all`**: Collect all flows across all domains. Implement them in dependency order (flows that publish events before flows that consume them).
+   **If `--all`**: Collect all flows across all domains and all UI pages. Implement backend flows first (in dependency order — flows that publish events before flows that consume them), then implement UI pages.
 
    **If `domain-name`**: Read `specs/domains/{domain-name}/domain.yaml` to get the flow list. Implement all flows in that domain.
 
    **If `domain-name/flow-name`**: Read `specs/domains/{domain-name}/flows/{flow-name}.yaml`. Implement just that flow.
 
-3. **Read the specs for each flow**:
+   **If `--ui`**: Implement all UI pages from `specs/ui/`. Skip backend flows.
+
+   **If `--ui page-id`**: Implement a single UI page from `specs/ui/{page-id}.yaml`.
+
+3. **Read the specs for each flow/page**:
    - `ddd-project.json` — project config, tech stack
    - `specs/system.yaml` — project identity, tech stack, environments (if exists)
    - `specs/architecture.yaml` — conventions, infrastructure, API design, **cross-cutting patterns** (if exists)
    - `specs/config.yaml` — environment variable schema (if exists)
+   - `specs/infrastructure.yaml` — services, ports (if exists) — used for API client base URLs
    - `specs/shared/errors.yaml` — error codes with HTTP status mappings (if exists)
    - `specs/shared/types.yaml` — shared enum/type definitions (if exists)
    - `specs/schemas/*.yaml` — data model definitions referenced by data_store nodes in the flow (if exist)
    - Note: `system.yaml` may contain an `integrations:` section with external API configs
    - `specs/domains/{domain}/domain.yaml` — domain context, events, relationships
    - `specs/domains/{domain}/flows/{flow}.yaml` — the flow specification
+   - `specs/ui/pages.yaml` — page registry, navigation, theme (if implementing UI)
+   - `specs/ui/{page-id}.yaml` — per-page spec (if implementing UI)
 
    **IMPORTANT — Cross-cutting patterns**: If `specs/architecture.yaml` contains a `cross_cutting_patterns` section, read it carefully. These are project-wide conventions that apply to ALL flows, even if individual flow specs don't mention them. They MUST be applied during implementation. See step 7 for details.
 
-4. **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all node types, spec fields, connection patterns, and conventions. Use it as your reference for understanding node specs during implementation.
+4. **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all node types, spec fields, connection patterns, UI spec format, and conventions. Use it as your reference for understanding node specs during implementation.
 
 5. **Understand the flow spec**: Each flow YAML contains:
    - `flow:` — metadata (id, name, type, domain)
@@ -56,7 +65,7 @@ Parse the argument to determine scope:
    - If yes and spec changed → update mode (modify existing files, don't recreate)
    - If no → new implementation
 
-7. **Implement**:
+7. **Implement backend flows**:
 
    **Entry point — determine from trigger convention**:
    - `HTTP {METHOD} {path}` → route handler (e.g., Express route, FastAPI endpoint)
@@ -172,15 +181,70 @@ Parse the argument to determine scope:
    - Match the project's existing code style and conventions
    - For multi-flow implementations, share common infrastructure (DB, config, middleware)
 
-8. **Write tests**: Create tests covering:
-   - Happy path through the flow
-   - Each decision branch
-   - Error/terminal states
-   - Input validation rules from input node specs
+8. **Implement UI pages** (when scope includes UI — `--all`, `--ui`, or `--ui page-id`):
 
-9. **Run tests and fix**: Run the test suite. If tests fail, fix the implementation. Keep iterating until all tests pass.
+   For each page spec in `specs/ui/{page-id}.yaml`, generate a complete page component:
 
-10. **Update mapping**: After each flow is successfully implemented, update `.ddd/mapping.yaml`:
+   **Data fetching** from `state.initial_fetch`:
+   - Generate API call hooks for each backend flow referenced in `initial_fetch`
+   - Use the data fetching approach matching `pages.yaml` → `state_management` (e.g., React Query `useQuery`, SWR `useSWR`, or plain `useEffect` + fetch)
+   - Configure the API client base URL from `specs/infrastructure.yaml` service ports
+
+   **Sections** from `sections`:
+   - Generate each section as a component within the page
+   - Bind `data_source` to the corresponding API call result
+   - Map `fields` using `$.field` syntax to extract data from API responses
+   - For `item_template` sections (lists/grids): generate a mapped render of items with the specified fields
+   - For sections with `actions` or `item_actions`: generate click handlers that call the referenced backend flows or navigate to routes
+   - For sections with `empty_state`: render the empty message, icon, and optional CTA when data array is empty
+   - For sections with `visible_when`: wrap in a conditional render
+
+   **Forms** from `forms`:
+   - Generate form components with all specified fields:
+     - `text`, `number`, `textarea` → standard input elements
+     - `select`, `multi-select` → dropdown/multi-select using the component library
+     - `search-select` → async search dropdown that calls `search_source` backend flow
+     - `date`, `datetime` → date picker component
+     - `toggle` → switch/toggle component
+     - `tag-input` → tag input with autocomplete from `autocomplete_source`
+     - `file` → file upload component
+     - `color` → color picker
+     - `slider` → range slider
+   - For fields with `options`: render static options
+   - For fields with `options_source`: load options from the referenced spec file
+   - For fields with `required: true`: add client-side required validation
+   - For fields with `validation`: add the described validation rule
+   - For fields with `visible_when`: conditionally show/hide the field
+   - Wire `submit.flow` to call the backend flow with form data
+   - Show `submit.success_message` on success
+   - Navigate to `submit.redirect` on success (if specified)
+
+   **State management** from `state`:
+   - Connect to the specified store (if `store` references a domain.yaml store)
+   - Set up real-time subscription if `realtime` references a WebSocket/SSE flow
+
+   **Loading, error, and refresh states**:
+   - `loading: skeleton` → render skeleton placeholder components during data fetch
+   - `loading: spinner` → render a centered spinner
+   - `loading: blur` → render stale data with blur overlay
+   - `error: retry-banner` → render error banner with retry button
+   - `error: error-page` → render full-page error with message
+   - `error: toast` → show error toast notification
+   - `refresh: pull-to-refresh` → add pull-to-refresh gesture handler
+   - `refresh: auto-30s` → set up automatic refetch interval
+   - `refresh: manual` → add a refresh button
+
+   **Layout** from page `layout` and `section.position`:
+   - Arrange sections according to the layout type (sidebar, full, centered, split, stacked)
+   - Position sections using their `position` values (top, main, sidebar, footer, etc.)
+
+9. **Write tests**: Create tests covering:
+   - **Backend**: Happy path through the flow, each decision branch, error/terminal states, input validation rules from input node specs
+   - **Frontend**: Page renders without errors, data fetching calls correct API endpoints, form validation works, form submission calls correct backend flow
+
+10. **Run tests and fix**: Run the test suite. If tests fail, fix the implementation. Keep iterating until all tests pass.
+
+11. **Update mapping**: After each flow/page is successfully implemented, update `.ddd/mapping.yaml`:
    ```yaml
    flows:
      domain-id/flow-id:
@@ -195,14 +259,34 @@ Parse the argument to determine scope:
          src/path/to/file1.ts: (sha256 of file content)
          src/path/to/file2.ts: (sha256 of file content)
        syncState: synced
+
+   pages:
+     page-id:
+       spec: specs/ui/page-id.yaml
+       specHash: (sha256 of the page YAML content)
+       implementedAt: (current ISO timestamp)
+       mode: new|update
+       files:
+         - src/app/page-id/page.tsx
+         - src/components/page-id/section-name.tsx
+       fileHashes:
+         src/app/page-id/page.tsx: (sha256 of file content)
+       syncState: synced
    ```
 
-11. **Summary**: After all flows are done, show a summary table:
+12. **Summary**: After all flows and pages are done, show a summary table:
     ```
+    Backend:
     Domain/Flow                  Status    Files  Tests
     users/user-registration      ✓ done    5      12/12
     users/user-login             ✓ done    3      8/8
     billing/create-subscription  ✓ done    4      6/6
+
+    Frontend:
+    Page                         Status    Sections  Forms
+    dashboard                    ✓ done    4         0
+    inbox                        ✓ done    3         1
+    settings                     ✓ done    2         3
     ```
 
 $ARGUMENTS
