@@ -1,6 +1,6 @@
 # DDD Update
 
-Update DDD project specs (YAML files) to reflect design changes requested during development. This is the reverse of `/ddd-implement` — instead of generating code from specs, you update specs to match new requirements, then optionally re-implement.
+Update DDD project specs (YAML files) to reflect design changes requested during development. Works across all four pillars — Logic (flows), Data (schemas), Interface (UI pages), and Infrastructure. This is the reverse of `/ddd-implement` — instead of generating code from specs, you update specs to match new requirements, then optionally re-implement.
 
 ## Scope Resolution
 
@@ -12,6 +12,11 @@ Parse the argument to determine what to update:
 | `domain-name` | Update domain config and/or its flows | `/ddd-update users` |
 | `--add-flow domain-name` | Add a new flow to a domain | `/ddd-update --add-flow users` |
 | `--add-domain` | Add a new domain to the project | `/ddd-update --add-domain` |
+| `--ui page-id` | Update a specific page spec | `/ddd-update --ui dashboard` |
+| `--ui` | Update pages.yaml (navigation, theme, shared components) | `/ddd-update --ui` |
+| `--add-page` | Add a new page to the project | `/ddd-update --add-page` |
+| `--infra` | Update infrastructure.yaml | `/ddd-update --infra` |
+| `--schema model-name` | Update a specific schema | `/ddd-update --schema user` |
 | *(empty)* | Interactive — ask what to update | `/ddd-update` |
 
 ## Instructions
@@ -26,8 +31,13 @@ Parse the argument to determine what to update:
    - `specs/shared/errors.yaml` — error codes (reference when adding terminal error nodes to use correct error codes)
    - `specs/system.yaml` — tech stack context (reference when choosing patterns for new nodes)
    - `specs/architecture.yaml` — especially the `cross_cutting_patterns` section, which defines project-specific conventions to apply to new nodes
+   - `specs/ui/pages.yaml` — page registry, navigation, theme (if updating UI)
+   - `specs/ui/{page-id}.yaml` — per-page specs (if updating a specific page)
+   - `specs/infrastructure.yaml` — services, ports, deployment (if updating infrastructure)
 
 3. **Understand the user's request**: The user will describe what they want to change in natural language. Examples:
+
+   **Logic (flows):**
    - "Add a rate limiting step before the process node"
    - "Add an email notification after user registration"
    - "Split the payment flow into two: authorize and capture"
@@ -36,9 +46,32 @@ Parse the argument to determine what to update:
    - "Change the login flow to support OAuth"
    - "Add a caching layer with Redis to the product listing"
 
+   **Interface (UI):**
+   - "Add a search bar to the dashboard page"
+   - "Add a new settings page with a form for user preferences"
+   - "Change the navigation from sidebar to topbar"
+   - "Add a due_date field to the create-item form"
+   - "Add a confirmation dialog before the delete action"
+   - "Change the theme primary color to green"
+   - "Add a new shared component for displaying user avatars"
+
+   **Data (schemas):**
+   - "Add a tags field to the user schema"
+   - "Add an index on email and tenant_id"
+   - "Add seed data for default roles"
+   - "Add a status transition from active to suspended"
+
+   **Infrastructure:**
+   - "Add a Redis service for caching"
+   - "Change the backend port to 4000"
+   - "Add a worker service for background jobs"
+   - "Switch deployment strategy to kubernetes"
+
 4. **Resolve the scope from the argument**:
 
-   **If no argument**: Show the current project structure (domains and flows) and ask the user what they want to update.
+   **If no argument**: Show the current project structure (domains, flows, pages, infrastructure) and ask the user what they want to update.
+
+   **Logic scope:**
 
    **If `--add-domain`**: Ask the user for the domain name, description, and initial flows. Create:
    - Add the domain entry to `ddd-project.json`
@@ -52,6 +85,43 @@ Parse the argument to determine what to update:
    **If `domain-name`**: Update the domain config and/or modify flows within it.
 
    **If `domain-name/flow-name`**: Update the specific flow spec.
+
+   **Interface scope:**
+
+   **If `--add-page`**: Ask the user for the page name, route, description, and layout. Create:
+   - Add the page entry to `specs/ui/pages.yaml` → `pages` array
+   - Add navigation item to `specs/ui/pages.yaml` → `navigation.items` (if user wants it in nav)
+   - Create `specs/ui/{page-id}.yaml` with sections, forms, and state based on user description
+
+   **If `--ui page-id`**: Update the specific page spec (`specs/ui/{page-id}.yaml`):
+   - Adding/removing/modifying sections
+   - Adding/removing form fields
+   - Changing data_source bindings
+   - Updating item_template, item_actions, empty_state
+   - Changing state management, loading, error, refresh config
+
+   **If `--ui`** (no page-id): Update `specs/ui/pages.yaml` global config:
+   - Navigation (type, items, icons, labels, badges)
+   - Theme (color_scheme, primary_color, font_family, border_radius)
+   - Shared components (add/remove/modify)
+   - App-level config (state_management, component_library)
+
+   **Data scope:**
+
+   **If `--schema model-name`**: Update `specs/schemas/{model}.yaml`:
+   - Add/remove/modify fields
+   - Add/modify indexes
+   - Add/modify seed data
+   - Add/modify transitions (state machine)
+   - Add/modify relationships
+
+   **Infrastructure scope:**
+
+   **If `--infra`**: Update `specs/infrastructure.yaml`:
+   - Add/remove services
+   - Change ports, dependencies, dev commands
+   - Update startup order
+   - Change deployment strategy
 
 5. **Apply the changes to the YAML specs**:
 
@@ -108,7 +178,16 @@ Parse the argument to determine what to update:
    - If renaming an event, update all references across domains
    - List all affected files after making cross-domain changes
 
-9. **Report what changed**: After updating, show a clear summary:
+9. **Maintain UI spec integrity** (when updating Interface pillar): After making changes, verify:
+   - All `data_source` values reference valid `domain/flow-id` that exist in flow specs
+   - All form field `type` values are valid (text, number, select, multi-select, search-select, date, datetime, textarea, toggle, tag-input, file, color, slider)
+   - All `options_source` references point to valid spec paths (e.g., `shared/types.yaml#status`)
+   - All `search_source` references point to valid backend flows
+   - Page IDs in `pages.yaml` match corresponding `specs/ui/{page-id}.yaml` filenames
+   - Navigation items reference valid page IDs
+   - Shared component IDs referenced by sections exist in `pages.yaml` → `shared_components`
+
+10. **Report what changed**: After updating, show a clear summary:
    ```
    Updated specs:
      specs/domains/users/flows/user-register.yaml
@@ -116,21 +195,31 @@ Parse the argument to determine what to update:
        ~ Modified node: input-001 connections (rewired through rate-limiter)
        ~ Updated metadata.modified
 
-     specs/domains/users/domain.yaml
-       + Added event: UserRateLimited to publishes_events
+     specs/ui/dashboard.yaml
+       + Added section: search-bar (filter-bar) at position top
+       ~ Modified section: item-list query (added search parameter)
+
+     specs/infrastructure.yaml
+       + Added service: cache (Redis 7, port 6379)
+       ~ Updated backend depends_on (added cache)
 
    Affected domains: users
-
-     Cross-cutting patterns applied: stealth_http (to service_call nodes)
+   Affected pages: dashboard
+   Cross-cutting patterns applied: stealth_http (to service_call nodes)
 
    Next steps:
      - Reload the DDD Tool to see changes (Cmd+R)
-     - Run /ddd-implement users/user-register to update the implementation
+     - Run /ddd-implement users/user-register to update backend code
+     - Run /ddd-implement --ui dashboard to update page component
+     - Run /ddd-scaffold to regenerate infrastructure scripts (if infra changed)
    ```
 
-10. **Suggest next steps**: After updating specs, tell the user:
+11. **Suggest next steps**: After updating specs, tell the user:
     - "Reload the DDD Tool to see the updated flow graph (Cmd+R)"
-    - "Run `/ddd-implement {scope}` to update the implementation to match"
+    - For flow changes: "Run `/ddd-implement {domain/flow}` to update the implementation"
+    - For UI changes: "Run `/ddd-implement --ui {page-id}` to update the page component"
+    - For infrastructure changes: "Run `/ddd-scaffold` to regenerate infrastructure scripts"
+    - For schema changes: "Run `/ddd-scaffold` to update database schema, then `/ddd-implement` for affected flows"
     - If cross-domain changes were made, list which other flows may need re-implementation
 
 ## Node Type Reference

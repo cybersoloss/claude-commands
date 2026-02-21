@@ -1,6 +1,6 @@
 # DDD Status
 
-Show a quick read-only overview of the DDD project's implementation state. No files are modified — this is purely informational.
+Show a quick read-only overview of the DDD project's implementation state across all four pillars (Logic, Data, Interface, Infrastructure). No files are modified — this is purely informational.
 
 ## Instructions
 
@@ -9,7 +9,11 @@ Show a quick read-only overview of the DDD project's implementation state. No fi
 2. **Read project structure**:
    - `ddd-project.json` — domain list
    - For each domain: `specs/domains/{domain}/domain.yaml` — flow list
-   - `.ddd/mapping.yaml` — implementation tracking (if exists)
+   - `specs/schemas/*.yaml` — data model definitions
+   - `specs/ui/pages.yaml` — page registry (if exists)
+   - `specs/ui/*.yaml` — per-page specs (if exists)
+   - `specs/infrastructure.yaml` — services and deployment (if exists)
+   - `.ddd/mapping.yaml` — implementation tracking (if exists), including `flows:` and `pages:` sections
 
 3. **For each flow, determine status**:
 
@@ -40,18 +44,46 @@ Show a quick read-only overview of the DDD project's implementation state. No fi
 
    **WARNING:** Never recommend `/ddd-implement` without first confirming the drift is type 4 (new logic). Re-implementing a flow overwrites existing code, which can destroy working implementation details that the spec doesn't capture.
 
-5. **Check scaffold state**:
+5. **Check scaffold state** across all four pillars:
+
+   **Backend (Logic):**
    - Does `package.json` (or equivalent) exist?
-   - Does the main entry point exist (e.g., `src/app.ts`)?
+   - Does the main entry point exist (e.g., `src/app.ts`, `src/server/index.ts`)?
+   - Does error handling middleware exist?
+
+   **Data:**
    - Does the database schema exist (e.g., `prisma/schema.prisma`)?
+   - How many schemas are defined in `specs/schemas/`? How many have indexes? Seed data?
+
+   **Frontend (Interface):**
+   - Does `specs/ui/pages.yaml` exist? If yes, how many pages defined?
+   - Do page component files exist (e.g., `src/app/*/page.tsx`, `src/pages/*.tsx`)?
+   - Does a layout/navigation component exist?
+   - Does `.ddd/mapping.yaml` have a `pages:` section?
+
+   **Infrastructure:**
+   - Does `specs/infrastructure.yaml` exist?
+   - Do startup scripts exist in `package.json` (dev, dev:all)?
+   - Does `docker-compose.yaml` exist (if infrastructure spec calls for it)?
    - Does `.ddd/mapping.yaml` exist?
 
-6. **Display the status report**:
+6. **For each UI page, determine status** (same approach as flows):
+
+   | Status | Condition |
+   |--------|-----------|
+   | **Not implemented** | No entry in mapping.yaml pages section |
+   | **Up to date** | Entry exists, specHash matches current page YAML hash |
+   | **Drifted** | Entry exists, specHash does NOT match |
+   | **Stale** | Entry exists, but implementation files are missing |
+   | **No spec** | Page component exists in code but no spec in `specs/ui/` |
+
+7. **Display the status report**:
 
    ```
    DDD Project: {project-name}
    Scaffold: {Yes / No / Partial}
 
+   ── Logic (Backend Flows) ─────────────────────────────────────────────
    Domain          Flow                    Status          Implemented
    ─────────────── ─────────────────────── ─────────────── ──────────────
    users           user-register           Up to date      2025-12-15
@@ -61,11 +93,28 @@ Show a quick read-only overview of the DDD project's implementation state. No fi
    orders          process-payment         Stale           2025-12-13
    notifications   send-email              Not implemented —
 
-   Summary:
-     2 up to date
-     1 drifted — metadata only (run /ddd-sync)
-     1 stale (missing files — run /ddd-implement orders/process-payment)
-     2 not implemented (run /ddd-scaffold then /ddd-implement)
+   ── Interface (UI Pages) ──────────────────────────────────────────────
+   Page            Route                   Status          Implemented
+   ─────────────── ─────────────────────── ─────────────── ──────────────
+   dashboard       /                       Up to date      2025-12-16
+   inbox           /inbox                  Not implemented —
+   settings        /settings               Not implemented —
+
+   ── Data (Schemas) ────────────────────────────────────────────────────
+   Schemas: 5 defined (user, order, order_item, payment, product)
+   Indexes: 12 total (3 unique, 1 GIN)
+   Seed: 2 migration, 1 fixture, 0 script
+
+   ── Infrastructure ────────────────────────────────────────────────────
+   Services: backend (:3001), frontend (:3000), database (:5432), cache (:6379)
+   Startup scripts: dev, dev:all, db:setup
+   Docker: docker-compose.yaml present
+
+   ── Four-Pillar Summary ──────────────────────────────────────────────
+   Logic:          4/6 flows implemented (2 up to date, 1 drifted, 1 stale)
+   Data:           5 schemas, 12 indexes, 3 seeds
+   Interface:      1/3 pages implemented
+   Infrastructure: Scaffolded
 
    Event wiring:
      UserRegistered: users → notifications (consumer not implemented)
@@ -78,16 +127,27 @@ Show a quick read-only overview of the DDD project's implementation state. No fi
    - `Drifted (code ahead)` — code has details spec doesn't describe
    - `Drifted (new logic)` — spec has new logic code doesn't implement
 
-7. **If `$ARGUMENTS` includes `--json`**, output the status as a JSON object instead of the table format. This is useful for scripting.
+8. **If `$ARGUMENTS` includes `--json`**, output the status as a JSON object instead of the table format. This is useful for scripting.
 
-8. **Suggest next actions** based on what's found — using the SAFE recommendation rules:
+9. **Suggest next actions** based on what's found — using the SAFE recommendation rules:
+
+   **Backend (Logic):**
    - If no scaffold: "Run `/ddd-scaffold` to set up the project"
    - If not-implemented flows exist: "Run `/ddd-implement {scope}` to generate code"
    - If drifted (metadata or spec enriched): "Run `/ddd-sync` to update hashes"
    - If drifted (code ahead): "Run `/ddd-reverse {domain/flow}` to capture implementation details into specs, then `/ddd-sync`"
    - If drifted (new logic): "Run `/ddd-implement {domain/flow}` to update code — WARNING: this will regenerate code, review the spec diff first"
    - If stale flows exist: "Run `/ddd-implement {domain/flow}` to regenerate missing files"
-   - If everything is up to date: "All flows are implemented and in sync"
+
+   **Frontend (Interface):**
+   - If `specs/ui/pages.yaml` exists but no pages implemented: "Run `/ddd-implement --ui` to generate page components"
+   - If `specs/ui/` doesn't exist but product has frontend: "Run `/ddd-update --ui` to add UI specs, or `/ddd-create` with `--from` to regenerate"
+   - If pages are drifted: "Run `/ddd-implement --ui {page-id}` to update the page"
+
+   **Infrastructure:**
+   - If `specs/infrastructure.yaml` exists but no startup scripts: "Run `/ddd-scaffold` to generate infrastructure"
+
+   **All pillars up to date:** "All flows and pages are implemented and in sync"
 
    **NEVER suggest `/ddd-implement` as the default action for drifted flows.** Always classify the drift first and recommend the least destructive action.
 

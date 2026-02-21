@@ -1,6 +1,6 @@
 # DDD Promote
 
-Move approved annotations into permanent specs. This is how implementation wisdom — captured by `/ddd-reflect` — becomes part of the design. Promoted patterns are written to `architecture.yaml`, flow specs, or shared spec files.
+Move approved annotations into permanent specs. This is how implementation wisdom — captured by `/ddd-reflect` — becomes part of the design. Promoted patterns are written to `architecture.yaml`, flow specs, UI page specs, or shared spec files.
 
 ## Scope Resolution
 
@@ -19,11 +19,13 @@ Parse `$ARGUMENTS` to determine scope:
 
 2. **Read project context**:
    - `ddd-project.json` — domain list
-   - `.ddd/mapping.yaml` — implementation tracking
+   - `.ddd/mapping.yaml` — implementation tracking (both `flows:` and `pages:` sections)
    - `specs/architecture.yaml` — current `cross_cutting_patterns` section
    - `specs/shared/errors.yaml` — current error codes
    - `specs/shared/types.yaml` — current shared types (if exists)
-   - `.ddd/annotations/` — all annotation files
+   - `specs/ui/pages.yaml` — page registry (if exists)
+   - `specs/ui/{page-id}.yaml` — per-page specs (if exists)
+   - `.ddd/annotations/` — all annotation files (including `annotations/ui/` for page annotations)
 
 3. **Load all annotations**: Read every `.yaml` file in `.ddd/annotations/` (recursively by domain subdirectories). Group annotations by status:
    - `candidate` — awaiting review
@@ -43,6 +45,8 @@ Parse `$ARGUMENTS` to determine scope:
    - For approved candidates, ask the user to confirm the promotion target:
      - **Cross-cutting pattern** → will be added to `architecture.yaml` `cross_cutting_patterns`
      - **Flow-specific detail** → will be added to the flow spec YAML (node spec enrichment, observability, or security section)
+     - **Page-specific detail** → will be added to the page spec YAML (section enrichment, state, loading, or accessibility config)
+     - **Shared UI pattern** → will be added to `specs/ui/pages.yaml` `shared_components` section
      - **Shared type/error** → will be added to `shared/types.yaml` or `shared/errors.yaml`
    - Update annotation status to `approved` or `dismissed`
    - After review, proceed to promotion of approved items
@@ -83,6 +87,22 @@ Parse `$ARGUMENTS` to determine scope:
    - If the detail is about implementation behavior → add detail to the node's `spec.description` or add a `spec.implementation` field
    - Preserve all existing node fields — only add, never remove
 
+   **Page-specific details** (patterns unique to one UI page):
+
+   Read the page spec YAML (`specs/ui/{page-id}.yaml`). Enrich the appropriate section(s):
+   - If the detail is about data fetching (caching, refetch, optimistic updates) → add/update the section's `data_source` config or page `refresh` config
+   - If the detail is about state management → add/update the page `state` section
+   - If the detail is about accessibility → add an `accessibility` field on the section or form
+   - If the detail is about responsive behavior → add a `responsive` field on the section
+   - If the detail is about component composition → enrich the section's `component` description
+   - Preserve all existing section fields — only add, never remove
+
+   **Shared UI patterns** (patterns used across multiple pages):
+
+   If the same UI pattern (e.g., a reusable data table, modal, or form component) appears in annotations for 2+ pages:
+   - Add to `specs/ui/pages.yaml` → `shared_components` section with `id`, `name`, `description`, `props`
+   - Update page specs to reference the shared component ID
+
    **Shared types/errors**:
 
    - If the annotation describes a new error code → add to `specs/shared/errors.yaml`
@@ -112,18 +132,33 @@ Parse `$ARGUMENTS` to determine scope:
        ~ node service_call-abc123: Added security.encryption config
        ~ node data_store-def456: Added spec.description detail about soft-delete filter
 
+   Page-specific details:
+     dashboard:
+       ~ section stat-cards: Added refresh config (auto-30s)
+       ~ section item-list: Added accessibility.aria_label
+     inbox:
+       + Added shared_component reference: confirmation-dialog
+
+   Shared UI patterns → pages.yaml:
+     + confirmation-dialog: Reusable confirmation modal (used by inbox, settings)
+
    Dismissed:
      2 annotations dismissed (not useful)
 
    Spec files modified:
      specs/architecture.yaml
      specs/domains/monitoring/flows/check-social-sources.yaml
+     specs/ui/dashboard.yaml
+     specs/ui/inbox.yaml
+     specs/ui/pages.yaml
 
    Mapping updated:
      monitoring/check-social-sources: specHash updated, annotationCount: 0
+     pages/dashboard: specHash updated, annotationCount: 0
+     pages/inbox: specHash updated, annotationCount: 0
 
    Summary:
-     Promoted: 4 patterns (2 cross-cutting, 2 flow-specific)
+     Promoted: 7 patterns (2 cross-cutting, 2 flow-specific, 2 page-specific, 1 shared UI)
      Dismissed: 2
      Remaining candidates: 0
    ```
@@ -134,7 +169,7 @@ Parse `$ARGUMENTS` to determine scope:
 
 2. **Preserve node IDs and positions**: When editing flow specs, never change node IDs, positions, connections, or other structural elements. Only add descriptive/behavioral fields.
 
-3. **Cross-cutting threshold**: If the same pattern type appears in annotations for 2+ flows across different domains, strongly recommend promoting it as a cross-cutting pattern in `architecture.yaml` rather than as flow-specific details.
+3. **Cross-cutting threshold**: If the same pattern type appears in annotations for 2+ flows across different domains, strongly recommend promoting it as a cross-cutting pattern in `architecture.yaml` rather than as flow-specific details. Similarly, if the same UI pattern appears in annotations for 2+ pages, recommend promoting it as a `shared_component` in `pages.yaml`.
 
 4. **Update metadata**: When modifying a flow spec, update `metadata.modified` to the current ISO timestamp.
 

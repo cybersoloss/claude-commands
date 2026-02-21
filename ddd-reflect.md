@@ -1,6 +1,6 @@
 # DDD Reflect
 
-Capture implementation wisdom — patterns and details that code has but specs don't describe. Creates annotation files in `.ddd/annotations/` for human review and later promotion into permanent specs via `/ddd-promote`.
+Capture implementation wisdom — patterns and details that code has but specs don't describe — across both backend flows and UI pages. Creates annotation files in `.ddd/annotations/` for human review and later promotion into permanent specs via `/ddd-promote`.
 
 ## Scope Resolution
 
@@ -8,10 +8,12 @@ Parse `$ARGUMENTS` to determine scope:
 
 | Argument | Scope | Example |
 |----------|-------|---------|
-| `--all` | Entire project | `/ddd-reflect --all` |
+| `--all` | All implemented flows AND pages | `/ddd-reflect --all` |
 | `{domain}` | All flows in a domain | `/ddd-reflect monitoring` |
 | `{domain}/{flow}` | Single flow | `/ddd-reflect monitoring/check-social-sources` |
-| *(empty)* | Interactive — show flows, ask which to reflect on | `/ddd-reflect` |
+| `--ui` | All implemented UI pages | `/ddd-reflect --ui` |
+| `--ui {page-id}` | Single UI page | `/ddd-reflect --ui dashboard` |
+| *(empty)* | Interactive — show flows and pages, ask which to reflect on | `/ddd-reflect` |
 
 ## Instructions
 
@@ -19,15 +21,18 @@ Parse `$ARGUMENTS` to determine scope:
 
 2. **Read project context**:
    - `ddd-project.json` — domain list
-   - `.ddd/mapping.yaml` — implementation tracking (files, hashes)
+   - `.ddd/mapping.yaml` — implementation tracking (both `flows:` and `pages:` sections)
    - `specs/architecture.yaml` — especially `cross_cutting_patterns` section (reference for classifying findings)
+   - `specs/ui/pages.yaml` — page registry (if exists)
    - `.ddd/annotations/` — existing annotations (to skip duplicates)
 
 3. **Resolve scope**: Parse `$ARGUMENTS` using the table above.
-   - If no argument, show all implemented flows (from mapping.yaml) and ask the user which to reflect on
-   - If `--all`, process every flow that has an implementation in mapping.yaml
+   - If no argument, show all implemented flows AND pages (from mapping.yaml) and ask the user which to reflect on
+   - If `--all`, process every flow AND every page that has an implementation in mapping.yaml
    - If `{domain}`, process all implemented flows in that domain
    - If `{domain}/{flow}`, process that single flow
+   - If `--ui`, process all implemented pages from mapping.yaml `pages:` section
+   - If `--ui {page-id}`, process that single page
 
 4. **For each flow in scope**, perform wisdom capture:
 
@@ -44,7 +49,7 @@ Parse `$ARGUMENTS` to determine scope:
       - **Content processing**: Does the code hash content for deduplication, normalize data, or transform formats beyond spec?
       - **Infrastructure integration**: Does the code use queue-specific features, database-specific operations, or cache patterns not in spec?
 
-   d. **Classify each finding** into a pattern category:
+   d. **Classify each finding** into a pattern category (backend):
       | Category | Indicators |
       |----------|-----------|
       | `stealth_http` | User-agent rotation, proxy pools, cookie jars, headless browser fallback, anti-detection delays |
@@ -61,7 +66,38 @@ Parse `$ARGUMENTS` to determine scope:
 
    f. **Check for already-specified patterns**: If the finding is already described in the flow spec (e.g., the spec already mentions encryption in a crypto node), skip it — it's not "wisdom" if the spec already knows.
 
-5. **Write annotation files**: For each flow with new findings, write to `.ddd/annotations/{domain}/{flow}.yaml`:
+4b. **For each UI page in scope**, perform the same wisdom capture:
+
+   a. **Read the page spec YAML** from `specs/ui/{page-id}.yaml`
+
+   b. **Read the implementation files** listed in mapping.yaml `pages:` section for this page
+
+   c. **Compare spec vs code** — identify what code does that the page spec doesn't describe:
+      - **Component composition**: Does the code split sections into sub-components, use render props, or compose HOCs that the spec doesn't capture?
+      - **Data fetching**: Does the code use React Query, SWR, or custom hooks with caching/retry/refetch logic beyond what `data_source` describes?
+      - **State management**: Does the code use local state, context, or store patterns (Zustand, Redux) not captured in the page `state` section?
+      - **Form validation**: Does the code have client-side validation rules (Zod, Yup) beyond what form field `validation` describes?
+      - **Responsive layout**: Does the code have breakpoint-specific layouts, mobile-first patterns, or conditional rendering for screen sizes?
+      - **Accessibility**: Does the code add ARIA labels, keyboard navigation, focus management, or screen reader support not in the spec?
+      - **Animation/transitions**: Does the code use Framer Motion, CSS transitions, or loading skeletons beyond the spec's `loading` config?
+      - **Error boundaries**: Does the code have React error boundaries, fallback UIs, or offline-aware components?
+
+   d. **Classify each finding** into a UI pattern category:
+      | Category | Indicators |
+      |----------|-----------|
+      | `component_composition` | HOCs, render props, compound components, slot patterns |
+      | `data_fetching` | Custom hooks, cache invalidation, optimistic updates, prefetching |
+      | `state_management` | Store setup, selectors, derived state, state machines |
+      | `form_validation` | Schema validation, async validation, field-level vs form-level |
+      | `responsive_layout` | Media queries, container queries, conditional rendering by breakpoint |
+      | `accessibility` | ARIA attributes, focus traps, keyboard handlers, skip links |
+      | `animation` | Page transitions, micro-interactions, loading skeletons, scroll effects |
+      | `error_handling` | Error boundaries, retry buttons, offline banners, toast notifications |
+      | `custom` | Project-specific UI patterns not matching above categories |
+
+   e–f. Apply the same duplicate and already-specified checks as for flows.
+
+5. **Write annotation files**: For each flow or page with new findings, write to `.ddd/annotations/{domain}/{flow}.yaml` (for flows) or `.ddd/annotations/ui/{page-id}.yaml` (for pages):
 
    ```yaml
    flow: {domain}/{flow-id}
@@ -143,10 +179,28 @@ When comparing code to spec, focus on these signals:
 - Circuit breaker imports → error_handling pattern
 - Fallback to alternative service → error_handling pattern
 
+**UI-specific signals** (for page wisdom capture):
+
+**Component analysis**: Look at how pages compose their sections:
+- Custom hooks extracting data fetching logic → `data_fetching` pattern
+- Shared form components with validation schemas → `form_validation` pattern
+- Compound component patterns (Table + TableRow + TableCell) → `component_composition` pattern
+
+**State analysis**: Look at state management beyond spec's `state` section:
+- Zustand stores with selectors and middleware → `state_management` pattern
+- Optimistic update logic in mutations → `data_fetching` pattern
+- URL search params as state → `state_management` pattern
+
+**Layout analysis**: Look at responsive and accessibility patterns:
+- `useMediaQuery` hooks, `<Show above="md">` patterns → `responsive_layout` pattern
+- `aria-*` attributes, `role` props, focus trap hooks → `accessibility` pattern
+- Framer Motion `<AnimatePresence>`, CSS `transition` utilities → `animation` pattern
+
 **Don't flag**:
-- Standard framework boilerplate (Express middleware, Prisma client setup)
+- Standard framework boilerplate (Express middleware, Prisma client setup, Next.js layout conventions)
 - Type definitions that match the spec's intent even if not explicitly specified
 - Logging that's a standard part of the architecture
 - Test-specific code patterns
+- Default Next.js/React patterns (Suspense boundaries, dynamic imports) unless they differ from spec intent
 
 $ARGUMENTS

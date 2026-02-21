@@ -1,6 +1,6 @@
 # DDD Reverse
 
-Reverse-engineer an existing codebase into a complete DDD (Design Driven Development) project. Scans source code and generates all YAML spec files that the DDD Tool can visualize and `/ddd-implement` can verify via round-trip.
+Reverse-engineer an existing codebase into a complete DDD (Design Driven Development) project across all four pillars (Logic, Data, Interface, Infrastructure). Scans source code and generates all YAML spec files that the DDD Tool can visualize and `/ddd-implement` can verify via round-trip.
 
 ## Input
 
@@ -45,8 +45,9 @@ The user can override with `--strategy <name>`. If overriding, use the specified
 
 3. **Read environment and infrastructure**:
    - `.env` / `.env.example` / `.env.sample` — environment variables
-   - `Dockerfile` / `docker-compose.yml` / `docker-compose.yaml` — infrastructure, services
+   - `Dockerfile` / `docker-compose.yml` / `docker-compose.yaml` — infrastructure, services, ports, dependencies
    - `Procfile` / `fly.toml` / `vercel.json` / `netlify.toml` — deployment config
+   - `package.json` scripts — detect dev commands, startup scripts, setup commands
 
 4. **Handle monorepos**: If the project root contains `packages/`, `apps/`, or a `workspaces` field in package.json, ask the user which package/app to reverse-engineer.
 
@@ -75,6 +76,7 @@ For small codebases (< 30 files) where everything fits in context.
 - Cron/scheduled jobs → trigger `cron {expression}` with `job_config`
 - Event listeners → trigger `event:{EventName}` (or `event_group:{name}` if consuming a group of events defined in domain.yaml)
 - WebSocket/SSE → trigger `ws {path}` or `sse {path}`
+- UI action handlers → trigger `ui:{action}`
 
 For each entry point, read the handler and trace through called functions to build the node graph:
 - Validation → `input` node
@@ -106,7 +108,34 @@ For each entry point, read the handler and trace through called functions to bui
 
 Wire connections with proper sourceHandle values. Position nodes vertically (~130px spacing), error terminals to the right (x + 250).
 
-**B4. Extract cross-cutting concerns**: Error codes → `shared/errors.yaml`. Shared enums → `shared/types.yaml`. Architecture patterns → `architecture.yaml`. Env vars → `config.yaml`. System + integrations → `system.yaml`.
+**B4. Extract frontend pages** (Interface pillar): Detect the frontend framework and scan for page components:
+- **Next.js (app router)**: Scan `app/` or `src/app/` for `page.tsx`/`page.jsx` files — each directory with a page file is a route
+- **Next.js (pages router)**: Scan `pages/` or `src/pages/` for `.tsx`/`.jsx` files — each file is a route
+- **React Router**: Scan for `<Route>` elements in route config files, or `createBrowserRouter` definitions
+- **Vue Router**: Scan for route definitions in `router/index.ts` or similar
+- **SvelteKit**: Scan `src/routes/` for `+page.svelte` files
+- **Angular**: Scan route modules for component→route mappings
+
+For each discovered page:
+- Read the page component to extract: sections/regions, data fetching (API calls → map to `data_source` as `domain/flow-id`), forms with fields, navigation links, loading/error states
+- Detect shared components used across multiple pages (card, modal, sidebar, form components)
+- Detect navigation structure (sidebar, topbar, tabs) from layout components
+- Detect theme/styling (CSS variables, theme providers, component library imports)
+
+Generate:
+- `specs/ui/pages.yaml` — page registry with navigation, theme, shared components
+- `specs/ui/{page-id}.yaml` — per-page specs with sections, forms, data_source bindings
+
+**B5. Extract infrastructure** (Infrastructure pillar): Scan for service definitions:
+- `docker-compose.yml`/`docker-compose.yaml` → services with ports, images, dependencies, health checks
+- `Dockerfile` → detect runtime, entry point, exposed ports
+- `Procfile` / `fly.toml` / `vercel.json` / `railway.json` → deployment config
+- `package.json` scripts → dev commands, startup scripts, setup/seed commands
+- `.env.example` → environment variables and their services
+
+Generate `specs/infrastructure.yaml` with services, startup_order, and deployment config.
+
+**B6. Extract cross-cutting concerns**: Error codes → `shared/errors.yaml`. Shared enums → `shared/types.yaml`. Architecture patterns → `architecture.yaml`. Env vars → `config.yaml`. System + integrations → `system.yaml`.
 
 Additionally, scan for recurring patterns across flows and populate `architecture.yaml` → `cross_cutting_patterns`:
 - Detect stealth HTTP wrappers (user-agent rotation, proxy pools, cookie jars) → `stealth_http` pattern
@@ -118,9 +147,9 @@ Additionally, scan for recurring patterns across flows and populate `architectur
 - Set `used_by_domains` based on which domains reference each utility
 - Set `utility` path to the actual utility file location
 
-**B5. Wire events**: Map publish/consume across domains. Flag unmatched events.
+**B7. Wire events**: Map publish/consume across domains. Flag unmatched events.
 
-**B6. Generate all spec files** and proceed to Quality Checks and Coverage Verification.
+**B8. Generate all spec files** and proceed to Quality Checks and Coverage Verification.
 
 ---
 
@@ -143,9 +172,11 @@ Models: User, Order, OrderItem, Payment, ...
 
 **I3. Process per-domain**: For each domain, read ONLY that domain's files in full. Extract schemas, flows, and cross-cutting concerns for that domain. Generate that domain's spec files. Then discard the domain's source from working memory and move to the next.
 
-**I4. Wire events** across all domains using the generated domain.yaml files.
+**I4. Extract frontend pages and infrastructure**: Follow the same approach as Baseline B4 (page detection) and B5 (infrastructure detection). Scan page components, layout files, and infrastructure configs to generate `specs/ui/` and `specs/infrastructure.yaml`.
 
-**I5. Generate system-level specs** (system.yaml, architecture.yaml with `cross_cutting_patterns`, config.yaml, shared/).
+**I5. Wire events** across all domains using the generated domain.yaml files.
+
+**I6. Generate system-level specs** (system.yaml, architecture.yaml with `cross_cutting_patterns`, config.yaml, shared/).
 
 Proceed to Quality Checks and Coverage Verification.
 
@@ -196,9 +227,11 @@ User:
 
 **S4. Generate schemas** from models.yaml (read source files only if model details are insufficient).
 
-**S5. Extract cross-cutting concerns and wire events** by reading the index files + generated specs. Populate `architecture.yaml` → `cross_cutting_patterns` with discovered recurring patterns (stealth HTTP, API key resolution, encryption, soft-delete, error handling).
+**S5. Extract frontend pages and infrastructure**: Follow the same approach as Baseline B4 (page detection) and B5 (infrastructure detection). Scan page components, layout files, and infrastructure configs to generate `specs/ui/` and `specs/infrastructure.yaml`.
 
-**S6. Generate system-level specs.** Proceed to Quality Checks and Coverage Verification.
+**S6. Extract cross-cutting concerns and wire events** by reading the index files + generated specs. Populate `architecture.yaml` → `cross_cutting_patterns` with discovered recurring patterns (stealth HTTP, API key resolution, encryption, soft-delete, error handling).
+
+**S7. Generate system-level specs.** Proceed to Quality Checks and Coverage Verification.
 
 The `.ddd/reverse/` files persist — if the session is interrupted, resume from where you left off by reading these files.
 
@@ -226,9 +259,11 @@ Found 47 entry points:
 
 **BU5. Build domain specs** (L2): Create domain.yaml files. Move flow specs from `.ddd/reverse/flows/` to `specs/domains/{domain}/flows/`. Wire events within and across domains.
 
-**BU6. Build system specs** (L2 → L1): Read only domain.yaml files and schema specs. Generate system.yaml, architecture.yaml (with `cross_cutting_patterns` from detected recurring patterns), config.yaml, shared/.
+**BU6. Extract frontend pages and infrastructure**: Follow the same approach as Baseline B4 (page detection) and B5 (infrastructure detection). Scan page components, layout files, and infrastructure configs to generate `specs/ui/` and `specs/infrastructure.yaml`.
 
-**BU7. Orphan sweep**: Compare all source files against files referenced by any flow. Report unreferenced files — they may be missed entry points, shared utilities, or dead code.
+**BU7. Build system specs** (L2 → L1): Read only domain.yaml files and schema specs. Generate system.yaml, architecture.yaml (with `cross_cutting_patterns` from detected recurring patterns), config.yaml, shared/.
+
+**BU8. Orphan sweep**: Compare all source files against files referenced by any flow OR any page spec. Report unreferenced files — they may be missed entry points, shared utilities, undetected page components, or dead code.
 
 Proceed to Quality Checks and Coverage Verification.
 
@@ -315,8 +350,11 @@ Read ALL IR files + symbols/models.yaml (all compact). Resolve cross-references:
 
 Ask user to confirm domain groupings.
 
-### Pass 6: Emit (Code Generation)
-Generate final DDD YAML specs from linked IR. Each IR file → flow spec. Each domain group → domain.yaml. Models → schema specs. Cross-cutting → system-level specs.
+### Pass 6: Extract Frontend & Infrastructure
+Follow the same approach as Baseline B4 (page detection) and B5 (infrastructure detection). Scan page components, layout files, and infrastructure configs. Generate IR entries for pages (sections, forms, data_source bindings) and infrastructure (services, ports, startup order).
+
+### Pass 7: Emit (Code Generation)
+Generate final DDD YAML specs from linked IR. Each IR file → flow spec. Each domain group → domain.yaml. Models → schema specs. Page IR → `specs/ui/` specs. Infrastructure IR → `specs/infrastructure.yaml`. Cross-cutting → system-level specs.
 
 Proceed to Quality Checks and Coverage Verification.
 
@@ -345,6 +383,9 @@ Walk each source file. For every function, method, class, or handler, assign a r
 | `B` | Batch/bulk operation |
 | `C` | Crypto/security operation |
 | `P` | Parse/extract from raw format |
+| `F` | Frontend page/component |
+| `N` | Navigation/layout component |
+| `I` | Infrastructure config/service |
 
 Domain prefix: first letter(s) of inferred domain. Use `_` for shared/cross-cutting code.
 
@@ -398,11 +439,14 @@ Now read ONLY codex.yaml + chains.yaml (both small — always fit in context). M
 - `M`/`G` codes → `decision` node or `guardrail` node or security annotation
 - `T` codes → `process` node (or `parse`/`collection`/`crypto` if the transform matches those types)
 - `B` codes → `batch` node (iterating an operation over a collection)
+- `F` codes → page specs in `specs/ui/{page-id}.yaml` (sections, forms, data_source bindings to backend flows)
+- `N` codes → `specs/ui/pages.yaml` navigation and layout config
+- `I` codes → `specs/infrastructure.yaml` services
 - `if`/branching → `decision` node
 - status codes at chain end → `terminal` node
 - Recurring utility patterns across flows → `cross_cutting_patterns` in `architecture.yaml`
 
-Generate all flow specs, domain specs, schema specs, and system-level specs.
+Generate all flow specs, domain specs, schema specs, UI page specs, infrastructure specs, and system-level specs.
 
 ### C5: Orphan detection
 Any source file without ref codes assigned = not scanned. Any ref code not appearing in any chain = orphaned logic. Report both.
@@ -413,7 +457,9 @@ Proceed to Quality Checks and Coverage Verification.
 
 ## Quality Checks (all strategies)
 
-Before writing final spec files, verify:
+Before writing final spec files, verify across all four pillars:
+
+**Logic (flows):**
 - Every flow has exactly one trigger
 - All paths from trigger reach a terminal node (no dead ends)
 - No orphaned nodes (all reachable from trigger)
@@ -435,8 +481,24 @@ Before writing final spec files, verify:
 - Error terminals reference error codes from `specs/shared/errors.yaml`
 - Published events have matching consumers across domains (or note warnings)
 - Event `payload` fields match between publisher and consumer
+
+**Data (schemas):**
 - Schema models referenced by `data_store` nodes exist in `specs/schemas/`
 - Shared enums referenced by schemas exist in `specs/shared/types.yaml`
+- Schemas have `indexes` for fields commonly used in queries
+- Relationships between schemas are consistent
+
+**Interface (UI):**
+- Every `data_source` in page specs references an existing backend flow (`domain/flow-id`)
+- Every page in `pages.yaml` has a corresponding `specs/ui/{page-id}.yaml` file
+- Navigation items reference valid page IDs
+- Form field `options_source` and `search_source` references exist
+- Forms have submit configuration pointing to valid backend flows
+
+**Infrastructure:**
+- All services referenced in `depends_on` exist in the services list
+- `startup_order` includes all services
+- Ports don't conflict between services
 
 ---
 
@@ -444,14 +506,16 @@ Before writing final spec files, verify:
 
 After generating specs, measure how much of the codebase is represented. Write coverage report to `.ddd/reverse/coverage.yaml` AND display to the user.
 
-**Metrics to compute:**
+**Metrics to compute across all four pillars:**
 
-1. **File coverage**: source files referenced by at least one flow vs total source files
+1. **File coverage**: source files referenced by at least one flow or page spec vs total source files
 2. **Entry point coverage**: routes/handlers/jobs in code vs trigger nodes in specs
 3. **Model coverage**: data models in ORM vs schema specs generated
 4. **Event coverage**: events published/consumed in code vs event nodes in specs
 5. **Function coverage**: exported functions vs functions referenced in flows
 6. **Cross-cutting patterns**: recurring utilities detected vs patterns documented
+7. **Page coverage**: page components detected in code vs page specs generated in `specs/ui/`
+8. **Infrastructure coverage**: services detected (docker-compose, package.json scripts) vs services in `specs/infrastructure.yaml`
 
 **Coverage report format:**
 ```yaml
@@ -484,6 +548,16 @@ events:
   unmatched:
     - { name: PaymentFailed, direction: publish, no_consumer: true }
 
+pages:
+  total: 5             # page components detected in code
+  covered: 5           # page specs generated
+  missed: []
+
+infrastructure:
+  services_detected: 4   # from docker-compose, package.json, etc.
+  services_specced: 4
+  missed: []
+
 functions:
   total: 134
   covered: 98
@@ -493,7 +567,7 @@ functions:
 
 **Display to user:**
 ```
-Coverage: 91% (47/52 files, 21/23 entry points, 8/8 models)
+Coverage: 91% (47/52 files, 21/23 entry points, 8/8 models, 5/5 pages, 4/4 services)
 
 Missed entry points:
   GET  /api/admin/stats      → src/admin/controller.ts:12
@@ -521,12 +595,16 @@ Action: run /ddd-reverse with --domains to add missing flows, or manually create
     system.yaml
     architecture.yaml
     config.yaml
+    infrastructure.yaml
     shared/
       errors.yaml
       types.yaml (if shared enums exist)
     schemas/
       _base.yaml
       {model}.yaml
+    ui/
+      pages.yaml
+      {page-id}.yaml (one per detected page)
     domains/
       {domain-id}/
         domain.yaml
@@ -563,22 +641,41 @@ Wire with proper `sourceHandle` values:
 - All other nodes → single output connection
 
 ### Summary report
-After creating all files, show:
+After creating all files, show a four-pillar summary:
 ```
 Reverse-engineered DDD Project: {project-name}
 Strategy used: {strategy-name}
 
 Tech stack: {language} / {framework} / {database}
 
+── Logic (Backend Flows) ─────────────────────────────────────────────
 Domains:
   users (4 flows, 2 schemas)
   orders (3 flows, 3 schemas)
   notifications (2 flows, 0 schemas)
 
-Schemas: user, session, order, order_item, payment
 Total flows: 9
 
-Coverage: {overall}% ({files covered}/{files total} files, {entry points covered}/{total} entry points, {models covered}/{total} models)
+── Data (Schemas) ────────────────────────────────────────────────────
+Schemas: user, session, order, order_item, payment
+Indexes: 12 total (3 unique, 1 GIN)
+Seed: 2 migration, 1 fixture
+
+── Interface (UI Pages) ──────────────────────────────────────────────
+Pages:
+  dashboard (/)
+  inbox (/inbox)
+  settings (/settings)
+
+Navigation: sidebar (3 items)
+Shared components: 2 detected
+
+── Infrastructure ────────────────────────────────────────────────────
+Services: backend (:3001), frontend (:3000), database (:5432), cache (:6379)
+Startup scripts: dev, dev:all, db:setup
+
+── Coverage ──────────────────────────────────────────────────────────
+Overall: {overall}% ({files covered}/{files total} files, {entry points covered}/{total} entry points, {models covered}/{total} models, {pages covered}/{total} pages, {services covered}/{total} services)
 Cross-cutting patterns: {N} detected
 
 Files created:
@@ -586,7 +683,14 @@ Files created:
   specs/system.yaml
   specs/architecture.yaml
   specs/config.yaml
+  specs/infrastructure.yaml
   specs/shared/errors.yaml
+  specs/ui/pages.yaml
+  specs/ui/dashboard.yaml
+  specs/ui/inbox.yaml
+  specs/ui/settings.yaml
+  specs/schemas/_base.yaml
+  specs/schemas/user.yaml
   ...
   specs/domains/users/domain.yaml
   specs/domains/users/flows/user-register.yaml
