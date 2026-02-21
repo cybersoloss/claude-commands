@@ -476,7 +476,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Use `loop` for iteration (set `collection`, `iterator`; optional: `accumulate` for collecting results, `body_start` to specify first node in loop body, `on_error` for per-iteration error handling), `parallel` for concurrent operations (optional: conditional `branches` with `condition` per branch, `output_key` per branch for explicit result namespacing, `failure_policy: 'best_effort'` for dashboard-style flows where individual branch failures should not block the done handle)
      - Use `collection` for in-memory data transformations (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten, first, last, join). Use `first`/`last` with optional `count` to extract elements from sorted collections. Use `join` to cross-reference two arrays (set `input` as left array, `right` as right array, `on` as join predicate, `join_type` as `inner|left|anti`)
      - Use `parse` for structured extraction from raw formats (rss, atom, html, xml, json, csv, markdown)
-     - Use `crypto` for encrypt/decrypt/hash/sign/verify operations
+     - Use `crypto` for encrypt/decrypt/hash/sign/verify/generate_key operations
      - Use `batch` for executing an operation against each item in a collection with concurrency control
      - Use `transaction` for atomic multi-step database operations with rollback
      - Use `cache` for cache operations (set `operation`: `'check'` for read-through hit/miss pattern, `'set'` for explicit write-through with `value`, `'invalidate'` for key deletion; plus `key`, `store`, `ttl_ms`)
