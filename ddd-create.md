@@ -46,7 +46,32 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
    If the user provided a detailed description, proceed without asking — infer reasonable defaults for all four pillars. **Do not silently skip any pillar** — if the description mentions a frontend/UI, generate UI specs. If the description mentions a database, generate schemas with indexes. If the description lists services, generate infrastructure specs.
 
-4. **Create the project directory structure**:
+4. **Pillar coverage matrix** (MANDATORY — do NOT skip):
+
+   Before generating any spec files, output a four-pillar plan table showing exactly what you will generate. This makes gaps visible before work begins:
+
+   ```
+   ── Four-Pillar Plan ──────────────────────────────────────────────────
+   Pillar          Items Found                    Will Generate
+   ─────────────── ────────────────────────────── ──────────────────────
+   Logic           {N} domains, {M} flows         {M} flow YAMLs
+   Data            {N} schemas                    {N} schema YAMLs
+   Interface       {N} pages                      pages.yaml + {N} page YAMLs
+   Infrastructure  {N} services                   infrastructure.yaml
+   ──────────────────────────────────────────────────────────────────────
+   ```
+
+   **Completeness enforcement rules:**
+   - If the product description mentions **any** frontend/UI elements (pages, screens, dashboard, forms, navigation, user interface) → Interface row MUST have items. If it shows 0 pages, STOP and ask the user: "Your description mentions frontend elements but I haven't identified specific pages. What pages/screens should the app have?"
+   - If the product description mentions **any** database, data storage, or models → Data row MUST have items.
+   - If the product description mentions **any** services, ports, or deployment → Infrastructure row MUST have items.
+   - Logic row should always have items (every project has at least one flow).
+
+   **If any pillar shows 0 items but the description implies it should have items**, pause and ask the user before proceeding. Do NOT silently generate a partial project.
+
+   Wait for the user to confirm the plan before proceeding to spec generation.
+
+5. **Create the project directory structure**:
 
    ```
    {project}/
@@ -71,9 +96,9 @@ Create a complete DDD (Design Driven Development) project from a software projec
              {flow-id}.yaml (one per flow)
    ```
 
-5. **Create `ddd-project.json`**: List all domains with name and description.
+6. **Create `ddd-project.json`**: List all domains with name and description.
 
-6. **Create supplementary spec files**:
+7. **Create supplementary spec files**:
    - `specs/system.yaml` — project identity, tech stack, environments
    - `specs/architecture.yaml` — project structure, naming conventions, dependencies, infrastructure, API design, testing, deployment. Include a `cross_cutting_patterns: {}` placeholder section for patterns discovered during implementation.
    - `specs/config.yaml` — required and optional environment variables
@@ -86,7 +111,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `transitions` — if a schema has a status/lifecycle field with defined state transitions
    - If the project has external API integrations, add an `integrations:` section to `specs/system.yaml` with base_url, auth, rate_limits, retry, and timeout_ms per integration
 
-7. **Create UI specs**: Generate `specs/ui/pages.yaml` and per-page spec files.
+8. **Create UI specs**: Generate `specs/ui/pages.yaml` and per-page spec files.
 
    **pages.yaml** — the page registry:
    - `app_type` — web, mobile, desktop, or cli
@@ -123,12 +148,12 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Define loading, error, and empty states for every section that fetches data
    - Think about what the user sees on first load, while waiting, when data is empty, and when errors occur
 
-8. **Create infrastructure spec**: Generate `specs/infrastructure.yaml` with:
+9. **Create infrastructure spec**: Generate `specs/infrastructure.yaml` with:
    - `services` — each service with id, type (server/datastore/worker/proxy), runtime/engine, entry point, port, health check, dependencies, dev command, setup command
    - `startup_order` — ordered list of service IDs for correct startup sequencing
    - `deployment` — local strategy (process-manager or docker-compose) and optional production strategy
 
-9. **Create domain YAML files**: For each domain, create `specs/domains/{domain-id}/domain.yaml` with:
+10. **Create domain YAML files**: For each domain, create `specs/domains/{domain-id}/domain.yaml` with:
    - `name`, `description`
    - `flows` array (id, name, description, type)
    - `stores` array (optional) — declare in-memory state stores with `name`, `shape`, `selectors`, `access_pattern` (e.g., Zustand/Redux stores). Referenced by `data_store` nodes with `store_type: memory`.
@@ -137,7 +162,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `event_groups` (optional) — named collections of events for use in multi-event triggers. Define `name`, `description`, and `events` array. Referenced as `event_group:{name}` in trigger `event` fields.
    - `layout` with flow positions (space flows vertically with ~200px gaps)
 
-10. **Create flow YAML files**: For each flow, create `specs/domains/{domain-id}/flows/{flow-id}.yaml` with:
+11. **Create flow YAML files**: For each flow, create `specs/domains/{domain-id}/flows/{flow-id}.yaml` with:
    - `flow` metadata (id, name, type, domain, description). Optionally add `emits: string[]` and `listens_to: string[]` to summarize the flow's event surface. For flows triggered by keyboard shortcuts, add `keyboard_shortcut` (e.g., `"Cmd+K"`).
    - `trigger` node with `spec.event` set to one of these conventions:
      - `HTTP {METHOD} {path}` for API endpoints
@@ -204,9 +229,9 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Resort to `custom_fields` to express something that should be a first-class field
      - Cannot express a cross-cutting concern (auth, logging, rate limiting, monitoring) structurally
 
-11. **Node ID convention**: Use `{type}-{8-char-random}` format (e.g., `input-xK9mR2vL`, `process-aPq3nW8j`).
+12. **Node ID convention**: Use `{type}-{8-char-random}` format (e.g., `input-xK9mR2vL`, `process-aPq3nW8j`).
 
-12. **Quality checks**: Before finishing, verify:
+13. **Quality checks**: Before finishing, verify:
 
    **Logic (flows):**
    - Every flow has exactly one trigger
@@ -256,7 +281,14 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Ports don't conflict between services
    - Backend port matches `system.yaml` environment URL
 
-13. **Shortfall report** (only if `--shortfalls` flag is present in `$ARGUMENTS`): Generate `specs/shortfalls.yaml` documenting every DDD framework limitation you encountered. Be brutally honest — this report exists to improve DDD, not to make it look good.
+   **Pillar completeness** (CRITICAL — final gate):
+   - Compare generated specs against the pillar plan from step 4
+   - If the plan listed N pages but 0 page specs were generated → STOP and generate the missing UI specs before proceeding
+   - If the plan listed N schemas but 0 schema specs were generated → STOP and generate the missing schemas
+   - If the plan listed infrastructure but no `infrastructure.yaml` was generated → STOP and generate it
+   - Every pillar committed to in step 4 must have corresponding spec files
+
+14. **Shortfall report** (only if `--shortfalls` flag is present in `$ARGUMENTS`): Generate `specs/shortfalls.yaml` documenting every DDD framework limitation you encountered. Be brutally honest — this report exists to improve DDD, not to make it look good.
 
     ```yaml
     # DDD Shortfall Report
@@ -374,7 +406,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
     - If you used `custom_fields` on any node, that's automatically a `missing_spec_fields` entry
     - Layer gaps should evaluate what you actually used vs. what you wished you could express
 
-14. **Summary**: After creating all files, show:
+15. **Summary**: After creating all files, show:
     ```
     Created DDD Project: {project-name}
 
