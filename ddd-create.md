@@ -38,6 +38,24 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
    Combine insights from the design file with any text description provided in `$ARGUMENTS`.
 
+   **Page extraction** (MANDATORY for user-facing projects):
+   After identifying Interface items above, list every page/screen in a structured table before proceeding. This prevents pages from being "noted" but never generated:
+
+   ```
+   ── Identified Pages ──────────────────────────────────────────────────
+   Page ID          Route              Primary Data          Forms
+   ──────────────── ────────────────── ───────────────────── ──────────
+   dashboard        /                  inbox count, actions  —
+   inbox            /inbox             item list, AI suggest process-form
+   settings         /settings          user prefs, connectors settings-form
+   ...
+   ──────────────────────────────────────────────────────────────────────
+   ```
+
+   If the product description mentions screens/pages but this table is empty → STOP and ask the user: "Your description mentions a UI but I haven't identified specific pages. What pages/screens should the app have?"
+
+   This table drives Step 10 (UI spec generation) — every row becomes a `specs/ui/{page-id}.yaml` file.
+
    **If no `--from` flag**, use the text description from `$ARGUMENTS`. If the description is brief, ask clarifying questions covering all four pillars:
    - **Logic**: What does the software do? What are the main domains? Key flows? External services? Agent/AI flows?
    - **Data**: What are the data models? Key relationships? Any initial/seed data needed?
@@ -77,9 +95,23 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
    Wait for the user to confirm the plan before proceeding to spec generation.
 
-5. **Generation order** (IMPORTANT — prevents pillar starvation):
+5. **Generation order with checkpoints** (IMPORTANT — prevents pillar starvation):
 
-   Generate specs in this order: **system/shared → Data → Interface → Infrastructure → Logic (domains + flows)**. Logic (flows) is last because it's the most detail-heavy pillar and can consume disproportionate effort. By generating Data, Interface, and Infrastructure first, you ensure no pillar gets starved of attention. The final quality checks (step 15) will catch any cross-references between pillars.
+   Generate specs in this order, outputting a checkpoint after each pillar:
+
+   1. **system/shared** → `system.yaml`, `architecture.yaml`, `config.yaml`, `errors.yaml`, `types.yaml`
+      → Checkpoint: "✓ System: {N} shared files created"
+   2. **Data** (Step 9) → `schemas/_base.yaml`, per-model schemas
+      → Checkpoint: "✓ Data: {N} schema files created"
+   3. **Interface** (Step 10) → `pages.yaml`, per-page specs
+      → Checkpoint: "✓ Interface: {N} page specs created — matches {N} pages from extraction table"
+      → **GATE: If pages planned > 0 but pages created == 0, STOP HERE. Do not proceed to Infrastructure or Logic. Generate the missing UI specs now.**
+   4. **Infrastructure** (Step 11) → `infrastructure.yaml`
+      → Checkpoint: "✓ Infrastructure: infrastructure.yaml created with {N} services"
+   5. **Logic** (Steps 12-13) → domain.yaml files, flow specs
+      → Checkpoint: "✓ Logic: {N} domains, {M} flows created"
+
+   Logic (flows) is last because it's the most detail-heavy pillar and can consume disproportionate effort. By generating Data, Interface, and Infrastructure first, you ensure no pillar gets starved of attention. The Interface gate at step 3 ensures UI specs actually exist before proceeding.
 
 6. **Create the project directory structure**:
 
@@ -144,6 +176,22 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Think about what queries the app will run most frequently and ensure those have indexes
 
 10. **Create UI specs** (Interface pillar): Generate `specs/ui/pages.yaml` and per-page spec files.
+
+   **Per-page generation loop** — for EACH page in the extraction table from Step 3:
+
+   1. Create `specs/ui/{page-id}.yaml`
+   2. Identify which backend flows provide data to this page (→ `data_source` references)
+   3. Identify which backend flows accept input from this page (→ form `submit` references)
+   4. Design sections using the component types below, matching flow return shapes to component types:
+      - Flow returns list/collection → `item-list` or `card-grid`
+      - Flow returns stats/counts → `stat-card`
+      - Flow returns single record → `detail-card`
+      - Flow accepts input → `form`
+   5. Add the page to `pages.yaml` → `pages` array with route and layout
+   6. Add the page to `pages.yaml` → `navigation` items
+   7. Verify: the page has ≥1 section or form (no empty specs)
+
+   After completing the loop, verify: **number of page spec files == number of rows in Step 3 extraction table**. If not, identify and generate the missing pages before proceeding.
 
    **pages.yaml** — the page registry:
    - `app_type` — web, mobile, desktop, or cli
@@ -243,6 +291,15 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Think about what a new developer needs to run `dev` successfully — every service, every setup step
 
 12. **Create domain YAML files** (Logic pillar): For each domain, create `specs/domains/{domain-id}/domain.yaml` with:
+
+   **Important — domain role vs UI page specs:**
+   A domain with `role: "interface"` means its flows *serve* the frontend (API endpoints for UI data). It does NOT mean UI page specs exist for those screens. UI page specs are always generated separately in `specs/ui/` (Step 10). For example:
+   - Domain "Dashboard" with `role: "interface"` → generates flows like `get-dashboard-data` (backend API)
+   - Page spec `specs/ui/dashboard.yaml` → defines the page layout, sections, data bindings (frontend spec)
+   - **Both** must exist. The domain provides the backend, the page spec provides the frontend.
+
+   If you create an interface-role domain, verify that a matching page spec exists in `specs/ui/`. If not, go back to Step 10 and create it.
+
    - `name`, `description`
    - `flows` array (id, name, description, type)
    - `stores` array (optional) — declare in-memory state stores with `name`, `shape`, `selectors`, `access_pattern` (e.g., Zustand/Redux stores). Referenced by `data_store` nodes with `store_type: memory`.
@@ -390,12 +447,20 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - Every service has a `dev_command` — the project must be runnable locally
    - Datastores have `setup_command` for initial setup (schema creation, migrations)
 
-   **Pillar completeness** (CRITICAL — final gate):
-   - Compare generated specs against the pillar plan from step 4
-   - If the plan listed N pages but 0 page specs were generated → STOP and generate the missing UI specs before proceeding
-   - If the plan listed N schemas but 0 schema specs were generated → STOP and generate the missing schemas
-   - If the plan listed infrastructure but no `infrastructure.yaml` was generated → STOP and generate it
-   - Every pillar committed to in step 4 must have corresponding spec files
+   **Pillar completeness gate** (BLOCKER — must pass before finishing):
+
+   Compare generated specs against the pillar plan from Step 4 AND the page extraction table from Step 3:
+
+   | Check | Pass condition | If fail |
+   |-------|---------------|---------|
+   | Logic | Plan listed {M} flows → {M} flow YAMLs exist | Generate missing flows |
+   | Data | Plan listed {N} schemas → {N} schema YAMLs exist | Generate missing schemas |
+   | Interface | Extraction table listed {P} pages → {P} page spec YAMLs exist + pages.yaml | **STOP — generate ALL missing page specs before proceeding** |
+   | Infrastructure | Plan listed infrastructure → infrastructure.yaml exists | Generate it |
+
+   **Interface receives special enforcement** because it is the pillar most likely to be skipped. Count the files in `specs/ui/` and compare to the extraction table. Zero tolerance for missing pages.
+
+   If ANY check fails, go back to the relevant generation step and create the missing specs. Do NOT finish the command with incomplete pillar coverage.
 
 16. **Shortfall report** (only if `--shortfalls` flag is present in `$ARGUMENTS`): Generate `specs/shortfalls.yaml` documenting every DDD framework limitation you encountered. Be brutally honest — this report exists to improve DDD, not to make it look good.
 
@@ -531,6 +596,23 @@ Create a complete DDD (Design Driven Development) project from a software projec
             - "{page-id}"
           suggestion: "How DDD could represent it"
 
+    pillar_balance:
+      # Auto-generated — compares what the product describes vs what was spec'd
+      logic_flows: {count}
+      data_schemas: {count}
+      ui_pages: {count}
+      infrastructure_services: {count}
+      product_described_pages:
+        # List every page/screen mentioned in the product definition
+        - "{page-name}: {where in product definition it's described}"
+      pages_without_specs:
+        # Pages described in product definition but NOT generated as specs
+        - "{page-name}: described at {location} but no specs/ui/{page-id}.yaml generated"
+      imbalance_warnings:
+        # Flag when one pillar is disproportionately under-spec'd
+        - severity: critical|high|medium|low
+          description: "{N} backend flows but {M} UI pages — product definition describes {P} user-facing screens"
+
     summary:
       total_shortfalls: {count}
       by_severity:
@@ -550,6 +632,8 @@ Create a complete DDD (Design Driven Development) project from a software projec
     - If you used `custom_fields` on any node, that's automatically a `missing_spec_fields` entry
     - If a form uses a workaround for a field type that doesn't exist, that's a `form_limitations` entry
     - Layer gaps should evaluate what you actually used vs. what you wished you could express
+    - If the product definition describes pages/screens that have no corresponding `specs/ui/{page-id}.yaml`, that's automatically a `pillar_balance` → `pages_without_specs` entry with severity `high`
+    - If logic flows outnumber UI pages by more than 5:1 for a user-facing project, add an `imbalance_warnings` entry
 
 17. **Summary**: After creating all files, show:
     ```
@@ -607,6 +691,14 @@ Create a complete DDD (Design Driven Development) project from a software projec
       UserRegistered: users → notifications
       OrderCreated: orders → notifications
       PaymentProcessed: orders → (no consumer — warning)
+
+    Pillar balance:
+      Logic:          {M} flows            ████████████████████
+      Data:           {N} schemas           ██████████
+      Interface:      {P} pages             ██████████████
+      Infrastructure: {S} services          ████
+
+      Status: ✓ All pillars covered (or ⚠ Interface: 0 pages — INCOMPLETE)
 
     Shortfalls: (only if --shortfalls flag was used)
       specs/shortfalls.yaml — 12 shortfalls (2 critical, 4 high, 3 medium, 3 low)
