@@ -1,6 +1,6 @@
 # DDD Scaffold
 
-Set up the project skeleton and shared infrastructure from DDD specs before implementing flows. This is the first step of Phase 3 (Build) — it creates the project foundation across all four pillars (Logic, Data, Interface, Infrastructure) that `/ddd-implement` builds on.
+Generate project skeleton files (package.json, config, middleware, ORM schemas, page stubs, Docker configs) from DDD specs across all four pillars (Logic, Data, Interface, Infrastructure), creating the foundation that `/ddd-implement` builds on. **Lifecycle phase: Build.**
 
 ## Instructions
 
@@ -31,6 +31,8 @@ Set up the project skeleton and shared infrastructure from DDD specs before impl
    This plan is your commitment — every item listed must be scaffolded.
 
 4. **Check for existing scaffold**: If the project already has a `package.json` (or equivalent for the tech stack), `tsconfig.json`, and a `src/` directory with middleware/config files, tell the user the project appears already scaffolded. Show what exists and ask if they want to re-scaffold (overwrite) or skip.
+
+   **WARNING:** Re-scaffolding overwrites existing project files (package.json, config, middleware, ORM schemas). If you have manual edits, commit them first.
 
 5. **Initialize the project** based on `specs/system.yaml` tech stack:
 
@@ -162,7 +164,7 @@ Set up the project skeleton and shared infrastructure from DDD specs before impl
      - Add exports to a barrel file if the project uses one
    - If no `cross_cutting_patterns` section exists, skip this step
 
-   **Checkpoint:** Output "Logic scaffold complete: {N}/{N} backend files created" (with actual counts matching the plan).
+   **Checkpoint:** Output "Logic scaffold complete: {N}/{N} Logic files created" (with actual counts matching the plan).
 
    **GATE:** Compare actual file count to plan. If any planned item is missing, STOP and create it now before proceeding.
 
@@ -177,7 +179,7 @@ Set up the project skeleton and shared infrastructure from DDD specs before impl
     - If either fails, fix and retry
 
 12. **Initialize `.ddd/` tracking:**
-    - Create `.ddd/mapping.yaml` with empty `flows:` and `pages:` sections (populated by `/ddd-implement`)
+    - Create `.ddd/mapping.yaml` with empty `flows:` and `pages:` sections — entry fields (`specHash`, `syncState`, `files`, `implementedAt`, `annotationCount`) are populated later by `/ddd-implement`, not during scaffold
     - Create `.ddd/annotations/` directory with `.gitkeep` (populated by `/ddd-reflect`)
     - Create `.ddd/autosave/` directory with `.gitkeep` (crash recovery, managed by DDD Tool)
     - Create `.ddd/reconciliations/` directory with `.gitkeep` (reconciliation reports from `/ddd-sync`)

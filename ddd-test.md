@@ -1,6 +1,6 @@
 # DDD Test
 
-Run tests for DDD-implemented flows, UI pages, schemas, and infrastructure without re-generating code. Use this after manual code edits, refactoring, or dependency updates to verify implementations still work. **Lifecycle phase: Build.**
+Run tests for DDD-implemented code across all four pillars — **Logic** (backend flows), **Interface** (UI pages), **Data** (schemas), and **Infrastructure** (services) — without re-generating code. Use this after manual code edits, refactoring, or dependency updates to verify implementations still work. **Lifecycle phase: Build.**
 
 ## Scope Resolution
 
@@ -17,11 +17,24 @@ Parse the argument to determine scope:
 | `--infra` | Infrastructure health checks | `/ddd-test --infra` |
 | *(empty)* | Interactive — show all testable items and ask | `/ddd-test` |
 
+**Files read:**
+- `ddd-project.json` — project config, domain list
+- `.ddd/mapping.yaml` — implementation tracking (flows and pages sections with file lists and test files)
+- `specs/architecture.yaml` — testing config, cross-cutting patterns
+- `specs/infrastructure.yaml` — services, ports, health check endpoints
+- `specs/ui/pages.yaml` — page registry (for page test resolution)
+- `specs/domains/*/domain.yaml` — domain configs (for flow test resolution)
+
 ## Instructions
 
 1. **Find the DDD project**: Look for `ddd-project.json` in the current directory or parent directories.
 
-2. **Read implementation state**: Load `.ddd/mapping.yaml` to find which flows and pages are implemented and their test files. The mapping has both `flows:` and `pages:` sections.
+2. **Read project context**:
+   - `ddd-project.json` — domain list
+   - `.ddd/mapping.yaml` — which flows and pages are implemented, their test files, specHash for drift detection
+   - `specs/architecture.yaml` — `testing` section for test framework, `cross_cutting_patterns` for pattern-aware test analysis
+   - `specs/infrastructure.yaml` — services, ports, health endpoints (for `--infra` scope)
+   - `specs/ui/pages.yaml` — page registry (for `--ui` scope resolution)
 
 3. **Resolve scope from the argument**:
 
@@ -49,7 +62,7 @@ Parse the argument to determine scope:
    - Verify startup scripts exist and are valid (`npm run dev`, `npm run dev:all`)
    - If docker-compose exists, validate it (`docker compose config`)
 
-4. **Determine the test runner**: Read `specs/architecture.yaml` → `testing` for the test framework, or detect from config files:
+4. **Determine the test runner**: Read `specs/architecture.yaml` → `testing` for the test framework. Also read `cross_cutting_patterns` to inform test failure analysis (e.g., if a flow uses `stealth_http`, test failures related to HTTP headers may be pattern-related, not bugs). Detect from config files if architecture.yaml doesn't specify:
    - `jest.config.*` → Jest
    - `vitest.config.*` → Vitest
    - `pytest.ini` / `pyproject.toml` [tool.pytest] → pytest
@@ -131,6 +144,7 @@ Parse the argument to determine scope:
      - Run /ddd-implement users/user-login to regenerate backend flow
      - Run /ddd-implement --ui inbox to regenerate page component
      - If all tests pass, proceed to /ddd-sync to check spec alignment
+     - After sync, run /ddd-reflect to capture implementation wisdom, then /ddd-promote --review
    ```
 
    **Frontend-specific failure causes:**
@@ -140,5 +154,11 @@ Parse the argument to determine scope:
    - **State management issue** — store not providing expected data → check store setup
 
 9. **If `$ARGUMENTS` includes `--coverage`**, also run with coverage reporting enabled and show coverage summary per flow.
+
+10. **Next steps**: Based on results, suggest:
+    - If all tests pass: "Run `/ddd-sync` to check spec alignment, then `/ddd-reflect` to capture implementation wisdom, then `/ddd-promote --review`"
+    - If tests fail due to spec drift: "Run `/ddd-implement {scope}` to regenerate from updated specs, then re-run `/ddd-test`"
+    - If tests fail due to manual code changes: "Review the failing test and fix the code, or run `/ddd-implement {scope}` to regenerate"
+    - If tests fail due to environment issues: "Fix the environment issue (missing env var, database not running) and re-run `/ddd-test`"
 
 $ARGUMENTS

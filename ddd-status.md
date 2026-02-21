@@ -13,19 +13,23 @@ Show a quick read-only overview of the DDD project's implementation state across
    - `specs/ui/pages.yaml` — page registry (if exists)
    - `specs/ui/*.yaml` — per-page specs (if exists)
    - `specs/infrastructure.yaml` — services and deployment (if exists)
-   - `.ddd/mapping.yaml` — implementation tracking (if exists), including `flows:` and `pages:` sections
+   - `specs/architecture.yaml` — `cross_cutting_patterns`, conventions (for pattern-aware drift classification)
+   - `.ddd/mapping.yaml` — implementation tracking (if exists), including `flows:` and `pages:` sections with `specHash`, `syncState`, `annotationCount`, `files`, `fileHashes`, and `mode` per entry
 
 3. **For each flow, determine status**:
 
    | Status | Condition |
    |--------|-----------|
    | **Not implemented** | No entry in mapping.yaml |
-   | **Up to date** | Entry exists, specHash matches current flow YAML hash |
-   | **Drifted** | Entry exists, specHash does NOT match (spec changed since implementation) |
+   | **Up to date** | Entry exists, specHash matches current flow YAML hash, and fileHashes match current implementation files |
+   | **Drifted (spec)** | Entry exists, specHash does NOT match (spec changed since implementation) |
+   | **Drifted (code)** | Entry exists, specHash matches but one or more fileHashes don't match (code was manually edited) |
+   | **Drifted (both)** | Both specHash and fileHashes mismatch (spec AND code changed independently) |
    | **Stale** | Entry exists, but one or more implementation files are missing |
    | **Scaffolded** | Project has package.json/tsconfig but no flow implementations |
 
    To compute specHash: read the flow YAML file content and compute SHA-256.
+   To check fileHashes: for each file in `fileHashes`, compute SHA-256 of the current file content and compare against the stored hash. Any mismatch means the code was modified since last implementation.
 
 4. **For drifted flows, classify the drift** (CRITICAL — do NOT skip this step):
 
@@ -124,8 +128,9 @@ Show a quick read-only overview of the DDD project's implementation state across
    **For drifted flows, always show the drift type in parentheses:**
    - `Drifted (metadata)` — only timestamps/positions changed
    - `Drifted (spec enriched)` — spec added detail, code already covers it
-   - `Drifted (code ahead)` — code has details spec doesn't describe
+   - `Drifted (code ahead)` — code has details spec doesn't describe (detected via fileHashes mismatch + code analysis)
    - `Drifted (new logic)` — spec has new logic code doesn't implement
+   - `Drifted (code edited)` — implementation files were modified (fileHashes mismatch) but spec unchanged — needs analysis to classify as code-ahead or accidental
 
 8. **If `$ARGUMENTS` includes `--json`**, output the status as a JSON object instead of the table format. This is useful for scripting.
 
@@ -136,6 +141,7 @@ Show a quick read-only overview of the DDD project's implementation state across
    - If not-implemented flows exist: "Run `/ddd-implement {scope}` to generate code"
    - If drifted (metadata or spec enriched): "Run `/ddd-sync` to update hashes"
    - If drifted (code ahead): "Run `/ddd-reflect {domain/flow}` to capture implementation details as annotations, then `/ddd-promote --review` to write them into specs, then `/ddd-sync`"
+   - If drifted (code edited): "Run `/ddd-reflect {domain/flow}` to analyze what changed — code may have been improved manually. Capture as annotations, then `/ddd-sync` to update fileHashes"
    - If drifted (new logic): "Run `/ddd-implement {domain/flow}` to update code — WARNING: this will regenerate code, review the spec diff first"
    - If stale flows exist: "Run `/ddd-implement {domain/flow}` to regenerate missing files"
 

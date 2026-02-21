@@ -6,17 +6,17 @@ Synchronize the DDD project specs with the current implementation state across a
 
 **Files read:**
 - `ddd-project.json` — domain list, project config
-- `.ddd/mapping.yaml` — implementation tracking (flows and pages sections)
-- `specs/domains/*/domain.yaml` — domain configs and event definitions
-- `specs/domains/*/flows/*.yaml` — flow specs (for drift comparison)
-- `specs/ui/pages.yaml` — page registry
-- `specs/ui/*.yaml` — individual page specs
-- `specs/schemas/*.yaml` — schema specs
-- `specs/infrastructure.yaml` — infrastructure spec
-- `specs/architecture.yaml` — cross-cutting patterns, conventions
-- `specs/system.yaml` — tech stack info
-- `specs/config.yaml` — environment variables
-- `specs/shared/errors.yaml` — error codes
+- `.ddd/mapping.yaml` — implementation tracking with `specHash`, `syncState`, `files`, `fileHashes`, and `annotationCount` (flows and pages sections)
+- `specs/domains/*/domain.yaml` — domain configs, event definitions, flow lists (for cross-domain event verification)
+- `specs/domains/*/flows/*.yaml` — flow specs with node graphs (for bidirectional drift comparison against code)
+- `specs/ui/pages.yaml` — page registry, navigation, theme (for page structure drift comparison)
+- `specs/ui/*.yaml` — per-page specs with sections, forms, data_source bindings (for page content drift comparison)
+- `specs/schemas/*.yaml` — schema specs with fields, indexes, seeds (for data model drift comparison)
+- `specs/infrastructure.yaml` — services, ports, startup order (for infrastructure drift comparison)
+- `specs/architecture.yaml` — `cross_cutting_patterns`, conventions (for pattern drift and code classification)
+- `specs/system.yaml` — tech stack info (context when creating new specs in --discover mode)
+- `specs/config.yaml` — environment variables (context when creating new specs in --discover mode)
+- `specs/shared/errors.yaml` — error codes (for validating error terminal references)
 
 ## Instructions
 
@@ -61,7 +61,12 @@ Synchronize the DDD project specs with the current implementation state across a
 
    Perform this analysis for ALL four pillars. Follow the processing order from the sync plan: Data → Interface → Infrastructure → Logic.
 
-   For each entry where the specHash doesn't match the current spec YAML:
+   For each entry, check TWO dimensions of drift:
+
+   **Spec drift** (specHash mismatch): The spec YAML changed since the last implementation.
+   **Code drift** (fileHashes mismatch): One or more implementation files changed since the last implementation. Recompute SHA-256 of each file in the mapping's `files` array and compare against stored `fileHashes`. A mismatch means a developer (or another tool) modified the code.
+
+   For entries with spec drift (specHash doesn't match):
 
    a. **Spec → Code check:** Read the current spec YAML. Identify what changed from the mapping's hash. Read the implementation code files. Does the code already implement the spec's intent?
 
@@ -72,6 +77,11 @@ Synchronize the DDD project specs with the current implementation state across a
       - **Spec enriched, code covers it** → Update hash after verification
       - **Code ahead of spec** → Flag for `/ddd-reflect`, do NOT update hash yet
       - **New spec logic** → Flag for `/ddd-implement`, do NOT update hash yet
+
+   For entries with code drift only (fileHashes mismatch but specHash matches):
+   - Read the changed implementation files and compare against the spec
+   - If the changes are improvements (better error handling, new patterns, optimizations) → classify as **code ahead**, flag for `/ddd-reflect`
+   - If the changes are accidental or formatting-only → update `fileHashes` to current values
 
    **Data (schema) drift:**
    - Compare `specs/schemas/*.yaml` against actual ORM models/migrations
@@ -89,6 +99,7 @@ Synchronize the DDD project specs with the current implementation state across a
    **Logic (flow) drift:**
    - Compare `specs/domains/*/flows/*.yaml` against actual implementation files
    - Full bidirectional check as described in (a), (b), (c) above
+   - Check if flows use `cross_cutting_patterns` from `architecture.yaml` — if code applies a pattern (stealth_http, encryption, soft_delete) that the flow spec doesn't reference, classify as code-ahead
 
    **Checkpoint:** After each pillar's drift check, output: "{Pillar} sync complete: {N}/{N} items checked"
 
@@ -103,6 +114,7 @@ Synchronize the DDD project specs with the current implementation state across a
 6. **Update mapping.yaml** (only for verified-in-sync entries):
    - For flows that are genuinely in sync (metadata-only or spec-enriched with code coverage), compute and update the `specHash`
    - Update the `files` list with all source files that are part of the implementation
+   - Recompute and update `fileHashes` — SHA-256 of each implementation file, keyed by file path. This enables future code drift detection.
    - Update `implementedAt` timestamp only if implementation files have actually changed
    - Remove entries for flows that no longer have implementation files
    - Set `syncState` for each entry. Values: `in_sync`, `spec_ahead`, `code_ahead`, `diverged`, `new_logic`
@@ -156,6 +168,8 @@ Synchronize the DDD project specs with the current implementation state across a
      - Update the implementation to match the new spec while PRESERVING existing implementation patterns (stealth HTTP, encryption, error handling, etc.)
      - Run tests and fix until passing
      - Update mapping.yaml with new specHash and timestamp
+
+   **Validate written specs**: After all drift fixes are applied, verify each modified spec and implementation file is structurally valid (proper YAML, correct node types, no broken references). Fix any issues before reporting.
 
 9. **Report**:
     - Show a summary of what was synced across all pillars:

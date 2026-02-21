@@ -13,6 +13,14 @@ Parse `$ARGUMENTS` for:
 
 If no project path is provided, ask the user for it.
 
+**Files read:**
+- Project config files — `package.json`, `tsconfig.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, etc. (tech stack detection)
+- Environment files — `.env`, `.env.example` (config variables)
+- Infrastructure files — `Dockerfile`, `docker-compose.yml`, `Procfile` (services, ports)
+- Source code — route handlers, services, models, page components, middleware (spec generation)
+- DDD Usage Guide (fetched via `gh api`) — YAML formats, node types, spec fields reference
+- Existing specs (if `--merge` mode) — `ddd-project.json`, `specs/domains/*/domain.yaml`, `specs/domains/*/flows/*.yaml`, `specs/schemas/*.yaml`, `specs/ui/pages.yaml`, `specs/ui/*.yaml`, `specs/infrastructure.yaml`
+
 ## Strategy Selection
 
 Six strategies are available, each optimized for different codebase sizes. By default, auto-select based on source file count (excluding tests, configs, assets, node_modules, vendor, dist, build):
@@ -34,7 +42,9 @@ The user can override with `--strategy <name>`. If overriding, use the specified
 
 1. **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all YAML formats, node types, spec fields, connection patterns, UI spec format, infrastructure spec format, and conventions. It is your primary reference for creating correct specs.
 
-2. **Detect tech stack**: Read project configuration files to identify the stack:
+2. **Read project context**: Scan project files to understand the codebase:
+
+   **Tech stack** — read project configuration files:
    - `package.json` / `tsconfig.json` — Node.js/TypeScript, framework (Express, Fastify, NestJS, Next.js, Hono, etc.), dependencies
    - `Cargo.toml` — Rust, framework (Actix, Axum, Rocket, etc.)
    - `go.mod` — Go, framework (Gin, Echo, Fiber, Chi, etc.)
@@ -43,23 +53,26 @@ The user can override with `--strategy <name>`. If overriding, use the specified
    - `pom.xml` / `build.gradle` — Java/Kotlin, framework (Spring Boot, etc.)
    - Also detect: database (Postgres, MySQL, MongoDB, Redis, etc.), ORM (Prisma, TypeORM, Drizzle, SQLAlchemy, Django ORM, GORM, etc.), cache, queue (Bull, RabbitMQ, Kafka, SQS, etc.), auth method
 
-3. **Read environment and infrastructure**:
+   **Environment and infrastructure**:
    - `.env` / `.env.example` / `.env.sample` — environment variables
    - `Dockerfile` / `docker-compose.yml` / `docker-compose.yaml` — infrastructure, services, ports, dependencies
    - `Procfile` / `fly.toml` / `vercel.json` / `netlify.toml` — deployment config
    - `package.json` scripts — detect dev commands, startup scripts, setup commands
 
-4. **Handle monorepos**: If the project root contains `packages/`, `apps/`, or a `workspaces` field in package.json, ask the user which package/app to reverse-engineer.
+3. **Handle monorepos**: If the project root contains `packages/`, `apps/`, or a `workspaces` field in package.json, ask the user which package/app to reverse-engineer.
 
-5. **Count source files** (excluding tests, configs, assets, node_modules, vendor, dist, build) and auto-select strategy unless `--strategy` flag overrides. Show the user:
+4. **Count source files** (excluding tests, configs, assets, node_modules, vendor, dist, build) and auto-select strategy unless `--strategy` flag overrides. Show the user:
    ```
    Source files: 247
    Auto-selected strategy: Bottom-Up (override with --strategy <name>)
    ```
 
-6. **Handle existing specs** (if output directory already has DDD files):
+5. **Handle existing specs** (if output directory already has DDD files):
    - Without `--merge`: warn the user that specs will be overwritten, ask for confirmation
-   - With `--merge`: read existing specs, preserve them, only add new domains/flows/schemas that don't already exist. When modifying existing spec files in `--merge` mode, update `metadata.modified` to the current ISO timestamp on each changed file.
+   - With `--merge`:
+     - **Read project context**: Load `ddd-project.json` for domain list, `specs/domains/*/domain.yaml` for existing flows and events, `specs/domains/*/flows/*.yaml` for existing flow specs, `specs/schemas/*.yaml` for existing data models, `specs/ui/pages.yaml` for existing page registry, `specs/ui/*.yaml` for per-page specs, `specs/infrastructure.yaml` for existing services
+     - Preserve existing specs, only add new domains/flows/schemas/pages that don't already exist
+     - When modifying existing spec files, update `metadata.modified` to the current ISO timestamp on each changed file
 
 ---
 
@@ -127,7 +140,7 @@ For each entry point, read the handler and trace through called functions to bui
 - Response/return → `terminal` node (outcome, status, body)
 - Error handling → `terminal` on error paths
 
-Wire connections with proper sourceHandle values. Position nodes vertically (~130px spacing), error terminals to the right (x + 250).
+Wire connections with proper sourceHandle values. Position nodes vertically (~130px spacing), error terminals to the right (x + 250). When the data flowing between nodes is evident from the code (e.g., a function returns a user object that the next function consumes), add a `data` annotation on the connection (e.g., `data: "userId, email, role"`). Add `label` for human-readable edge descriptions when the connection purpose isn't obvious from the node names. Add `behavior` (`continue`/`stop`/`retry`/`circuit_break`) when the code has explicit error handling on the connection path.
 
 **B4. Extract frontend pages** (Interface pillar): Detect the frontend framework and scan for page components:
 - **Next.js (app router)**: Scan `app/` or `src/app/` for `page.tsx`/`page.jsx` files — each directory with a page file is a route
@@ -476,7 +489,7 @@ Proceed to Quality Checks and Coverage Verification.
 
 ---
 
-## Per-Pillar Checkpoints (all strategies)
+## Phase 1: Per-Pillar Checkpoints (all strategies)
 
 After generating each pillar's specs, output a progress line:
 - "Data complete: {N}/{N} schemas generated"
@@ -488,7 +501,7 @@ After generating each pillar's specs, output a progress line:
 
 ---
 
-## Quality Checks (all strategies)
+## Phase 2: Quality Checks (all strategies)
 
 Before writing final spec files, verify across all four pillars:
 
@@ -535,7 +548,7 @@ Before writing final spec files, verify across all four pillars:
 
 ---
 
-## Coverage Verification (all strategies)
+## Phase 3: Coverage Verification (all strategies)
 
 After generating specs, measure how much of the codebase is represented. Write coverage report to `.ddd/reverse/coverage.yaml` AND display to the user.
 
@@ -618,7 +631,7 @@ Action: run /ddd-reverse with --domains to add missing flows, or manually create
 
 ---
 
-## Output Format (all strategies)
+## Phase 4: Output (all strategies)
 
 ### File structure
 ```

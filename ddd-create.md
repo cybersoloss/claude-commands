@@ -7,6 +7,14 @@ Create a complete DDD (Design Driven Development) project from a software projec
 - `--from <path-or-url>` — Use a design file as reference input. Supports local files (images, PDFs, markdown, text, YAML) and URLs (Figma, Miro, web pages). The file contents inform domain structure, flows, UI screens, data models, and architecture decisions. Can be combined with a text description for additional context.
 - `--shortfalls` — After creating specs, generate a `specs/shortfalls.yaml` report documenting DDD framework limitations encountered during design. Use this flag when you want structured feedback about spec gaps for evolving the DDD methodology.
 
+**Files read:**
+- `ddd-project.json` — project config (if existing project)
+- `specs/architecture.yaml` — cross-cutting patterns, conventions (if existing project)
+- `specs/domains/*/domain.yaml` — event wiring patterns (if existing project)
+- `specs/ui/pages.yaml` — existing page structure (if existing project)
+- `.ddd/annotations/` — implementation wisdom (if existing project)
+- DDD Usage Guide (fetched via `gh api`) — YAML formats, node types, spec fields reference
+
 ## Instructions
 
 1. **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all YAML formats, node types, spec fields, connection patterns, UI spec format, infrastructure spec format, and conventions. It is your primary reference for creating correct specs.
@@ -19,6 +27,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Read `.ddd/annotations/` for accumulated implementation wisdom
      - When creating new flows, automatically apply cross-cutting patterns from `architecture.yaml` to matching nodes (e.g., stealth_http to external fetches, soft_delete to reads, encryption to credential writes)
      - Inform user: "Found existing project with N cross-cutting patterns. New flows will inherit: pattern1, pattern2, ..."
+     - **Preservation directive:** When adding new specs to an existing project, preserve all existing spec files — never overwrite or remove fields in existing specs unless the user explicitly requests it. Only add new domains, flows, schemas, pages, or infrastructure entries.
    - If greenfield project (no `ddd-project.json`): proceed as before, but generate a `cross_cutting_patterns: {}` placeholder section in `architecture.yaml`
 
 3. **Understand the project across all four pillars**: Read the user's description from `$ARGUMENTS`.
@@ -139,7 +148,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
              {flow-id}.yaml (one per flow)
    ```
 
-7. **Create `ddd-project.json`**: List all domains with name and description.
+7. **Create `ddd-project.json`**: List all domains with name, description, and optional `role` (entity/process/interface — used by DDD Tool for visual differentiation at L1).
 
 8. **Create system and shared spec files**:
    - `specs/system.yaml` — project identity, tech stack, environments. If the project has external API integrations, add an `integrations:` section with base_url, auth, rate_limits, retry, and timeout_ms per integration.
@@ -207,7 +216,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `state_management` — client-side state approach (e.g., "zustand", "redux", "context")
    - `component_library` — UI library (e.g., "shadcn/ui", "mui", "chakra", "custom")
    - `theme` — color scheme, primary color, font family, border radius
-   - `pages` — all pages with id, route, name, description, layout
+   - `pages` — all pages with id, route, name, description, layout, auth_required
    - `navigation` — navigation type (sidebar, topbar, tabs) with items referencing pages
    - `shared_components` — reusable components used across multiple pages
 
@@ -220,7 +229,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `actions` and `item_actions` for user interactions (navigate, call flow)
      - `empty_state` for when data is absent
    - `forms` — forms with:
-     - `fields` — each with `name`, `type` (text, number, select, multi-select, search-select, date, datetime, textarea, toggle, tag-input, file, color, slider), `label`, `placeholder`, `required`, `options`/`options_source`, validation
+     - `fields` — each with `name`, `type` (text, number, select, multi-select, search-select, date, datetime, textarea, toggle, tag-input, file, color, slider), `label`, `placeholder`, `required`, `default`, `options`/`options_source`, `validation`, `visible_when`
      - `submit` — backend flow to call, button label, success message, redirect
    - `state` — client-side store reference, initial API calls on page load, realtime subscription
    - `loading` — loading state style (skeleton, spinner, blur)
@@ -228,11 +237,11 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `refresh` — data refresh strategy (pull-to-refresh, auto-30s, manual, none)
 
    **Per-component-type field specs** — when designing sections, use the correct component type and its required fields:
-   - `stat-card` — `value` ($.field or expression), `label`, `trend` (up/down/neutral), `icon`, optional `comparison_period`
+   - `stat-card` — `value` ($.field), `subtitle`, `urgency` (with `field`, `rules` array of `{threshold, level, color}`), `actions` (e.g., `click: {navigate: /path}`)
    - `item-list` — `data_source`, `item_template` with `title`/`subtitle`/`badge`/`timestamp`, `item_actions`, `empty_state`, optional `pagination` or `virtual_scroll`
    - `card-grid` — `data_source`, `columns` (responsive: desktop/tablet/mobile), `item_template` with `image`/`title`/`description`/`footer`, `item_actions`, `empty_state`
    - `detail-card` — `data_source`, `fields` mapping with `$.field` syntax, `actions` (edit, delete, archive), optional `tabs` for multi-section details
-   - `button-group` — `buttons` array with `label`, `action` (navigate or call flow), `variant` (primary/secondary/danger), optional `icon`
+   - `button-group` — `buttons` array with `label`, `flow` (backend flow reference), optional `args`, `variant` (primary/secondary/danger), `icon`, `visible_when`, `confirm`/`confirm_message`
    - `page-header` — `title`, optional `subtitle`, `breadcrumbs`, `actions` (button-group for page-level actions)
    - `status-bar` — `items` array with `label`, `value` ($.field), `color_when` conditions
    - Shared component ID — reference a component from `pages.yaml` → `shared_components` by its ID
@@ -279,7 +288,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `services` — each service with:
      - `id` — unique service identifier (e.g., "backend", "database", "cache")
      - `type` — server, datastore, worker, or proxy
-     - `runtime` or `engine` — e.g., "node", "postgresql", "redis"
+     - `runtime` — runtime for servers (e.g., "Node.js 20") or `engine` — engine for datastores (e.g., "PostgreSQL 16", "Redis 7")
      - `entry` — entry point file or image (e.g., "src/server/index.ts", "postgres:16")
      - `port` — the port this service listens on
      - `health` — health check endpoint or command (e.g., "/health", "pg_isready")
@@ -312,14 +321,14 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `owns_schemas` — list of schema names this domain owns (e.g., ["User", "Session"])
    - `flows` array — each entry: `id`, `name`, `description`, `type` (traditional or agent). Optional fields: `tags` (e.g., ["cron", "internal", "public-api"]), `criticality` (critical/high/normal/low), `throughput` (e.g., "~500 items/day")
    - `groups` — visual grouping of flows at L2 (array of `{id, name, flows}`) — optional, for organizing large domains
-   - `stores` array (optional) — declare in-memory state stores with `name`, `shape`, `selectors`, `access_pattern` (e.g., Zustand/Redux stores). Referenced by `data_store` nodes with `store_type: memory`.
+   - `stores` array (optional) — declare in-memory state stores with `name`, `shape`, `initial_state`, `selectors`, `access_pattern` (e.g., Zustand/Redux stores). Referenced by `data_store` nodes with `store_type: memory`.
    - `on_error` (optional) — domain-level error hook with `emit_event` name. `/ddd-implement` adds this to all error terminals.
    - `publishes_events` and `consumes_events` (cross-domain event wiring). Include `payload` field in events to document event data shape
    - `event_groups` (optional) — named collections of events for use in multi-event triggers. Define `name`, `description`, and `events` array. Referenced as `event_group:{name}` in trigger `event` fields.
    - `layout` with flow positions (space flows vertically with ~200px gaps)
 
 13. **Create flow YAML files**: For each flow, create `specs/domains/{domain-id}/flows/{flow-id}.yaml` with:
-   - `flow` metadata (id, name, type, domain, description). Optionally add `emits: string[]` and `listens_to: string[]` to summarize the flow's event surface. For flows triggered by keyboard shortcuts, add `keyboard_shortcut` (e.g., `"Cmd+K"`). For reusable parameterized flows, add `template: true` and `parameters` (array of `{name, type, default?, required?}`) — callers pass args via `sub_flow` node's `args`.
+   - `flow` metadata (id, name, type, domain, description). Optionally add `emits: string[]` and `listens_to: string[]` to summarize the flow's event surface. For flows triggered by keyboard shortcuts, add `keyboard_shortcut` (e.g., `"Cmd+K"`). For reusable parameterized flows, add `template: true` and `parameters` (Record<string, FlowParameter> where FlowParameter has `type` and optional `values`) — callers pass parameters via `sub_flow` node's `input_mapping`.
    - `trigger` node with `spec.event` set to one of these conventions:
      - `HTTP {METHOD} {path}` for API endpoints
      - `cron {expression}` for scheduled jobs. Add `job_config` to the trigger spec with queue, concurrency, timeout, and retry settings
@@ -335,7 +344,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `ws {path}` for WebSocket endpoints (e.g., `ws /api/live`)
      - `pattern:{EventName}` for event pattern triggers that aggregate multiple events
      - The label can match the event value or be more descriptive
-     - Optional advanced fields: `filter` (CEL expression to filter incoming events), `debounce_ms` (debounce rapid-fire triggers)
+     - Optional advanced fields: `filter` (Record — event payload filter, supports dot notation and operators, e.g., `{platform: twitter}` or `{"payload.amount": {gte: 100}}`), `debounce_ms` (debounce rapid-fire triggers)
    - For flows called as sub-flows, add a `contract` section to the flow metadata with `inputs` and `outputs`
    - `nodes` array — design the complete node graph:
      - Always start with `input` node after trigger for API flows (validate incoming data)
@@ -344,7 +353,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Use `service_call` for external API calls (set `method`, `url`, `error_mapping`). Optional: `integration` (reference to `system.yaml` integration ID), `request_config` (headers, timeout, auth override)
      - Use `ipc_call` for local IPC or native function calls — Tauri commands, Electron IPC, React Native bridge (set `command`, `args`, `return_type`, optionally `bridge`, `timeout_ms`, and `result_condition` for conditional success/error routing)
      - Use `event` nodes to publish/consume domain events (set `direction` to `'emit'` or `'consume'`, `event_name`, and `payload`). Optional advanced fields: `payload_source` (expression for dynamic payload), `target_queue`, `priority`, `delay_ms` (delayed emit), `dedup_key`
-     - Use `loop` for iteration (set `over`, `as`; optional: `accumulate` for collecting results, `body_start` to specify first node in loop body), `parallel` for concurrent operations (optional: conditional `branches` with `condition` per branch)
+     - Use `loop` for iteration (set `collection`, `iterator`; optional: `accumulate` for collecting results, `body_start` to specify first node in loop body, `on_error` for per-iteration error handling), `parallel` for concurrent operations (optional: conditional `branches` with `condition` per branch)
      - Use `collection` for in-memory data transformations (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten)
      - Use `parse` for structured extraction from raw formats (rss, atom, html, xml, json, csv, markdown)
      - Use `crypto` for encrypt/decrypt/hash/sign/verify operations
@@ -357,12 +366,12 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Use `llm_call` for single LLM invocations — specify `model`, `prompt`, `temperature`, `max_tokens`, and optionally `structured_output` for typed responses, `context_sources` (array of data references to inject into prompt context)
      - Use `agent_loop` for autonomous agent iterations — specify `tools` (array with at least one `is_terminal: true`), `max_iterations`, `model`
      - Use `guardrail` for input/output validation in agent flows — specify `checks` array, inline and sequential
-     - Use `human_gate` for async human approval in agent flows — specify `prompt`, `timeout`, `actions`
+     - Use `human_gate` for async human approval in agent flows — specify `notification_channels`, `approval_options` (array of `{id, label, description?, requires_input?}`), `timeout` ({duration?, action?: escalate/auto_approve/auto_reject}), `context_for_human`
      - Use `orchestrator` for multi-step agent task decomposition — specify `strategy`, `model`, `agents`
-     - Use `smart_router` for intelligent 3+ way routing (works in both traditional and agent flows) — specify `routes` array with conditions
-     - Use `handoff` for agent-to-agent control transfer — specify `target_agent`, `context`
-     - Use `agent_group` for multi-agent collaboration — specify `agents`, `strategy` (round_robin/consensus/debate)
-     - Use `process` nodes for custom logic steps — set `category` (validation/mapping/computation/formatting/aggregation/io/side_effect) to classify, `inputs`/`outputs` arrays to document data shape
+     - Use `smart_router` for intelligent 3+ way routing (works in both traditional and agent flows) — specify `rules` array with `id`, `condition`, `route`, optional `priority`; optional `llm_routing`, `fallback_chain`, `policies`
+     - Use `handoff` for agent-to-agent control transfer — specify `mode` (transfer/consult/collaborate), `target` ({flow?, domain?}), `context_transfer` ({include_types?, max_context_tokens?}), `on_complete`, `on_failure`, `notify_customer`
+     - Use `agent_group` for multi-agent collaboration — specify `name`, `description`, `members` (array of `{flow, domain?}`), `shared_memory`, `coordination` ({communication?, max_active_agents?, selection_strategy?, sticky_session?})
+     - Use `process` nodes for custom logic steps — set `category` (security/transform/integration/business_logic/infrastructure) to classify, `inputs`/`outputs` arrays to document data shape
      > **Note:** For exhaustive node spec field documentation, refer to the fetched DDD Usage Guide Section 6. The fields listed above cover the most commonly needed options.
      - End every path with a `terminal` node (set `outcome`, `status`, `body`; optional: `response_type` for streaming/SSE/file responses, `headers` for custom HTTP response headers)
    - Wire all connections with proper `sourceHandle` values:
@@ -387,7 +396,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
    - Connections support optional fields: `behavior` for error handling (`continue`/`stop`/`retry`/`circuit_break`), `data` for annotating what data flows between nodes (e.g., `data: "userId, email"`), and `label` for human-readable edge labels on the canvas.
    - Position nodes vertically with ~130px spacing, branch error terminals to the right
-   - `metadata` with created and modified timestamps (current ISO)
+   - `metadata` with created and modified timestamps (current ISO). **For existing projects:** when modifying any existing spec file (schema, UI page, infrastructure, domain), also update its `metadata.modified` to the current ISO timestamp.
    - **Shortfall tracking** (if `--shortfalls` flag is present): As you design each flow, mentally track every time you:
      - Use a `process` node with a free-text description because no structured node type fits the operation
      - Need a node type that doesn't exist (not an inadequate existing node — an entirely missing concept)

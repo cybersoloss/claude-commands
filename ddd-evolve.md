@@ -1,6 +1,6 @@
 # DDD Evolve
 
-Analyze DDD shortfall reports from one or more projects, critically evaluate each gap, separate real framework limitations from vague improvements, and produce a prioritized recommendation plan for human decision-making. This command does NOT automatically apply changes — it advises. Operates at the meta-framework level across all pillars (Logic, Data, Interface, Infrastructure). **Lifecycle phase: Meta.**
+Analyze DDD shortfall reports, critically evaluate each gap, and produce `ddd-evolution-plan.yaml` with prioritized recommendations; `--review` collects human approve/defer/reject decisions, `--apply` executes approved changes to framework files (DDD-USAGE-GUIDE.md, commands, DDD Tool source). **Lifecycle phase: Meta.**
 
 ## Usage
 
@@ -27,16 +27,16 @@ Analyze DDD shortfall reports from one or more projects, critically evaluate eac
 
 **Flow:** analyze → `--review` → `--apply` (each step requires the previous)
 
+**Files read:**
+- `DDD-USAGE-GUIDE.md` (fetched via `gh api`) — canonical spec format reference for evaluating shortfalls
+- `specs/shortfalls.yaml` (from arguments or `--dir`) — gap reports to analyze
+- `ddd-evolution-plan.yaml` (for `--review` and `--apply` modes) — the recommendation plan
+
 ## Instructions
 
 ### Default mode: Analyze shortfalls
 
 1. **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version — the reference for all YAML formats, node types, spec fields, connection patterns, UI spec format, infrastructure spec format, and conventions. You need this to evaluate whether shortfalls are genuine gaps or already addressable within the current spec.
-
-   **Files read by this command:**
-   - `DDD-USAGE-GUIDE.md` (fetched above) — canonical spec format reference
-   - `specs/shortfalls.yaml` (from arguments or `--dir`) — gap reports to analyze
-   - `ddd-evolution-plan.yaml` (for `--review` and `--apply` modes) — the recommendation plan
 
 2. **Resolve shortfall file paths**: Collect all shortfall files from `$ARGUMENTS`:
    - **Direct paths** — use as-is (e.g., `~/code/proj-a/specs/shortfalls.yaml`)
@@ -314,6 +314,9 @@ When `$ARGUMENTS` contains `--apply` and a path to an evolution plan:
 2. **Collect approved items**: Find all items where `decision: approve`. If none, inform the user and exit.
 
 3. **Show the human what will change** before doing anything:
+
+   **WARNING:** `--apply` directly modifies framework files (DDD-USAGE-GUIDE.md, command definitions, DDD Tool source). These changes affect all future DDD projects. Review each change carefully.
+
    ```
    Approved items to apply:
 
@@ -338,8 +341,15 @@ When `$ARGUMENTS` contains `--apply` and a path to an evolution plan:
    - **tool changes** → edit source files in the ddd-tool repo (`src/`)
    - **validator changes** → edit `src/utils/flow-validator.ts` in the ddd-tool repo
 
+   **Validate applied changes**: After modifying framework files, verify each edited file is valid (YAML lint for spec files, markdown structure for commands, TypeScript compilation for tool/validator). Fix any issues before finalizing.
+
 6. After all changes:
    - Update `meta.status: applied` and `applied_at: {ISO timestamp}` in the plan file
    - Show what was modified and suggest committing
+
+7. **Next steps**: After applying changes, suggest:
+    - "Commit the changes to DDD and claude-commands repos with `git push-all`"
+    - "Run `/ddd-create --shortfalls` on a new project to verify the applied improvements"
+    - "Update any existing projects' specs to use the new features with `/ddd-update` or `/ddd-sync --discover`"
 
 $ARGUMENTS

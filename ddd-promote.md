@@ -1,6 +1,6 @@
 # DDD Promote
 
-Move approved annotations into permanent specs across all four pillars (Logic, Data, Interface, Infrastructure). This is how implementation wisdom — captured by `/ddd-reflect` — becomes part of the design. Promoted patterns are written to `architecture.yaml`, flow specs, UI page specs, schema specs, infrastructure specs, or shared spec files. **Lifecycle phase: Reflect.**
+Move approved annotations from `.ddd/annotations/` into permanent spec files (`architecture.yaml`, flow specs, page specs, schema specs, infrastructure specs) across all four pillars (Logic, Data, Interface, Infrastructure). **Lifecycle phase: Reflect.**
 
 ## Scope Resolution
 
@@ -35,6 +35,7 @@ Parse `$ARGUMENTS` to determine scope:
    - `specs/ui/pages.yaml` — page registry (if exists)
    - `specs/ui/{page-id}.yaml` — per-page specs (promotion targets for page details)
    - `.ddd/annotations/` — all annotation files (including `annotations/ui/` for page annotations)
+   - **Fetch the DDD Usage Guide** (if promoting cross-cutting patterns or enriching node specs): Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` — reference for valid spec fields when enriching nodes with security, observability, or implementation details
 
 3. **Load all annotations**: Read every `.yaml` file in `.ddd/annotations/` (recursively by domain subdirectories). Group annotations by status:
    - `candidate` — awaiting review
@@ -100,6 +101,8 @@ Parse `$ARGUMENTS` to determine scope:
    - Read `.ddd/annotations/infrastructure.yaml`
    - If `--review` is also present (or no other flag), enter interactive review for infrastructure
    - If `--all` is also present, promote all approved infrastructure annotations
+
+   **WARNING:** Promotion writes patterns directly into spec files. While it only adds (never removes) content, promoted changes cannot be automatically reverted. Review each annotation carefully during `--review` before approving.
 
 5. **Create promotion plan**: Before promoting anything, enumerate all approved annotations per pillar and output the plan as a table:
 
@@ -282,7 +285,7 @@ Parse `$ARGUMENTS` to determine scope:
 
 3. **Cross-cutting threshold**: If the same pattern type appears in annotations for 2+ flows across different domains, strongly recommend promoting it as a cross-cutting pattern in `architecture.yaml` rather than as flow-specific details. Similarly, if the same UI pattern appears in annotations for 2+ pages, recommend promoting it as a `shared_component` in `pages.yaml`.
 
-4. **Update metadata**: When modifying a flow spec, update `metadata.modified` to the current ISO timestamp.
+4. **Update metadata**: When modifying any spec file (flow, page, schema, or infrastructure), update `metadata.modified` to the current ISO timestamp.
 
 5. **Validate after promotion**: After writing changes, verify:
    - The flow spec YAML is still valid (proper structure, no broken references)

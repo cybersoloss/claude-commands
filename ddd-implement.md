@@ -334,7 +334,11 @@ Parse the argument to determine scope:
        files:
          - src/path/to/file1.ts
          - src/path/to/file2.ts
+       fileHashes:
+         src/path/to/file1.ts: (sha256)
+         src/path/to/file2.ts: (sha256)
        syncState: in_sync
+       annotationCount: 0
 
    pages:
      page-id:
@@ -345,7 +349,11 @@ Parse the argument to determine scope:
        files:
          - src/app/page-id/page.tsx
          - src/components/page-id/section-name.tsx
+       fileHashes:
+         src/app/page-id/page.tsx: (sha256)
+         src/components/page-id/section-name.tsx: (sha256)
        syncState: in_sync
+       annotationCount: 0
    ```
 
 15. **Summary**: After all implementations are done, show a summary table:

@@ -116,6 +116,7 @@ Parse the argument to determine what to update:
    - Add/modify seed data
    - Add/modify transitions (state machine)
    - Add/modify relationships
+   - Change `inherits` (base model inheritance, e.g., `inherits: _base`)
 
    **Infrastructure scope:**
 
@@ -201,6 +202,11 @@ Parse the argument to determine what to update:
        + Added section: search-bar (filter-bar) at position top
        ~ Modified section: item-list query (added search parameter)
 
+     specs/schemas/user.yaml
+       + Added field: tags (string[], optional)
+       + Added index: idx_user_tags (GIN on tags)
+       ~ Updated metadata.modified
+
      specs/infrastructure.yaml
        + Added service: cache (Redis 7, port 6379)
        ~ Updated backend depends_on (added cache)
@@ -223,6 +229,7 @@ Parse the argument to determine what to update:
     - For infrastructure changes: "Run `/ddd-scaffold` to regenerate infrastructure scripts"
     - For schema changes: "Run `/ddd-scaffold` to update database schema, then `/ddd-implement` for affected flows"
     - If cross-domain changes were made, list which other flows may need re-implementation
+    - After re-implementation: "Run `/ddd-test {scope}` to verify the updated code passes tests"
 
 ## Node Type Reference
 
