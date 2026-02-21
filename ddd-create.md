@@ -1,6 +1,6 @@
 # DDD Create
 
-Create a complete DDD (Design Driven Development) project from a software project description. Generates all YAML spec files covering the four foundational pillars — **Logic** (backend flows), **Data** (schemas with indexes and seed), **Interface** (UI page specs), and **Infrastructure** (services, ports, startup) — that the DDD Tool can visualize and `/ddd-implement` can turn into code.
+Create a complete DDD (Design Driven Development) project from a software project description. Generates all YAML spec files covering the four foundational pillars — **Logic** (backend flows), **Data** (schemas with indexes and seed), **Interface** (UI page specs), and **Infrastructure** (services, ports, startup) — that the DDD Tool can visualize and `/ddd-implement` can turn into code. **Lifecycle phase: Create.**
 
 ## Options
 

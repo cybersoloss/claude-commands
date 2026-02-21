@@ -19,9 +19,20 @@ Set up the project skeleton and shared infrastructure from DDD specs before impl
    - `specs/ui/pages.yaml` — page registry, navigation, theme, component library (if exists)
    - `specs/ui/*.yaml` — per-page specs (if exist)
 
-3. **Check for existing scaffold**: If the project already has a `package.json` (or equivalent for the tech stack), `tsconfig.json`, and a `src/` directory with middleware/config files, tell the user the project appears already scaffolded. Show what exists and ask if they want to re-scaffold (overwrite) or skip.
+3. **Create scaffold plan**: Before generating anything, enumerate every item to scaffold across all four pillars. Present this table:
 
-4. **Initialize the project** based on `specs/system.yaml` tech stack:
+   | Pillar | Items | Count |
+   |--------|-------|-------|
+   | Logic | Backend skeleton files: entry point, config loader, error handler, shared types, middleware, integration clients, event infrastructure, test setup, cross-cutting utilities | {N} |
+   | Interface | Pages, layout components, shared components, theme config, API client, state management stores | {N} |
+   | Data | Schema/model files, migration files, seed files (migration/fixture/script), index definitions | {N} |
+   | Infrastructure | Docker files, startup scripts, port documentation, service configs | {N} |
+
+   This plan is your commitment — every item listed must be scaffolded.
+
+4. **Check for existing scaffold**: If the project already has a `package.json` (or equivalent for the tech stack), `tsconfig.json`, and a `src/` directory with middleware/config files, tell the user the project appears already scaffolded. Show what exists and ask if they want to re-scaffold (overwrite) or skip.
+
+5. **Initialize the project** based on `specs/system.yaml` tech stack:
 
    **Package setup:**
    - Create `package.json` (or equivalent) with project name, version, scripts (dev, build, start, test, lint)
@@ -34,23 +45,11 @@ Set up the project skeleton and shared infrastructure from DDD specs before impl
    - Create all directories (e.g., `src/routes/`, `src/services/`, `src/repositories/`, `src/middleware/`, `src/utils/`, `src/types/`)
    - Follow the naming conventions from architecture spec
 
-5. **Backend scaffold** — generate shared infrastructure:
+   **Concept disambiguation:** When a concept appears in multiple pillars (e.g., "Dashboard" as both a backend domain module and a frontend page), both representations MUST be scaffolded. Do not assume one covers the other.
 
-   **Config loader** from `specs/config.yaml`:
-   - Config file that reads environment variables
-   - Validation for required variables (fail-fast on missing)
-   - Type-safe config object
+6. **Data scaffold** from `specs/schemas/`:
 
-   **Error handling** from `specs/shared/errors.yaml`:
-   - Error class/factory with code, message, HTTP status
-   - Error handler middleware (catches errors, formats responses)
-   - All error codes from the errors spec
-
-   **Shared types** from `specs/shared/types.yaml` (if exists):
-   - Enum definitions
-   - Value object types
-
-   **Database setup** from `specs/schemas/`:
+   **Database setup:**
    - ORM schema/models from all schema YAML files (e.g., Prisma schema, TypeORM entities, Drizzle schema)
    - Base model fields from `_base.yaml` applied to all models
    - Relationships and constraints from schema specs
@@ -63,33 +62,13 @@ Set up the project skeleton and shared infrastructure from DDD specs before impl
    - For `strategy: fixture` seeds — generate test fixture/factory files with the seed data for use in tests
    - For `strategy: script` seeds — generate a documented placeholder script with the source reference and count estimate
 
-   **App entry point:**
-   - Main application file (e.g., `src/app.ts`, `src/index.ts`)
-   - Server setup with middleware stack (CORS, body parsing, auth, rate limiting, error handler)
-   - Route registration placeholder (empty, will be filled by `/ddd-implement`)
-   - Graceful shutdown handler
+   **Checkpoint:** Output "Data scaffold complete: {N}/{N} models created, {N}/{N} seed files created" (with actual counts matching the plan).
 
-   **Integration clients** from `specs/system.yaml` → `integrations` (if exists):
-   - HTTP client wrapper per integration with base URL, auth, retry, rate limiting
-   - Typed client interface
+   **GATE:** Compare actual file count to plan. If any planned item is missing, STOP and create it now before proceeding.
 
-   **Event infrastructure** (if any domain has `publishes_events` or `consumes_events`):
-   - Event bus setup (in-memory for dev, or queue-based per architecture spec)
-   - Event type definitions from domain event specs
+7. **Interface scaffold** from `specs/ui/` (if exists):
 
-   **Testing setup:**
-   - Test configuration file (jest.config.ts, vitest.config.ts, etc.)
-   - Test utilities (factory functions for models, mock helpers)
-   - Example test to verify setup works
-
-   **Cross-cutting utilities** from `specs/architecture.yaml` → `cross_cutting_patterns` (if exists):
-   - For each pattern that has a `utility` field:
-     - Generate the utility file at the specified path (e.g., `src/utils/stealth-http.ts`)
-     - Use the pattern's `config`, and `convention` to shape the utility implementation
-     - Add exports to a barrel file if the project uses one
-   - If no `cross_cutting_patterns` section exists, skip this step
-
-6. **Frontend scaffold** from `specs/ui/` (if exists):
+   **Interface is the most commonly skipped pillar.** If the plan includes ANY pages, all page files, shared components, theme, and API client MUST be scaffolded. Zero tolerance for missing frontend scaffold.
 
    **Page structure** from `specs/ui/pages.yaml`:
    - Create page files/directories matching the framework convention:
@@ -119,7 +98,11 @@ Set up the project skeleton and shared infrastructure from DDD specs before impl
    - Set up the state management library (e.g., zustand store creator, Redux store, Context providers)
    - Create store files for each domain that has `stores` in its `domain.yaml`
 
-7. **Infrastructure scaffold** from `specs/infrastructure.yaml` (if exists):
+   **Checkpoint:** Output "Interface scaffold complete: {N}/{N} page files created, {N}/{N} shared components created" (with actual counts matching the plan).
+
+   **GATE:** Compare actual file count to plan. If any planned item is missing, STOP and create it now before proceeding.
+
+8. **Infrastructure scaffold** from `specs/infrastructure.yaml` (if exists):
 
    **Startup scripts:**
    - Add `dev` scripts to `package.json` for each service's `dev_command`
@@ -133,34 +116,83 @@ Set up the project skeleton and shared infrastructure from DDD specs before impl
    **Port documentation:**
    - Comment in the entry point or README noting which service runs on which port
 
-8. **Create environment files:**
-   - `.env.example` from `specs/config.yaml` (all variables with placeholder values)
-   - `.env` with development defaults (if safe — no real secrets)
-   - `.gitignore` (node_modules, dist, .env, .ddd/autosave, etc.)
+   **Checkpoint:** Output "Infrastructure scaffold complete: {N}/{N} service configs created" (with actual counts matching the plan).
 
-9. **Verify the scaffold:**
-   - Run the build command — should compile without errors
-   - Run the test command — example test should pass
-   - If either fails, fix and retry
+   **GATE:** Compare actual file count to plan. If any planned item is missing, STOP and create it now before proceeding.
 
-10. **Initialize `.ddd/` tracking:**
-   - Create `.ddd/mapping.yaml` with empty `flows:` and `pages:` sections (populated by `/ddd-implement`)
-   - Create `.ddd/annotations/` directory with `.gitkeep` (populated by `/ddd-reflect`)
+9. **Logic scaffold** — generate shared backend infrastructure:
 
-11. **Summary**: After scaffolding, show:
+   **Config loader** from `specs/config.yaml`:
+   - Config file that reads environment variables
+   - Validation for required variables (fail-fast on missing)
+   - Type-safe config object
+
+   **Error handling** from `specs/shared/errors.yaml`:
+   - Error class/factory with code, message, HTTP status
+   - Error handler middleware (catches errors, formats responses)
+   - All error codes from the errors spec
+
+   **Shared types** from `specs/shared/types.yaml` (if exists):
+   - Enum definitions
+   - Value object types
+
+   **App entry point:**
+   - Main application file (e.g., `src/app.ts`, `src/index.ts`)
+   - Server setup with middleware stack (CORS, body parsing, auth, rate limiting, error handler)
+   - Route registration placeholder (empty, will be filled by `/ddd-implement`)
+   - Graceful shutdown handler
+
+   **Integration clients** from `specs/system.yaml` → `integrations` (if exists):
+   - HTTP client wrapper per integration with base URL, auth, retry, rate limiting
+   - Typed client interface
+
+   **Event infrastructure** (if any domain has `publishes_events` or `consumes_events`):
+   - Event bus setup (in-memory for dev, or queue-based per architecture spec)
+   - Event type definitions from domain event specs
+
+   **Testing setup:**
+   - Test configuration file (jest.config.ts, vitest.config.ts, etc.)
+   - Test utilities (factory functions for models, mock helpers)
+   - Example test to verify setup works
+
+   **Cross-cutting utilities** from `specs/architecture.yaml` → `cross_cutting_patterns` (if exists):
+   - For each pattern that has a `utility` field:
+     - Generate the utility file at the specified path (e.g., `src/utils/stealth-http.ts`)
+     - Use the pattern's `config`, and `convention` to shape the utility implementation
+     - Add exports to a barrel file if the project uses one
+   - If no `cross_cutting_patterns` section exists, skip this step
+
+   **Checkpoint:** Output "Logic scaffold complete: {N}/{N} backend files created" (with actual counts matching the plan).
+
+   **GATE:** Compare actual file count to plan. If any planned item is missing, STOP and create it now before proceeding.
+
+10. **Create environment files:**
+    - `.env.example` from `specs/config.yaml` (all variables with placeholder values)
+    - `.env` with development defaults (if safe — no real secrets)
+    - `.gitignore` (node_modules, dist, .env, .ddd/autosave, etc.)
+
+11. **Verify the scaffold:**
+    - Run the build command — should compile without errors
+    - Run the test command — example test should pass
+    - If either fails, fix and retry
+
+12. **Initialize `.ddd/` tracking:**
+    - Create `.ddd/mapping.yaml` with empty `flows:` and `pages:` sections (populated by `/ddd-implement`)
+    - Create `.ddd/annotations/` directory with `.gitkeep` (populated by `/ddd-reflect`)
+
+13. **Summary**: After scaffolding, show:
     ```
     Scaffolded: {project-name}
     Tech stack: {language} / {framework} / {database}
 
-    Backend:
+    Logic: ({N} files)
       src/app.ts                (entry point + middleware)
       src/config/index.ts       (env config loader)
       src/errors/index.ts       (error codes + handler)
       src/types/shared.ts       (shared enums)
-      src/db/schema.prisma      (database schema)
       src/middleware/            (auth, rate-limit, error-handler)
 
-    Frontend:
+    Interface: ({N} files)
       src/app/page.tsx          (dashboard page)
       src/app/inbox/page.tsx    (inbox page)
       src/app/settings/page.tsx (settings page)
@@ -176,6 +208,8 @@ Set up the project skeleton and shared infrastructure from DDD specs before impl
     Infrastructure:
       docker-compose.yaml       (4 services)
       package.json scripts      (dev, dev:all, db:setup)
+
+    Pillar balance: Logic {N} files, Interface {N} files, Data {N} models + {N} seeds, Infrastructure {N} services
 
     Error codes: 8 defined
     Integrations: stripe, sendgrid (2 clients)

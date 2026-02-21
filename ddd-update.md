@@ -1,6 +1,6 @@
 # DDD Update
 
-Update DDD project specs (YAML files) to reflect design changes requested during development. Works across all four pillars — Logic (flows), Data (schemas), Interface (UI pages), and Infrastructure. This is the reverse of `/ddd-implement` — instead of generating code from specs, you update specs to match new requirements, then optionally re-implement.
+Update DDD project specs (YAML files) to reflect design changes requested during development. Works across all four pillars — Logic (flows), Data (schemas), Interface (UI pages), and Infrastructure. This is the reverse of `/ddd-implement` — instead of generating code from specs, you update specs to match new requirements, then optionally re-implement. **Lifecycle phase: Any (cross-cutting).**
 
 ## Scope Resolution
 

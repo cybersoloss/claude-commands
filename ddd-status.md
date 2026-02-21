@@ -1,6 +1,6 @@
 # DDD Status
 
-Show a quick read-only overview of the DDD project's implementation state across all four pillars (Logic, Data, Interface, Infrastructure). No files are modified — this is purely informational.
+Show a quick read-only overview of the DDD project's implementation state across all four pillars (Logic, Data, Interface, Infrastructure). No files are modified — this is purely informational. **Lifecycle phase: Any (cross-cutting).**
 
 ## Instructions
 

@@ -1,6 +1,6 @@
 # DDD Evolve
 
-Analyze DDD shortfall reports from one or more projects, critically evaluate each gap, separate real framework limitations from vague improvements, and produce a prioritized recommendation plan for human decision-making. This command does NOT automatically apply changes — it advises.
+Analyze DDD shortfall reports from one or more projects, critically evaluate each gap, separate real framework limitations from vague improvements, and produce a prioritized recommendation plan for human decision-making. This command does NOT automatically apply changes — it advises. Operates at the meta-framework level across all pillars (Logic, Data, Interface, Infrastructure). **Lifecycle phase: Meta.**
 
 ## Usage
 
@@ -31,7 +31,12 @@ Analyze DDD shortfall reports from one or more projects, critically evaluate eac
 
 ### Default mode: Analyze shortfalls
 
-1. **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. You need this to evaluate whether shortfalls are genuine gaps or already addressable within the current spec.
+1. **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version — the reference for all YAML formats, node types, spec fields, connection patterns, UI spec format, infrastructure spec format, and conventions. You need this to evaluate whether shortfalls are genuine gaps or already addressable within the current spec.
+
+   **Files read by this command:**
+   - `DDD-USAGE-GUIDE.md` (fetched above) — canonical spec format reference
+   - `specs/shortfalls.yaml` (from arguments or `--dir`) — gap reports to analyze
+   - `ddd-evolution-plan.yaml` (for `--review` and `--apply` modes) — the recommendation plan
 
 2. **Resolve shortfall file paths**: Collect all shortfall files from `$ARGUMENTS`:
    - **Direct paths** — use as-is (e.g., `~/code/proj-a/specs/shortfalls.yaml`)

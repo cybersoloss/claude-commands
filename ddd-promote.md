@@ -1,6 +1,6 @@
 # DDD Promote
 
-Move approved annotations into permanent specs across all four pillars (Logic, Data, Interface, Infrastructure). This is how implementation wisdom — captured by `/ddd-reflect` — becomes part of the design. Promoted patterns are written to `architecture.yaml`, flow specs, UI page specs, schema specs, infrastructure specs, or shared spec files.
+Move approved annotations into permanent specs across all four pillars (Logic, Data, Interface, Infrastructure). This is how implementation wisdom — captured by `/ddd-reflect` — becomes part of the design. Promoted patterns are written to `architecture.yaml`, flow specs, UI page specs, schema specs, infrastructure specs, or shared spec files. **Lifecycle phase: Reflect.**
 
 ## Scope Resolution
 
@@ -98,7 +98,74 @@ Parse `$ARGUMENTS` to determine scope:
    - If `--review` is also present (or no other flag), enter interactive review for infrastructure
    - If `--all` is also present, promote all approved infrastructure annotations
 
-5. **Promote approved annotations**: For each annotation with status `approved`:
+5. **Create promotion plan**: Before promoting anything, enumerate all approved annotations per pillar and output the plan as a table:
+
+   | Pillar | Annotations | Count |
+   |--------|-------------|-------|
+   | Data (schemas) | user: index_optimization, seed_data; content: constraint | 3 |
+   | Interface (pages) | dashboard: data_fetching, accessibility; inbox: component_composition | 3 |
+   | Infrastructure | docker_config, startup_orchestration | 2 |
+   | Logic (flows) | monitoring/check-social-sources: stealth_http, soft_delete; discovery/search-web: api_key_resolution | 3 |
+
+   This plan is your commitment — every approved annotation must be promoted.
+
+   **Promotion order:** Promote lighter pillars first: Data → Interface → Infrastructure → Logic. Logic patterns are most complex and go last.
+
+   **Concept disambiguation:** When a pattern applies across pillars, promote it to each pillar separately.
+
+   **Interface is the most commonly skipped pillar.** If the plan includes ANY page pattern promotions, all must be completed.
+
+6. **Promote Data (schema) annotations**: For each approved schema annotation:
+
+   Read the schema spec YAML (`specs/schemas/{model}.yaml`). Enrich the appropriate section(s):
+   - If the detail is about an index → add to the schema's `indexes` section
+   - If the detail is about a constraint → add to the relevant field's `constraints` or add a top-level `constraints` section
+   - If the detail is about seed data → add/update the schema's `seed` section
+   - If the detail is about state transitions → add/update the schema's `transitions` section
+   - If the detail is about a migration pattern → add to the schema's description or a `notes` field
+   - Preserve all existing schema fields — only add, never remove
+
+   **Checkpoint:** Output "Data promotions complete: {N}/{N} schema patterns promoted."
+
+   **GATE:** Compare actual promotions to plan. If any planned promotion was skipped, STOP and apply it now.
+
+7. **Promote Interface (page) annotations**: For each approved page annotation:
+
+   **Page-specific details** (patterns unique to one UI page):
+
+   Read the page spec YAML (`specs/ui/{page-id}.yaml`). Enrich the appropriate section(s):
+   - If the detail is about data fetching (caching, refetch, optimistic updates) → add/update the section's `data_source` config or page `refresh` config
+   - If the detail is about state management → add/update the page `state` section
+   - If the detail is about accessibility → add an `accessibility` field on the section or form
+   - If the detail is about responsive behavior → add a `responsive` field on the section
+   - If the detail is about component composition → enrich the section's `component` description
+   - Preserve all existing section fields — only add, never remove
+
+   **Shared UI patterns** (patterns used across multiple pages):
+
+   If the same UI pattern (e.g., a reusable data table, modal, or form component) appears in annotations for 2+ pages:
+   - Add to `specs/ui/pages.yaml` → `shared_components` section with `id`, `name`, `description`, `props`
+   - Update page specs to reference the shared component ID
+
+   **Checkpoint:** Output "Interface promotions complete: {N}/{N} page patterns promoted."
+
+   **GATE:** Compare actual promotions to plan. If any planned promotion was skipped, STOP and apply it now.
+
+8. **Promote Infrastructure annotations**: For each approved infrastructure annotation:
+
+   Read `specs/infrastructure.yaml`. Enrich the appropriate service(s):
+   - If the detail is about a health check → add/update the service's `health` field
+   - If the detail is about resource limits → add a `resources` section on the service
+   - If the detail is about startup orchestration → update `startup_order` or add `wait_for` config
+   - If the detail is about Docker config → add/update the service's `docker` section (volumes, networks, build args)
+   - If the detail is about dev tooling → add to the service's `dev_command` or add a top-level `scripts` section
+   - Preserve all existing infrastructure fields — only add, never remove
+
+   **Checkpoint:** Output "Infrastructure promotions complete: {N}/{N} infrastructure patterns promoted."
+
+   **GATE:** Compare actual promotions to plan. If any planned promotion was skipped, STOP and apply it now.
+
+9. **Promote Logic (flow) annotations**: For each approved flow annotation:
 
    **Cross-cutting patterns** (patterns that appear across multiple flows):
 
@@ -125,72 +192,34 @@ Parse `$ARGUMENTS` to determine scope:
    - If the detail is about implementation behavior → add detail to the node's `spec.description` or add a `spec.implementation` field
    - Preserve all existing node fields — only add, never remove
 
-   **Page-specific details** (patterns unique to one UI page):
-
-   Read the page spec YAML (`specs/ui/{page-id}.yaml`). Enrich the appropriate section(s):
-   - If the detail is about data fetching (caching, refetch, optimistic updates) → add/update the section's `data_source` config or page `refresh` config
-   - If the detail is about state management → add/update the page `state` section
-   - If the detail is about accessibility → add an `accessibility` field on the section or form
-   - If the detail is about responsive behavior → add a `responsive` field on the section
-   - If the detail is about component composition → enrich the section's `component` description
-   - Preserve all existing section fields — only add, never remove
-
-   **Shared UI patterns** (patterns used across multiple pages):
-
-   If the same UI pattern (e.g., a reusable data table, modal, or form component) appears in annotations for 2+ pages:
-   - Add to `specs/ui/pages.yaml` → `shared_components` section with `id`, `name`, `description`, `props`
-   - Update page specs to reference the shared component ID
-
-   **Schema details** (patterns about database/ORM implementation):
-
-   Read the schema spec YAML (`specs/schemas/{model}.yaml`). Enrich the appropriate section(s):
-   - If the detail is about an index → add to the schema's `indexes` section
-   - If the detail is about a constraint → add to the relevant field's `constraints` or add a top-level `constraints` section
-   - If the detail is about seed data → add/update the schema's `seed` section
-   - If the detail is about state transitions → add/update the schema's `transitions` section
-   - If the detail is about a migration pattern → add to the schema's description or a `notes` field
-   - Preserve all existing schema fields — only add, never remove
-
-   **Infrastructure details** (patterns about deployment/services):
-
-   Read `specs/infrastructure.yaml`. Enrich the appropriate service(s):
-   - If the detail is about a health check → add/update the service's `health` field
-   - If the detail is about resource limits → add a `resources` section on the service
-   - If the detail is about startup orchestration → update `startup_order` or add `wait_for` config
-   - If the detail is about Docker config → add/update the service's `docker` section (volumes, networks, build args)
-   - If the detail is about dev tooling → add to the service's `dev_command` or add a top-level `scripts` section
-   - Preserve all existing infrastructure fields — only add, never remove
-
    **Shared types/errors**:
 
    - If the annotation describes a new error code → add to `specs/shared/errors.yaml`
    - If the annotation describes a new shared enum or value object → add to `specs/shared/types.yaml`
 
-6. **Update annotation status**: After promoting, update each annotation's status:
-   - `approved` → `promoted` (if successfully written to specs)
-   - Write the updated annotation file back to `.ddd/annotations/{domain}/{flow}.yaml` (for flows) or `.ddd/annotations/ui/{page-id}.yaml` (for pages)
+   **Checkpoint:** Output "Logic promotions complete: {N}/{N} flow patterns promoted."
 
-7. **Update mapping.yaml**: Since spec files have changed:
+   **GATE:** Compare actual promotions to plan. If any planned promotion was skipped, STOP and apply it now.
+
+10. **Update annotation status**: After promoting, update each annotation's status:
+   - `approved` → `promoted` (if successfully written to specs)
+   - Write the updated annotation file back to `.ddd/annotations/{domain}/{flow}.yaml` (for flows), `.ddd/annotations/ui/{page-id}.yaml` (for pages), `.ddd/annotations/schemas/{model}.yaml` (for schemas), or `.ddd/annotations/infrastructure.yaml` (for infrastructure)
+
+11. **Update mapping.yaml**: Since spec files have changed:
    - Recompute `specHash` for any flow specs that were modified
    - Update `annotationCount` (decrement by promoted count)
    - Update `syncState` to `synced` if the promotion brought spec in line with code
 
-8. **Report what was promoted**:
+12. **Report what was promoted**:
    ```
-   Promoted annotations:
+   Promoted: {N} patterns — Logic: {L}, Interface: {P}, Data: {S}, Infrastructure: {I}
 
-   Cross-cutting patterns → architecture.yaml:
-     + stealth_http: Added new pattern — rotate user agents, proxy pools for external fetches
-       used_by_domains: [monitoring, discovery]
-     ~ api_key_resolution: Updated — added key validation detail
-       used_by_domains: [settings, monitoring, discovery, publishing]
+   Data (schemas):
+     {model}:
+       + index_optimization: Added composite index on [tenantId, createdAt]
+       + seed_data: Added default role seed data
 
-   Flow-specific details:
-     monitoring/check-social-sources:
-       ~ node service_call-abc123: Added security.encryption config
-       ~ node data_store-def456: Added spec.description detail about soft-delete filter
-
-   Page-specific details:
+   Interface (pages):
      dashboard:
        ~ section stat-cards: Added refresh config (auto-30s)
        ~ section item-list: Added accessibility.aria_label
@@ -200,25 +229,46 @@ Parse `$ARGUMENTS` to determine scope:
    Shared UI patterns → pages.yaml:
      + confirmation-dialog: Reusable confirmation modal (used by inbox, settings)
 
+   Infrastructure:
+     + docker_config: Added multi-stage build with dev/prod targets
+     + startup_orchestration: Added wait-for health check polling
+
+   Cross-cutting patterns → architecture.yaml:
+     + stealth_http: Added new pattern — rotate user agents, proxy pools for external fetches
+       used_by_domains: [monitoring, discovery]
+     ~ api_key_resolution: Updated — added key validation detail
+       used_by_domains: [settings, monitoring, discovery, publishing]
+
+   Logic (flows):
+     monitoring/check-social-sources:
+       ~ node service_call-abc123: Added security.encryption config
+       ~ node data_store-def456: Added spec.description detail about soft-delete filter
+
    Dismissed:
      2 annotations dismissed (not useful)
 
    Spec files modified:
-     specs/architecture.yaml
-     specs/domains/monitoring/flows/check-social-sources.yaml
+     specs/schemas/{model}.yaml
      specs/ui/dashboard.yaml
      specs/ui/inbox.yaml
      specs/ui/pages.yaml
+     specs/infrastructure.yaml
+     specs/architecture.yaml
+     specs/domains/monitoring/flows/check-social-sources.yaml
 
    Mapping updated:
-     monitoring/check-social-sources: specHash updated, annotationCount: 0
+     schemas/{model}: specHash updated, annotationCount: 0
      pages/dashboard: specHash updated, annotationCount: 0
      pages/inbox: specHash updated, annotationCount: 0
+     infrastructure: annotationCount: 0
+     monitoring/check-social-sources: specHash updated, annotationCount: 0
+
+   Pillar balance: Logic {L}, Interface {P}, Data {S}, Infrastructure {I}
 
    Summary:
-     Promoted: 7 patterns (2 cross-cutting, 2 flow-specific, 2 page-specific, 1 shared UI)
-     Dismissed: 2
-     Remaining candidates: 0
+     Promoted: {N} patterns (cross-cutting: {C}, flow-specific: {F}, page-specific: {P}, shared UI: {U}, schema: {S}, infrastructure: {I})
+     Dismissed: {D}
+     Remaining candidates: {R}
    ```
 
 ## Promotion Rules

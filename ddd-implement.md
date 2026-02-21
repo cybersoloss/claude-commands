@@ -1,6 +1,6 @@
 # DDD Implement
 
-Implement DDD-designed specs across all four pillars — Logic (backend flows), Interface (UI pages), Data (schemas), and Infrastructure (services). Generates backend flow code, frontend page components, database schemas, and infrastructure configs from specs.
+Implement DDD-designed specs across all four pillars — Logic (backend flows), Interface (UI pages), Data (schemas), and Infrastructure (services). Generates backend flow code, frontend page components, database schemas, and infrastructure configs from specs. **Lifecycle phase: Build.**
 
 ## Scope Resolution
 
@@ -57,7 +57,7 @@ Parse the argument to determine scope:
    - `specs/ui/pages.yaml` — page registry, navigation, theme (if implementing UI)
    - `specs/ui/{page-id}.yaml` — per-page spec (if implementing UI)
 
-   **IMPORTANT — Cross-cutting patterns**: If `specs/architecture.yaml` contains a `cross_cutting_patterns` section, read it carefully. These are project-wide conventions that apply to ALL flows, even if individual flow specs don't mention them. They MUST be applied during implementation. See step 7 for details.
+   **IMPORTANT — Cross-cutting patterns**: If `specs/architecture.yaml` contains a `cross_cutting_patterns` section, read it carefully. These are project-wide conventions that apply to ALL flows, even if individual flow specs don't mention them. They MUST be applied during implementation. See step 11 for details.
 
 4. **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all YAML formats, node types, spec fields, connection patterns, UI spec format, infrastructure spec format, and conventions. Use it as your reference for understanding node specs during implementation.
 
@@ -74,7 +74,117 @@ Parse the argument to determine scope:
    - If yes and spec changed → update mode (modify existing files, don't recreate)
    - If no → new implementation
 
-7. **Implement backend flows**:
+   **WARNING:** Re-implementing an already-implemented flow or page overwrites existing code files. If you have manual edits, commit them first or use `/ddd-sync` to capture changes before re-implementing.
+
+7. **Create implementation plan**: Before generating any code, enumerate all items to implement across all pillars. Output a table:
+
+   | Pillar | Items | Count |
+   |--------|-------|-------|
+   | Data | (list all schema specs to implement) | N |
+   | Interface | (list all UI page specs to implement) | N |
+   | Infrastructure | (list all infrastructure configs to implement) | N |
+   | Logic | (list all backend flows to implement) | N |
+
+   This plan is your commitment — every item listed must be implemented.
+
+   **Concept disambiguation:** When a concept appears in multiple pillars (e.g., "Dashboard" as both a backend domain and a frontend page), both representations MUST be implemented. Do not assume one covers the other.
+
+8. **Implement schemas (Data pillar)** (when scope includes schemas — `--all`, `--schema`, or `--schema model-name`):
+
+   Read `specs/schemas/_base.yaml` for base fields and each `specs/schemas/{model}.yaml`. Regenerate the ORM schema:
+
+   - **ORM models**: Update the database schema file (e.g., `prisma/schema.prisma`, Drizzle schema, TypeORM entities) to match the spec:
+     - Fields with types, constraints (`required`, `unique`, `default`), and descriptions
+     - Relationships (foreign keys, has_many, has_one, many_to_many)
+     - Base fields from `_base.yaml` applied to all models
+   - **Indexes**: Generate database indexes from the schema `indexes` section — fields, unique constraints, index types (btree, hash, gin, gist)
+   - **State transitions**: If the schema has `transitions`, update or generate state machine validation helpers
+   - **Seed data**: Update seed scripts from the schema `seed` section — migration seeds, fixture seeds, script seeds
+   - **Migration**: Run the ORM's schema sync or generate a migration (e.g., `prisma db push` or `prisma migrate dev`)
+   - Preserve any manual customizations in the ORM schema that aren't covered by specs (e.g., custom middleware, hooks)
+
+   **Checkpoint:** Output "Data complete: {N}/{N} schemas implemented" (with actual counts matching the plan).
+
+   **GATE:** Compare actual count to plan. If any item from the plan is missing, STOP and implement it now before proceeding to the next pillar.
+
+9. **Implement UI pages (Interface pillar)** (when scope includes UI — `--all`, `--ui`, or `--ui page-id`):
+
+   **Interface is the most commonly skipped pillar.** If the plan includes ANY pages, you MUST implement all of them. Zero tolerance for missing page implementations.
+
+   For each page spec in `specs/ui/{page-id}.yaml`, generate a complete page component:
+
+   **Data fetching** from `state.initial_fetch`:
+   - Generate API call hooks for each backend flow referenced in `initial_fetch`
+   - Use the data fetching approach matching `pages.yaml` → `state_management` (e.g., React Query `useQuery`, SWR `useSWR`, or plain `useEffect` + fetch)
+   - Configure the API client base URL from `specs/infrastructure.yaml` service ports
+
+   **Sections** from `sections`:
+   - Generate each section as a component within the page
+   - Bind `data_source` to the corresponding API call result
+   - Map `fields` using `$.field` syntax to extract data from API responses
+   - For `item_template` sections (lists/grids): generate a mapped render of items with the specified fields
+   - For sections with `actions` or `item_actions`: generate click handlers that call the referenced backend flows or navigate to routes
+   - For sections with `empty_state`: render the empty message, icon, and optional CTA when data array is empty
+   - For sections with `visible_when`: wrap in a conditional render
+
+   **Forms** from `forms`:
+   - Generate form components with all specified fields:
+     - `text`, `number`, `textarea` → standard input elements
+     - `select`, `multi-select` → dropdown/multi-select using the component library
+     - `search-select` → async search dropdown that calls `search_source` backend flow
+     - `date`, `datetime` → date picker component
+     - `toggle` → switch/toggle component
+     - `tag-input` → tag input with autocomplete from `autocomplete_source`
+     - `file` → file upload component
+     - `color` → color picker
+     - `slider` → range slider
+   - For fields with `options`: render static options
+   - For fields with `options_source`: load options from the referenced spec file
+   - For fields with `required: true`: add client-side required validation
+   - For fields with `validation`: add the described validation rule
+   - For fields with `visible_when`: conditionally show/hide the field
+   - Wire `submit.flow` to call the backend flow with form data
+   - Show `submit.success_message` on success
+   - Navigate to `submit.redirect` on success (if specified)
+
+   **State management** from `state`:
+   - Connect to the specified store (if `store` references a domain.yaml store)
+   - Set up real-time subscription if `realtime` references a WebSocket/SSE flow
+
+   **Loading, error, and refresh states**:
+   - `loading: skeleton` → render skeleton placeholder components during data fetch
+   - `loading: spinner` → render a centered spinner
+   - `loading: blur` → render stale data with blur overlay
+   - `error: retry-banner` → render error banner with retry button
+   - `error: error-page` → render full-page error with message
+   - `error: toast` → show error toast notification
+   - `refresh: pull-to-refresh` → add pull-to-refresh gesture handler
+   - `refresh: auto-30s` → set up automatic refetch interval
+   - `refresh: manual` → add a refresh button
+
+   **Layout** from page `layout` and `section.position`:
+   - Arrange sections according to the layout type (sidebar, full, centered, split, stacked)
+   - Position sections using their `position` values (top, main, sidebar, footer, etc.)
+
+   **Checkpoint:** Output "Interface complete: {N}/{N} pages implemented" (with actual counts matching the plan).
+
+   **GATE:** Compare actual count to plan. If any item from the plan is missing, STOP and implement it now before proceeding to the next pillar.
+
+10. **Implement infrastructure (Infrastructure pillar)** (when scope includes infrastructure — `--all` or `--infra`):
+
+    Read `specs/infrastructure.yaml`. Regenerate infrastructure configs:
+
+    - **Startup scripts**: Update `package.json` scripts — `dev` per service, `dev:all` using concurrently, `setup` commands
+    - **Docker**: Update `docker-compose.yaml` with services, ports, volumes, depends_on, health checks matching the spec
+    - **Port config**: Ensure all service ports match the spec — update env files, config loaders, and API client base URLs
+    - **Health checks**: Update or add health check endpoints/commands for each service
+    - Preserve any manual infrastructure customizations not covered by specs
+
+    **Checkpoint:** Output "Infrastructure complete: {N}/{N} configs implemented" (with actual counts matching the plan).
+
+    **GATE:** Compare actual count to plan. If any item from the plan is missing, STOP and implement it now before proceeding to the next pillar.
+
+11. **Implement backend flows (Logic pillar)**:
 
    **Entry point — determine from trigger convention**:
    - `HTTP {METHOD} {path}` → route handler (e.g., Express route, FastAPI endpoint)
@@ -190,96 +300,19 @@ Parse the argument to determine scope:
    - Match the project's existing code style and conventions
    - For multi-flow implementations, share common infrastructure (DB, config, middleware)
 
-8. **Implement UI pages** (when scope includes UI — `--all`, `--ui`, or `--ui page-id`):
+   **Checkpoint:** Output "Logic complete: {N}/{N} flows implemented" (with actual counts matching the plan).
 
-   For each page spec in `specs/ui/{page-id}.yaml`, generate a complete page component:
+   **GATE:** Compare actual count to plan. If any item from the plan is missing, STOP and implement it now before proceeding.
 
-   **Data fetching** from `state.initial_fetch`:
-   - Generate API call hooks for each backend flow referenced in `initial_fetch`
-   - Use the data fetching approach matching `pages.yaml` → `state_management` (e.g., React Query `useQuery`, SWR `useSWR`, or plain `useEffect` + fetch)
-   - Configure the API client base URL from `specs/infrastructure.yaml` service ports
-
-   **Sections** from `sections`:
-   - Generate each section as a component within the page
-   - Bind `data_source` to the corresponding API call result
-   - Map `fields` using `$.field` syntax to extract data from API responses
-   - For `item_template` sections (lists/grids): generate a mapped render of items with the specified fields
-   - For sections with `actions` or `item_actions`: generate click handlers that call the referenced backend flows or navigate to routes
-   - For sections with `empty_state`: render the empty message, icon, and optional CTA when data array is empty
-   - For sections with `visible_when`: wrap in a conditional render
-
-   **Forms** from `forms`:
-   - Generate form components with all specified fields:
-     - `text`, `number`, `textarea` → standard input elements
-     - `select`, `multi-select` → dropdown/multi-select using the component library
-     - `search-select` → async search dropdown that calls `search_source` backend flow
-     - `date`, `datetime` → date picker component
-     - `toggle` → switch/toggle component
-     - `tag-input` → tag input with autocomplete from `autocomplete_source`
-     - `file` → file upload component
-     - `color` → color picker
-     - `slider` → range slider
-   - For fields with `options`: render static options
-   - For fields with `options_source`: load options from the referenced spec file
-   - For fields with `required: true`: add client-side required validation
-   - For fields with `validation`: add the described validation rule
-   - For fields with `visible_when`: conditionally show/hide the field
-   - Wire `submit.flow` to call the backend flow with form data
-   - Show `submit.success_message` on success
-   - Navigate to `submit.redirect` on success (if specified)
-
-   **State management** from `state`:
-   - Connect to the specified store (if `store` references a domain.yaml store)
-   - Set up real-time subscription if `realtime` references a WebSocket/SSE flow
-
-   **Loading, error, and refresh states**:
-   - `loading: skeleton` → render skeleton placeholder components during data fetch
-   - `loading: spinner` → render a centered spinner
-   - `loading: blur` → render stale data with blur overlay
-   - `error: retry-banner` → render error banner with retry button
-   - `error: error-page` → render full-page error with message
-   - `error: toast` → show error toast notification
-   - `refresh: pull-to-refresh` → add pull-to-refresh gesture handler
-   - `refresh: auto-30s` → set up automatic refetch interval
-   - `refresh: manual` → add a refresh button
-
-   **Layout** from page `layout` and `section.position`:
-   - Arrange sections according to the layout type (sidebar, full, centered, split, stacked)
-   - Position sections using their `position` values (top, main, sidebar, footer, etc.)
-
-9. **Implement schemas** (when scope includes schemas — `--all`, `--schema`, or `--schema model-name`):
-
-   Read `specs/schemas/_base.yaml` for base fields and each `specs/schemas/{model}.yaml`. Regenerate the ORM schema:
-
-   - **ORM models**: Update the database schema file (e.g., `prisma/schema.prisma`, Drizzle schema, TypeORM entities) to match the spec:
-     - Fields with types, constraints (`required`, `unique`, `default`), and descriptions
-     - Relationships (foreign keys, has_many, has_one, many_to_many)
-     - Base fields from `_base.yaml` applied to all models
-   - **Indexes**: Generate database indexes from the schema `indexes` section — fields, unique constraints, index types (btree, hash, gin, gist)
-   - **State transitions**: If the schema has `transitions`, update or generate state machine validation helpers
-   - **Seed data**: Update seed scripts from the schema `seed` section — migration seeds, fixture seeds, script seeds
-   - **Migration**: Run the ORM's schema sync or generate a migration (e.g., `prisma db push` or `prisma migrate dev`)
-   - Preserve any manual customizations in the ORM schema that aren't covered by specs (e.g., custom middleware, hooks)
-
-10. **Implement infrastructure** (when scope includes infrastructure — `--all` or `--infra`):
-
-    Read `specs/infrastructure.yaml`. Regenerate infrastructure configs:
-
-    - **Startup scripts**: Update `package.json` scripts — `dev` per service, `dev:all` using concurrently, `setup` commands
-    - **Docker**: Update `docker-compose.yaml` with services, ports, volumes, depends_on, health checks matching the spec
-    - **Port config**: Ensure all service ports match the spec — update env files, config loaders, and API client base URLs
-    - **Health checks**: Update or add health check endpoints/commands for each service
-    - Preserve any manual infrastructure customizations not covered by specs
-
-11. **Write tests**: Create tests covering:
-   - **Backend**: Happy path through the flow, each decision branch, error/terminal states, input validation rules from input node specs
-   - **Frontend**: Page renders without errors, data fetching calls correct API endpoints, form validation works, form submission calls correct backend flow
-   - **Schema**: ORM schema validates, migrations apply cleanly, seed data loads
+12. **Write tests**: Create tests covering:
+   - **Data**: ORM schema validates, migrations apply cleanly, seed data loads
+   - **Interface**: Page renders without errors, data fetching calls correct API endpoints, form validation works, form submission calls correct backend flow
    - **Infrastructure**: Services start, health checks pass, ports don't conflict
+   - **Logic**: Happy path through the flow, each decision branch, error/terminal states, input validation rules from input node specs
 
-12. **Run tests and fix**: Run the test suite. If tests fail, fix the implementation. Keep iterating until all tests pass.
+13. **Run tests and fix**: Run the test suite. If tests fail, fix the implementation. Keep iterating until all tests pass.
 
-13. **Update mapping**: After each flow/page is successfully implemented, update `.ddd/mapping.yaml`:
+14. **Update mapping**: After each flow/page is successfully implemented, update `.ddd/mapping.yaml`:
    ```yaml
    flows:
      domain-id/flow-id:
@@ -304,22 +337,34 @@ Parse the argument to determine scope:
        syncState: synced
    ```
 
-14. **Summary**: After all implementations are done, show a summary table:
+15. **Summary**: After all implementations are done, show a summary table:
     ```
-    Backend:
+    Logic:
     Domain/Flow                  Status    Files  Tests
-    users/user-registration      ✓ done    5      12/12
-    users/user-login             ✓ done    3      8/8
-    billing/create-subscription  ✓ done    4      6/6
+    users/user-registration      done      5      12/12
+    users/user-login             done      3      8/8
+    billing/create-subscription  done      4      6/6
 
-    Frontend:
+    Interface:
     Page                         Status    Sections  Forms
-    dashboard                    ✓ done    4         0
-    inbox                        ✓ done    3         1
-    settings                     ✓ done    2         3
+    dashboard                    done      4         0
+    inbox                        done      3         1
+    settings                     done      2         3
+
+    Data:
+    Schema                       Status    Fields  Indexes
+    user                         done      12      3
+    subscription                 done      8       2
+
+    Infrastructure:
+    Config                       Status    Services
+    docker-compose               done      4
+    package.json scripts         done      6
+
+    Pillar balance: Logic {N} flows, Interface {N} pages, Data {N} schemas, Infrastructure {N} configs
     ```
 
-15. **Next steps**: After implementation, suggest:
+16. **Next steps**: After implementation, suggest:
     - "Run `/ddd-test --all` to verify all implementations"
     - "Open the DDD Tool to review the implementation state"
     - "Run `/ddd-sync` to update mapping hashes and detect any remaining drift"

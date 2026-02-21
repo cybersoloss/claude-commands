@@ -1,6 +1,6 @@
 # DDD Reverse
 
-Reverse-engineer an existing codebase into a complete DDD (Design Driven Development) project across all four pillars (Logic, Data, Interface, Infrastructure). Scans source code and generates all YAML spec files that the DDD Tool can visualize and `/ddd-implement` can verify via round-trip.
+Reverse-engineer an existing codebase into a complete DDD (Design Driven Development) project across all four pillars (Logic, Data, Interface, Infrastructure). Scans source code and generates all YAML spec files that the DDD Tool can visualize and `/ddd-implement` can verify via round-trip. **Lifecycle phase: Create.**
 
 ## Input
 
@@ -59,7 +59,28 @@ The user can override with `--strategy <name>`. If overriding, use the specified
 
 6. **Handle existing specs** (if output directory already has DDD files):
    - Without `--merge`: warn the user that specs will be overwritten, ask for confirmation
-   - With `--merge`: read existing specs, preserve them, only add new domains/flows/schemas that don't already exist
+   - With `--merge`: read existing specs, preserve them, only add new domains/flows/schemas that don't already exist. When modifying existing spec files in `--merge` mode, update `metadata.modified` to the current ISO timestamp on each changed file.
+
+---
+
+## Phase 0.5: Create Reverse-Engineering Plan (all strategies)
+
+After the initial code scanning in Phase 0 (and before strategy-specific generation begins), produce a **per-pillar plan table** that enumerates everything you discovered:
+
+| Pillar | Discovered Items | Count |
+|--------|-----------------|-------|
+| **Logic** | Domains and flows found (list each domain with its entry points) | e.g. 3 domains, 12 flows |
+| **Interface** | Pages and routes found (list each page component/route) | e.g. 5 pages |
+| **Data** | Schemas and models found (list each ORM model/migration) | e.g. 7 schemas |
+| **Infrastructure** | Services and configs found (list each service from docker-compose, deployment configs) | e.g. 4 services |
+
+**This plan is your commitment — every item listed must produce a spec file.**
+
+**Concept disambiguation:** When code reveals a concept with dual-pillar representation (e.g., "Dashboard" as both a backend route module and a frontend page component), both the backend domain/flows AND the frontend page spec must be generated. Do not assume one covers the other.
+
+**Interface is the most commonly skipped pillar** in reverse-engineering (especially for backend-heavy codebases). If the codebase has ANY frontend files (React components, Vue files, HTML templates, etc.), Interface specs MUST be generated. Zero tolerance for missing page specs when frontend code exists.
+
+**Generation ordering:** Within each strategy, generate specs in this order: Data (schemas) → Interface (pages) → Infrastructure (services) → Logic (flows). Logic is the most detail-heavy pillar and goes last to prevent context exhaustion starving lighter pillars.
 
 ---
 
@@ -452,6 +473,18 @@ Generate all flow specs, domain specs, schema specs, UI page specs, infrastructu
 Any source file without ref codes assigned = not scanned. Any ref code not appearing in any chain = orphaned logic. Report both.
 
 Proceed to Quality Checks and Coverage Verification.
+
+---
+
+## Per-Pillar Checkpoints (all strategies)
+
+After generating each pillar's specs, output a progress line:
+- "Data complete: {N}/{N} schemas generated"
+- "Interface complete: {N}/{N} page specs generated"
+- "Infrastructure complete: {N}/{N} service specs generated"
+- "Logic complete: {N}/{N} flows generated across {M} domains"
+
+**GATE:** After each pillar, compare actual generated count to the plan (from Phase 0.5). If ANY planned item is missing, STOP and generate it before proceeding to the next pillar. Do not defer to the Quality Checks section.
 
 ---
 

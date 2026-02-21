@@ -1,6 +1,6 @@
 # DDD Test
 
-Run tests for DDD-implemented flows, UI pages, schemas, and infrastructure without re-generating code. Use this after manual code edits, refactoring, or dependency updates to verify implementations still work.
+Run tests for DDD-implemented flows, UI pages, schemas, and infrastructure without re-generating code. Use this after manual code edits, refactoring, or dependency updates to verify implementations still work. **Lifecycle phase: Build.**
 
 ## Scope Resolution
 
@@ -86,20 +86,33 @@ Parse the argument to determine scope:
    ```
    DDD Test Results
 
-   ── Backend Flows ─────────────────────────────────────────────────────
+   ── Logic (Flows) ──────────────────────────────────────────────────────
    Domain          Flow                    Tests   Pass   Fail   Skip
    ─────────────── ─────────────────────── ─────── ────── ────── ──────
    users           user-register           12      12     0      0      OK
    users           user-login              8       7      1      0      FAIL
    orders          create-order            6       6      0      0      OK
 
-   ── Frontend Pages ────────────────────────────────────────────────────
+   ── Interface (Pages) ───────────────────────────────────────────────────
    Page            Route                   Tests   Pass   Fail   Skip
    ─────────────── ─────────────────────── ─────── ────── ────── ──────
    dashboard       /                       5       5      0      0      OK
    inbox           /inbox                  8       7      1      0      FAIL
 
+   ── Data (Schemas) ──────────────────────────────────────────────────────
+   Check                                   Status
+   ─────────────────────────────────────── ──────
+   ORM schema validation                   OK
+   Migration consistency                   OK
+
+   ── Infrastructure ──────────────────────────────────────────────────────
+   Service         Health                  Status
+   ─────────────── ─────────────────────── ──────
+   PostgreSQL      pg_isready              OK
+   Redis           redis-cli ping          OK
+
    Summary: 39 tests, 37 passed, 2 failed
+   Pillars: Logic 3 flows, Interface 2 pages, Data 2 checks, Infrastructure 2 services
 
    Failures:
      users/user-login — test/user-login.test.ts
@@ -117,6 +130,7 @@ Parse the argument to determine scope:
      - Review the failing test and fix the code, OR
      - Run /ddd-implement users/user-login to regenerate backend flow
      - Run /ddd-implement --ui inbox to regenerate page component
+     - If all tests pass, proceed to /ddd-sync to check spec alignment
    ```
 
    **Frontend-specific failure causes:**
