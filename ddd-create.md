@@ -611,7 +611,45 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
    If ANY check fails, go back to the relevant generation step and create the missing specs. Do NOT finish the command with incomplete pillar coverage.
 
-16. **Shortfall report** (only if `--shortfalls` flag is present in `$ARGUMENTS`): Generate `specs/shortfalls.yaml` documenting every DDD framework limitation you encountered. Be brutally honest — this report exists to improve DDD, not to make it look good.
+16. **Shortfall report** (only if `--shortfalls` flag is present in `$ARGUMENTS`):
+
+    **Step A — Build the DDD Feature Usage Matrix:**
+
+    Before writing shortfalls, audit what DDD features you actually used vs. what's available. You already fetched the Usage Guide in Step 1 — extract these catalogs and compare against the specs you just generated:
+
+    ```
+    ── DDD Feature Usage Matrix ───────────────────────────────────────────────
+    Category                        Available  Used  Unused
+    ─────────────────────────────── ────────── ───── ──────────────────────────
+    Node Types (28)                 28         {N}   {list unused}
+    Trigger Types (13)              13         {N}   {list unused}
+    Collection Operations (8)       8          {N}   {list unused}
+    Crypto Operations (6)           6          {N}   {list unused}
+    Parse Formats (7)               7          {N}   {list unused}
+    Data Store Types (3)            3          {N}   {list unused}
+    Connection Behaviors (4)        4          {N}   {list unused}
+    UI Component Types (9)          9          {N}   {list unused}
+    Form Field Types (14)           14         {N}   {list unused}
+    Schema Index Types (4)          4          {N}   {list unused}
+    Schema Seed Strategies (3)      3          {N}   {list unused}
+    Schema Relationship Types (4)   4          {N}   {list unused}
+    Infrastructure Service Types (4) 4         {N}   {list unused}
+    Orchestrator Strategies (4)     4          {N}   {list unused}
+    Handoff Modes (3)               3          {N}   {list unused}
+    ──────────────────────────────────────────────────────────────────────────────
+    ```
+
+    For each unused feature, note whether it's:
+    - **Not applicable** — the project genuinely doesn't need it (e.g., `parse` in a CRUD app)
+    - **Missed opportunity** — a `process` node or generic pattern was used where a structured DDD node would fit better (this becomes a `workarounds` entry)
+
+    Scan every `process` node in the generated specs: could any of them be replaced by `collection`, `transform`, `parse`, `crypto`, `cache`, `batch`, `smart_router`, or another structured node type? If yes, flag it.
+
+    **Step B — Generate `specs/shortfalls.yaml`:**
+
+    Use **EXACTLY** the YAML structure below. Do NOT invent your own format, do NOT use a flat list, do NOT add custom categories. Every section in this template has a specific purpose — omit a section only if it has zero entries.
+
+    **Scope rule: Shortfalls are DDD framework limitations, NOT project scope decisions.** Do NOT include features the user chose to defer to a later phase/layer. Those are product roadmap items, not DDD gaps. If the user deferred "voice interaction" to Layer 2, that's a product decision — not a shortfall. Only report things where DDD's spec format, node types, component types, or connection patterns couldn't adequately express something the project actually tried to spec.
 
     ```yaml
     # DDD Shortfall Report
@@ -769,10 +807,46 @@ Create a complete DDD (Design Driven Development) project from a software projec
         high: {count}
         medium: {count}
         low: {count}
+      feature_coverage:
+        # From Step A — Feature Usage Matrix
+        node_types: {used}/{available}
+        trigger_types: {used}/{available}
+        collection_operations: {used}/{available}
+        crypto_operations: {used}/{available}
+        parse_formats: {used}/{available}
+        data_store_types: {used}/{available}
+        connection_behaviors: {used}/{available}
+        ui_component_types: {used}/{available}
+        form_field_types: {used}/{available}
+        schema_index_types: {used}/{available}
+        schema_seed_strategies: {used}/{available}
+        schema_relationship_types: {used}/{available}
+        infrastructure_service_types: {used}/{available}
+        orchestrator_strategies: {used}/{available}
+        handoff_modes: {used}/{available}
+        unused_but_applicable:
+          # Features NOT used but that COULD have replaced a process node or generic pattern
+          - feature: "{node_type or operation}"
+            could_replace: "{domain}/{flow-id} node {node-id}"
+            reason: "Why this structured type fits better"
       top_recommendation: "Single most impactful improvement to the DDD framework based on this project"
     ```
 
     **Rules for shortfall reporting:**
+
+    **Template compliance (MANDATORY):**
+    - Use EXACTLY the YAML structure above — `missing_node_types`, `inadequate_existing_nodes`, `missing_spec_fields`, `connection_limitations`, `layer_gaps`, `workarounds`, `cross_cutting_gaps`, `ui_shortfalls`, `pillar_balance`, `summary`
+    - Do NOT invent your own format (no flat lists, no custom categories like `scope_exclusion` or `gap` or `quality_note`)
+    - Do NOT include project scope decisions — features the user chose to defer to later phases/layers are NOT shortfalls
+    - Do NOT include "spec quality notes" — incomplete specs are quality issues, not framework limitations. Fix them in the specs instead.
+    - If the report has zero entries in all sections, write a shortfalls file that says so: `shortfalls: none` with the summary showing all zeros. An empty shortfall report is a valid outcome.
+
+    **Feature catalog cross-reference (MANDATORY):**
+    - Include the Feature Usage Matrix from Step A in the `summary` section as `feature_coverage`
+    - Every `process` node in every generated flow MUST be checked: could a structured node type (`collection`, `transform`, `parse`, `crypto`, `cache`, `batch`, `smart_router`, `transaction`, etc.) replace it? If yes → `workarounds` entry
+    - Every UI section using a generic description where a built-in component type (`stat-card`, `item-list`, `card-grid`, `detail-card`, `button-group`, `page-header`, `status-bar`, `chart`, `filter-bar`) would fit → `ui_shortfalls.inadequate_components` or `ui_shortfalls.missing_component_types` entry
+
+    **Content rules:**
     - Only include sections that have entries — omit empty sections entirely
     - Every workaround `process` node MUST be flagged — zero tolerance for silent workarounds
     - Every generic UI section description MUST be flagged — zero tolerance for "custom component" hand-waving
