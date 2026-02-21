@@ -356,9 +356,9 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
    **Per-component-type field specs** — when designing sections, use the correct component type and its required fields:
    - `stat-card` — `value` ($.field), `subtitle`, `urgency` (with `field`, `rules` array of `{threshold, level, color}`), `actions` (e.g., `click: {navigate: /path}`)
-   - `item-list` — `data_source`, `item_template` with `title`/`subtitle`/`badge`/`timestamp`, `item_actions`, `empty_state`, optional `pagination` or `virtual_scroll`
-   - `card-grid` — `data_source`, `columns` (responsive: desktop/tablet/mobile), `item_template` with `image`/`title`/`description`/`footer`, `item_actions`, `empty_state`
-   - `detail-card` — `data_source`, `fields` mapping with `$.field` syntax, `actions` (edit, delete, archive), optional `tabs` for multi-section details
+   - `item-list` — `data_source`, `item_template` with `title`/`subtitle`/`badge`/`timestamp`, `item_actions`, `empty_state`, optional `pagination` or `virtual_scroll`, optional `interactions` (array of `{pattern, update_flow}` — supported patterns: `reorder`, `bulk-select`, `inline-edit`)
+   - `card-grid` — `data_source`, `columns` (responsive: desktop/tablet/mobile), `item_template` with `image`/`title`/`description`/`footer`, `item_actions`, `empty_state`, optional `interactions` (same as item-list)
+   - `detail-card` — `data_source`, `fields` mapping with `$.field` syntax (fields can have `editable: true` + `update_flow` for inline editing), `actions` (edit, delete, archive), optional `tabs` for multi-section details
    - `button-group` — `buttons` array with `label`, `flow` (backend flow reference), optional `args`, `variant` (primary/secondary/danger), `icon`, `visible_when`, `confirm`/`confirm_message`
    - `page-header` — `title`, optional `subtitle`, `breadcrumbs`, `actions` (button-group for page-level actions)
    - `status-bar` — `items` array with `label`, `value` ($.field), `color_when` conditions
@@ -462,7 +462,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `ws {path}` for WebSocket endpoints (e.g., `ws /api/live`)
      - `pattern:{EventName}` for event pattern triggers that aggregate multiple events
      - The label can match the event value or be more descriptive
-     - Optional advanced fields: `filter` (Record — event payload filter, supports dot notation and operators, e.g., `{platform: twitter}` or `{"payload.amount": {gte: 100}}`), `debounce_ms` (debounce rapid-fire triggers)
+     - Optional advanced fields: `filter` (Record — event payload filter, supports dot notation and operators, e.g., `{platform: twitter}` or `{"payload.amount": {gte: 100}}`), `debounce_ms` (debounce rapid-fire triggers), `rate_limit` (`{ window_ms, max_requests, key_by?, on_exceeded? }` — per-endpoint rate limiting), `signature` (`{ algorithm, key_source: { env }, header }` — webhook HMAC signature validation)
    - For flows called as sub-flows, add a `contract` section to the flow metadata with `inputs` and `outputs`
    - `nodes` array — design the complete node graph:
      - Always start with `input` node after trigger for API flows (validate incoming data)
@@ -472,14 +472,14 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Use `ipc_call` for local IPC or native function calls — Tauri commands, Electron IPC, React Native bridge (set `command`, `args`, `return_type`, optionally `bridge`, `timeout_ms`, and `result_condition` for conditional success/error routing)
      - Use `event` nodes to publish/consume domain events (set `direction` to `'emit'` or `'consume'`, `event_name`, and `payload`). Optional advanced fields: `payload_source` (expression for dynamic payload), `target_queue`, `priority`, `delay_ms` (delayed emit), `dedup_key`
      - Use `loop` for iteration (set `collection`, `iterator`; optional: `accumulate` for collecting results, `body_start` to specify first node in loop body, `on_error` for per-iteration error handling), `parallel` for concurrent operations (optional: conditional `branches` with `condition` per branch)
-     - Use `collection` for in-memory data transformations (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten)
+     - Use `collection` for in-memory data transformations (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten, first, last). Use `first`/`last` with optional `count` to extract elements from sorted collections
      - Use `parse` for structured extraction from raw formats (rss, atom, html, xml, json, csv, markdown)
      - Use `crypto` for encrypt/decrypt/hash/sign/verify operations
      - Use `batch` for executing an operation against each item in a collection with concurrency control
      - Use `transaction` for atomic multi-step database operations with rollback
-     - Use `cache` for cache-before-fetch patterns (set `key`, `store`, `ttl_ms`)
+     - Use `cache` for cache operations (set `operation`: `'check'` for read-through hit/miss pattern, `'set'` for explicit write-through with `value`, `'invalidate'` for key deletion; plus `key`, `store`, `ttl_ms`)
      - Use `delay` for rate limiting or wait/throttle between steps (set `min_ms`)
-     - Use `transform` for pure field mapping between schemas (set `input_schema`, `output_schema`, `field_mappings`)
+     - Use `transform` for data mapping (set `input_schema`, `output_schema`, `field_mappings` for schema-to-schema; or set `mode: 'expression'` with computed `field_mappings` for response shaping without schema refs)
      - Use `sub_flow` to call reusable flows from other domains (set `flow_ref` as `domain/flow-id`)
      - Use `llm_call` for single LLM invocations — specify `model`, `prompt`, `temperature`, `max_tokens`, and optionally `structured_output` for typed responses, `context_sources` (array of data references to inject into prompt context)
      - Use `agent_loop` for autonomous agent iterations — specify `tools` (array with at least one `is_terminal: true`), `max_iterations`, `model`
@@ -508,7 +508,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `crypto` → `"success"` / `"error"`
      - `batch` → `"done"` / `"error"`
      - `transaction` → `"committed"` / `"rolled_back"`
-     - `cache` → `"hit"` / `"miss"`
+     - `cache` → `"hit"` / `"miss"` (for `'check'` operation; `'set'` and `'invalidate'` use single unnamed output)
      - `smart_router` → dynamic route IDs (from `rules[].id`)
      - `human_gate` → dynamic option IDs (from `approval_options[].id`)
      - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
