@@ -6,7 +6,7 @@ Synchronize the DDD project specs with the current implementation state across a
 
 **Files read:**
 - `ddd-project.json` — domain list, project config
-- `.ddd/mapping.yaml` — implementation tracking with `specHash`, `syncState`, `files`, `fileHashes`, and `annotationCount` (flows and pages sections)
+- `.ddd/mapping.yaml` — implementation tracking with `specHash`, `syncState`, `files`, `fileHashes`, `implementedAt`, `annotationCount`, and `mode` per entry (flows and pages sections)
 - `specs/domains/*/domain.yaml` — domain configs, event definitions, flow lists (for cross-domain event verification)
 - `specs/domains/*/flows/*.yaml` — flow specs with node graphs (for bidirectional drift comparison against code)
 - `specs/ui/pages.yaml` — page registry, navigation, theme (for page structure drift comparison)
@@ -118,6 +118,7 @@ Synchronize the DDD project specs with the current implementation state across a
    - Update `implementedAt` timestamp only if implementation files have actually changed
    - Remove entries for flows that no longer have implementation files
    - Set `syncState` for each entry. Values: `in_sync`, `spec_ahead`, `code_ahead`, `diverged`, `new_logic`
+   - Set `mode` to `update` if the entry was previously implemented, `new` if first implementation
    - Set `annotationCount` if annotations exist for the entry
 
 7. **Detect new patterns** (if `--discover` or `--full` flag):

@@ -1,6 +1,6 @@
 # DDD Evolve
 
-Analyze DDD shortfall reports, critically evaluate each gap, and produce `ddd-evolution-plan.yaml` with prioritized recommendations; `--review` collects human approve/defer/reject decisions, `--apply` executes approved changes to framework files (DDD-USAGE-GUIDE.md, commands, DDD Tool source). **Lifecycle phase: Meta.**
+Analyze DDD shortfall reports across all four pillars (Logic, Data, Interface, Infrastructure), critically evaluate each gap, and produce `ddd-evolution-plan.yaml` with prioritized recommendations; `--review` collects human approve/defer/reject decisions, `--apply` executes approved changes to framework files (DDD-USAGE-GUIDE.md, commands, DDD Tool source). **Lifecycle phase: Meta.**
 
 ## Usage
 

@@ -25,6 +25,7 @@ Parse the argument to determine what to update:
 
 2. **Read the current specs**: Load the relevant YAML files to understand the current state:
    - `ddd-project.json` — project config, domain list
+   - `.ddd/mapping.yaml` — implementation tracking with `specHash`, `syncState`, `files`, `fileHashes`, `implementedAt`, `annotationCount`, and `mode` per entry (for awareness that spec changes will make `specHash` stale — `/ddd-sync` should be run after update)
    - `specs/domains/{domain}/domain.yaml` — domain config, flow list, events
    - `specs/domains/{domain}/flows/{flow}.yaml` — flow spec (if updating a specific flow)
    - `specs/schemas/*.yaml` — data model definitions (reference when adding data_store nodes to use correct model names)

@@ -14,7 +14,7 @@ Show a quick read-only overview of the DDD project's implementation state across
    - `specs/ui/*.yaml` — per-page specs (if exists)
    - `specs/infrastructure.yaml` — services and deployment (if exists)
    - `specs/architecture.yaml` — `cross_cutting_patterns`, conventions (for pattern-aware drift classification)
-   - `.ddd/mapping.yaml` — implementation tracking (if exists), including `flows:` and `pages:` sections with `specHash`, `syncState`, `annotationCount`, `files`, `fileHashes`, and `mode` per entry
+   - `.ddd/mapping.yaml` — implementation tracking (if exists), including `flows:` and `pages:` sections with `specHash`, `syncState`, `annotationCount`, `implementedAt`, `files`, `fileHashes`, and `mode` per entry
 
 3. **For each flow, determine status**:
 

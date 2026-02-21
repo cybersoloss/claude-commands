@@ -179,7 +179,7 @@ Generate project skeleton files (package.json, config, middleware, ORM schemas, 
     - If either fails, fix and retry
 
 12. **Initialize `.ddd/` tracking:**
-    - Create `.ddd/mapping.yaml` with empty `flows:` and `pages:` sections — entry fields (`specHash`, `syncState`, `files`, `implementedAt`, `annotationCount`) are populated later by `/ddd-implement`, not during scaffold
+    - Create `.ddd/mapping.yaml` with empty `flows:` and `pages:` sections — entry fields (`specHash`, `syncState`, `files`, `fileHashes`, `implementedAt`, `annotationCount`, `mode`) are populated later by `/ddd-implement`, not during scaffold
     - Create `.ddd/annotations/` directory with `.gitkeep` (populated by `/ddd-reflect`)
     - Create `.ddd/autosave/` directory with `.gitkeep` (crash recovery, managed by DDD Tool)
     - Create `.ddd/reconciliations/` directory with `.gitkeep` (reconciliation reports from `/ddd-sync`)

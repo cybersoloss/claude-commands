@@ -35,7 +35,7 @@ Parse `$ARGUMENTS` to determine scope:
    - `specs/ui/pages.yaml` — page registry (if exists)
    - `specs/ui/{page-id}.yaml` — per-page specs (promotion targets for page details)
    - `.ddd/annotations/` — all annotation files (including `annotations/ui/` for page annotations)
-   - **Fetch the DDD Usage Guide** (if promoting cross-cutting patterns or enriching node specs): Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` — reference for valid spec fields when enriching nodes with security, observability, or implementation details
+   - **Fetch the DDD Usage Guide** (if promoting cross-cutting patterns or enriching node specs): Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` — reference for all YAML formats, node types, spec fields, connection patterns, UI spec format, infrastructure spec format, and conventions
 
 3. **Load all annotations**: Read every `.yaml` file in `.ddd/annotations/` (recursively by domain subdirectories). Group annotations by status:
    - `candidate` — awaiting review

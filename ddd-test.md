@@ -31,7 +31,7 @@ Parse the argument to determine scope:
 
 2. **Read project context**:
    - `ddd-project.json` — domain list
-   - `.ddd/mapping.yaml` — which flows and pages are implemented, their test files, specHash for drift detection
+   - `.ddd/mapping.yaml` — implementation tracking with `specHash`, `syncState`, `files`, `fileHashes`, `implementedAt`, `annotationCount`, and `mode` per entry (flows and pages sections)
    - `specs/architecture.yaml` — `testing` section for test framework, `cross_cutting_patterns` for pattern-aware test analysis
    - `specs/infrastructure.yaml` — services, ports, health endpoints (for `--infra` scope)
    - `specs/ui/pages.yaml` — page registry (for `--ui` scope resolution)
