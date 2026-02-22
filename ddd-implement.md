@@ -402,6 +402,6 @@ Parse the argument to determine scope:
     - **If scope was `--all` or all pending entries**: "Run `/ddd-test` (no flags) to verify recently implemented items"
     - "Open the DDD Tool to review the implementation state (Cmd+R to reload)"
     - **Do NOT suggest `/ddd-sync` here** — sync is a Reflect phase command, not a Build phase command. It's only relevant when checking project-wide alignment later (after multiple sessions). Suggesting it right after a fresh implement is misleading — the flow is by definition in sync just after being generated.
-    - "When ready to capture implementation wisdom (after using the code in development), run `/ddd-reflect {domain/flow}` then `/ddd-promote --review`"
+    - **Do NOT suggest `/ddd-reflect` or `/ddd-promote` as immediate next steps.** These are periodic Reflect phase commands — run them once across multiple flows after a development session, not after every single implement run. The core Build loop ends at `/ddd-test`. Only mention reflect if the user explicitly asks about capturing wisdom.
 
 $ARGUMENTS

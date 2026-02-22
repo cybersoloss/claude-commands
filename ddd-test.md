@@ -154,9 +154,8 @@ Parse the argument to determine scope:
 9. **If `$ARGUMENTS` includes `--coverage`**, also run with coverage reporting enabled and show coverage summary per flow.
 
 10. **Next steps**: Based on results, suggest:
-    - If all tests pass (right after fresh implementation): "Run `/ddd-reflect {scope}` when ready to capture implementation wisdom, then `/ddd-promote --review`"
-    - If all tests pass (after a longer development period with manual edits): "Run `/ddd-reflect {scope}` to capture any wisdom from manual edits, then `/ddd-promote --review`"
-    - **Do NOT suggest `/ddd-sync` as a default next step after passing tests.** Sync is a Reflect phase command for checking project-wide alignment — it is expensive and not needed right after a single flow test passes.
+    - If all tests pass: **The core Build loop is complete.** Tell the user: "All tests pass — this flow is done. Continue with your next change or feature."
+    - **Do NOT suggest `/ddd-reflect`, `/ddd-promote`, or `/ddd-sync` as next steps after passing tests.** These are periodic Reflect phase commands — the user runs them intentionally across multiple flows at the end of a development session, not after every test run. Suggesting them here creates noise and implies they are mandatory after every build cycle. They are not.
     - If tests fail due to spec drift: "Run `/ddd-implement {scope}` to regenerate from updated specs, then re-run `/ddd-test {scope}`"
     - If tests fail due to manual code changes: "Review the failing test and fix the code, or run `/ddd-implement {scope}` to regenerate"
     - If tests fail due to environment issues: "Fix the environment issue (missing env var, database not running) and re-run `/ddd-test {scope}`"
