@@ -8,6 +8,7 @@ Show a quick read-only overview of the DDD project's implementation state across
 
 2. **Read project structure**:
    - `ddd-project.json` — domain list
+   - `.ddd/change-history.yaml` — pending and recent change entries (if exists)
    - For each domain: `specs/domains/{domain}/domain.yaml` — flow list
    - `specs/schemas/*.yaml` — data model definitions
    - `specs/ui/pages.yaml` — page registry (if exists)
@@ -114,6 +115,14 @@ Show a quick read-only overview of the DDD project's implementation state across
    Startup scripts: dev, dev:all, db:setup
    Docker: docker-compose.yaml present
 
+   ── Pending Implementation (change-history) ──────────────────────────
+   chg-0042  [L3] auth / user-login       (logic)     — 3 mins ago  [ddd-tool]
+   chg-0043  [L3] payments / checkout     (interface) — 1 min ago   [ddd-tool]
+   chg-0044  [L3] auth / user-register    (logic)     — just now    [ddd-update]
+   → Run /ddd-implement to process 3 pending changes
+
+   (If no pending entries: omit this section entirely)
+
    ── Four-Pillar Summary ──────────────────────────────────────────────
    Logic:          4/6 flows implemented (2 up to date, 1 drifted, 1 stale)
    Data:           5 schemas, 12 indexes, 3 seeds
@@ -152,6 +161,8 @@ Show a quick read-only overview of the DDD project's implementation state across
 
    **Infrastructure:**
    - If `specs/infrastructure.yaml` exists but no startup scripts: "Run `/ddd-scaffold` to generate infrastructure"
+
+   **Pending change-history entries:** "Run `/ddd-implement` (no flags) to implement {N} pending changes"
 
    **All pillars up to date:** "All flows and pages are implemented and in sync"
 

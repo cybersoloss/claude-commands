@@ -860,7 +860,9 @@ Create a complete DDD (Design Driven Development) project from a software projec
     - If the product definition describes pages/screens that have no corresponding `specs/ui/{page-id}.yaml`, that's automatically a `pillar_balance` → `pages_without_specs` entry with severity `high`
     - If logic flows outnumber UI pages by more than 5:1 for a user-facing project, add an `imbalance_warnings` entry
 
-17. **Summary**: After creating all files, show:
+17. **Write change-history entries**: After all spec files are created, append one entry per generated spec file to `.ddd/change-history.yaml` (create the file if it doesn't exist). Use `source: ddd-create`, current ISO timestamp, file checksum, and `status: pending_implement`. Determine `level`, `domain`, `flow`, and `pillar` from the file path (same rules as ddd-tool). This enables `/ddd-implement` (no flags) to implement everything in one targeted pass without needing `--all`.
+
+18. **Summary**: After creating all files, show:
     ```
     Created DDD Project: {project-name}
 
@@ -937,11 +939,13 @@ Create a complete DDD (Design Driven Development) project from a software projec
       specs/shortfalls.yaml — 12 shortfalls (2 critical, 4 high, 3 medium, 3 low)
       Top recommendation: {one-liner}
 
+    Change-history: {N} pending entries written to .ddd/change-history.yaml
+
     Next steps:
       1. Open the project in DDD Tool to visualize and validate
       2. Review and refine flows in the canvas
       3. Run /ddd-scaffold to set up project skeleton
-      4. Run /ddd-implement --all to generate code
+      4. Run /ddd-implement to generate code ({N} changes pending)
     ```
 
 $ARGUMENTS

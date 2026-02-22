@@ -147,7 +147,25 @@ Parse the argument to determine what to update:
 
    When **adding a domain**, create all required files and update `ddd-project.json`.
 
-7. **Maintain spec integrity**: After making changes, verify:
+7. **Write change-history entries**: After applying changes (step 6), append an entry to `.ddd/change-history.yaml` for each spec file that was modified or created. Use `source: ddd-update`, current ISO timestamp, current file checksum, and `status: pending_implement`. Follow the same format as ddd-tool entries:
+   ```yaml
+   - id: "chg-{next 4-digit id}"
+     timestamp: "{ISO 8601}"
+     source: "ddd-update"
+     scope:
+       level: L1|L2|L3
+       domain: "{domain_id or null}"
+       flow: "{flow_id or null}"
+       pillar: logic|data|interface|infrastructure|null
+     spec_file: "{relative path from project root}"
+     spec_checksum: "{SHA-256 of file content, first 12 chars}"
+     status: "pending_implement"
+     implemented_at: null
+     code_files: []
+   ```
+   Do not create duplicate entries — if a pending entry already exists for the same spec_file with the same checksum, skip it.
+
+8. **Maintain spec integrity**: After making changes, verify:
    - Every flow still has exactly one trigger
    - All paths from trigger reach a terminal (no dead ends)
    - No orphaned nodes (all reachable from trigger)
@@ -169,68 +187,68 @@ Parse the argument to determine what to update:
    - Event wiring is consistent (published events match consumed events across domains)
    - Agent flows have at least one agent_loop with `model`, tools, and a terminal tool
 
-8. **Preserve existing data**: When updating a flow:
+9. **Preserve existing data**: When updating a flow:
    - Keep all nodes that aren't being changed — don't regenerate the entire flow
    - Preserve node IDs — changing IDs would break `.ddd/mapping.yaml` references
    - Preserve positions of unchanged nodes
    - Preserve `metadata.created`, update `metadata.modified` to current ISO timestamp
    - Preserve `observability` and `security` configs on unchanged nodes
 
-9. **Handle cross-domain impacts**: If the change affects event wiring:
-   - If adding a new event publication, check if any domain consumes it
-   - If removing an event, warn about domains that consume it
-   - If renaming an event, update all references across domains
-   - List all affected files after making cross-domain changes
+10. **Handle cross-domain impacts**: If the change affects event wiring:
+    - If adding a new event publication, check if any domain consumes it
+    - If removing an event, warn about domains that consume it
+    - If renaming an event, update all references across domains
+    - List all affected files after making cross-domain changes
 
-10. **Maintain UI spec integrity** (when updating Interface pillar): After making changes, verify:
-   - All `data_source` values reference valid `domain/flow-id` that exist in flow specs
-   - All form field `type` values are valid (text, number, select, multi-select, search-select, date, datetime, textarea, toggle, tag-input, file, color, slider)
-   - All `options_source` references point to valid spec paths (e.g., `shared/types.yaml#status`)
-   - All `search_source` references point to valid backend flows
-   - Page IDs in `pages.yaml` match corresponding `specs/ui/{page-id}.yaml` filenames
-   - Navigation items reference valid page IDs
-   - Shared component IDs referenced by sections exist in `pages.yaml` → `shared_components`
+11. **Maintain UI spec integrity** (when updating Interface pillar): After making changes, verify:
+    - All `data_source` values reference valid `domain/flow-id` that exist in flow specs
+    - All form field `type` values are valid (text, number, select, multi-select, search-select, date, datetime, textarea, toggle, tag-input, file, color, slider)
+    - All `options_source` references point to valid spec paths (e.g., `shared/types.yaml#status`)
+    - All `search_source` references point to valid backend flows
+    - Page IDs in `pages.yaml` match corresponding `specs/ui/{page-id}.yaml` filenames
+    - Navigation items reference valid page IDs
+    - Shared component IDs referenced by sections exist in `pages.yaml` → `shared_components`
 
-11. **Report what changed**: After updating, show a clear summary:
-   ```
-   Updated specs:
-     specs/domains/users/flows/user-register.yaml
-       + Added node: rate-limiter (process) after trigger
-       ~ Modified node: input-001 connections (rewired through rate-limiter)
-       ~ Updated metadata.modified
+12. **Report what changed**: After updating, show a clear summary:
+    ```
+    Updated specs:
+      specs/domains/users/flows/user-register.yaml
+        + Added node: rate-limiter (process) after trigger
+        ~ Modified node: input-001 connections (rewired through rate-limiter)
+        ~ Updated metadata.modified
 
-     specs/ui/dashboard.yaml
-       + Added section: search-bar (filter-bar) at position top
-       ~ Modified section: item-list query (added search parameter)
+      specs/ui/dashboard.yaml
+        + Added section: search-bar (filter-bar) at position top
+        ~ Modified section: item-list query (added search parameter)
 
-     specs/schemas/user.yaml
-       + Added field: tags (string[], optional)
-       + Added index: idx_user_tags (GIN on tags)
-       ~ Updated metadata.modified
+      specs/schemas/user.yaml
+        + Added field: tags (string[], optional)
+        + Added index: idx_user_tags (GIN on tags)
+        ~ Updated metadata.modified
 
-     specs/infrastructure.yaml
-       + Added service: cache (Redis 7, port 6379)
-       ~ Updated backend depends_on (added cache)
+      specs/infrastructure.yaml
+        + Added service: cache (Redis 7, port 6379)
+        ~ Updated backend depends_on (added cache)
 
-   Affected domains: users
-   Affected pages: dashboard
-   Cross-cutting patterns applied: stealth_http (to service_call nodes)
+    Affected domains: users
+    Affected pages: dashboard
+    Cross-cutting patterns applied: stealth_http (to service_call nodes)
+    Change-history: 3 pending entries written to .ddd/change-history.yaml
 
-   Next steps:
-     - Reload the DDD Tool to see changes (Cmd+R)
-     - Run /ddd-implement users/user-register to update backend code
-     - Run /ddd-implement --ui dashboard to update page component
-     - Run /ddd-scaffold to regenerate infrastructure scripts (if infra changed)
-   ```
+    Next steps:
+      - Reload the DDD Tool to see changes (Cmd+R)
+      - Run /ddd-implement to process all pending changes
+      - Run /ddd-scaffold to regenerate infrastructure scripts (if infra changed)
+      - Run /ddd-test to verify after implementation
+    ```
 
-12. **Suggest next steps**: After updating specs, tell the user:
+13. **Suggest next steps**: After updating specs, tell the user:
     - "Reload the DDD Tool to see the updated flow graph (Cmd+R)"
-    - For flow changes: "Run `/ddd-implement {domain/flow}` to update the implementation"
-    - For UI changes: "Run `/ddd-implement --ui {page-id}` to update the page component"
+    - "Run `/ddd-implement` to implement all pending changes (change-history entries written)"
     - For infrastructure changes: "Run `/ddd-scaffold` to regenerate infrastructure scripts"
-    - For schema changes: "Run `/ddd-scaffold` to update database schema, then `/ddd-implement` for affected flows"
-    - If cross-domain changes were made, list which other flows may need re-implementation
-    - After re-implementation: "Run `/ddd-test {scope}` to verify the updated code passes tests"
+    - For schema changes: "Run `/ddd-scaffold` to update database schema, then `/ddd-implement`"
+    - If cross-domain changes were made, list which other domains were also written to change-history
+    - After implementation: "Run `/ddd-test` to verify the updated code passes tests"
 
 ## Node Type Reference
 

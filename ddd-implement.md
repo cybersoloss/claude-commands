@@ -16,7 +16,8 @@ Parse the argument to determine scope:
 | `--schema` | Regenerate ORM/database schema from all schema specs | `/ddd-implement --schema` |
 | `--schema model-name` | Regenerate a single model's schema | `/ddd-implement --schema user` |
 | `--infra` | Regenerate infrastructure configs from infrastructure spec | `/ddd-implement --infra` |
-| *(empty)* | Interactive — list available items across all pillars and ask | `/ddd-implement` |
+| *(empty)* | Read `.ddd/change-history.yaml` for `pending_implement` entries — implement those. If none pending, list available items and ask. | `/ddd-implement` |
+| `--ignore-history` | Skip change-history and list all available items to implement | `/ddd-implement --ignore-history` |
 
 ## Instructions
 
@@ -24,7 +25,7 @@ Parse the argument to determine scope:
 
 2. **Resolve the scope from the argument**:
 
-   **If no argument**: List all domains and their flows with implementation status (check `.ddd/mapping.yaml`). Also list UI pages with implementation status. Show which are implemented (with date), which have drift, and which are new. Ask the user what to implement.
+   **If no argument**: First check `.ddd/change-history.yaml` for entries with `status: pending_implement`. If pending entries exist, use those as the scope — implement only those flows/pages/schemas without asking. Show a brief summary: "Found {N} pending changes from change-history — implementing those." If no pending entries (or `--ignore-history` flag), list all domains and their flows with implementation status (check `.ddd/mapping.yaml`), list UI pages with implementation status, show which are implemented (with date), which have drift, and which are new. Ask the user what to implement.
 
    **If `--all`**: Collect all flows across all domains and all UI pages. Implement backend flows first (in dependency order — flows that publish events before flows that consume them), then implement UI pages.
 
@@ -358,7 +359,17 @@ Parse the argument to determine scope:
        annotationCount: 0
    ```
 
-15. **Summary**: After all implementations are done, show a summary table:
+15. **Mark change-history entries as implemented**: After all flows/pages are successfully implemented, update `.ddd/change-history.yaml` — for each entry that was implemented in this run, set:
+   ```yaml
+   status: implemented
+   implemented_at: "{current ISO timestamp}"
+   code_files:
+     - src/path/to/generated-file1.ts
+     - src/path/to/generated-file2.ts
+   ```
+   Never delete entries — only update `status`, `implemented_at`, and `code_files`. If change-history.yaml doesn't exist (explicit `--all` or `--flow` run), skip this step.
+
+16. **Summary**: After all implementations are done, show a summary table:
     ```
     Logic:
     Domain/Flow                  Status    Files  Tests
@@ -385,7 +396,7 @@ Parse the argument to determine scope:
     Pillar balance: Logic {N} flows, Interface {N} pages, Data {N} schemas, Infrastructure {N} configs
     ```
 
-16. **Next steps**: After implementation, suggest:
+17. **Next steps**: After implementation, suggest:
     - "Run `/ddd-test --all` to verify all implementations"
     - "Open the DDD Tool to review the implementation state"
     - "Run `/ddd-sync` to update mapping hashes and detect any remaining drift"

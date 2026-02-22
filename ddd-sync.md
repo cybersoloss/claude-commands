@@ -63,6 +63,8 @@ Synchronize the DDD project specs with the current implementation state across a
 
    For each entry, check TWO dimensions of drift:
 
+   **Change-history check**: Before running the full drift analysis, read `.ddd/change-history.yaml` (if it exists). Any entry with `status: pending_implement` where the `spec_checksum` no longer matches the current file hash indicates a spec was changed after the last ddd-tool save or command run. These files are already tracked — use their existing entries rather than creating duplicates.
+
    **Spec drift** (specHash mismatch): The spec YAML changed since the last implementation.
    **Code drift** (fileHashes mismatch): One or more implementation files changed since the last implementation. Recompute SHA-256 of each file in the mapping's `files` array and compare against stored `fileHashes`. A mismatch means a developer (or another tool) modified the code.
 
@@ -76,7 +78,7 @@ Synchronize the DDD project specs with the current implementation state across a
       - **Metadata-only** → Update hash, no further action
       - **Spec enriched, code covers it** → Update hash after verification
       - **Code ahead of spec** → Flag for `/ddd-reflect`, do NOT update hash yet
-      - **New spec logic** → Flag for `/ddd-implement`, do NOT update hash yet
+      - **New spec logic** → Flag for `/ddd-implement`, do NOT update hash yet. Write a `pending_implement` entry to `.ddd/change-history.yaml` for this spec file (if no existing pending entry for this file already exists), using `source: ddd-sync`, current spec checksum, and `status: pending_implement`. This allows `/ddd-implement` (no flags) to pick it up automatically.
 
    For entries with code drift only (fileHashes mismatch but specHash matches):
    - Read the changed implementation files and compare against the spec
@@ -219,7 +221,7 @@ Synchronize the DDD project specs with the current implementation state across a
 
 10. **Next steps**: Based on findings, suggest the appropriate next commands:
     - Flows with code ahead of spec: "Run `/ddd-reflect {domain/flow}` to capture implementation wisdom, then `/ddd-promote --review`"
-    - Flows with new spec logic: "Run `/ddd-implement {domain/flow}` to update code"
+    - Flows with new spec logic: "Entries added to `.ddd/change-history.yaml` — run `/ddd-implement` (no flags) to implement all pending changes"
     - Pages with code ahead of spec: "Run `/ddd-reflect --ui {page-id}` to capture UI wisdom"
     - Pages with new spec sections: "Run `/ddd-implement --ui {page-id}` to update page"
     - Schemas with code ahead of spec: "Run `/ddd-reflect --schema` to capture schema wisdom, then `/ddd-promote --review`"

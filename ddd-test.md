@@ -15,7 +15,7 @@ Parse the argument to determine scope:
 | `--ui page-id` | Single UI page | `/ddd-test --ui dashboard` |
 | `--schema` | Schema/migration tests | `/ddd-test --schema` |
 | `--infra` | Infrastructure health checks | `/ddd-test --infra` |
-| *(empty)* | Interactive — show all testable items and ask | `/ddd-test` |
+| *(empty)* | Scope to recently implemented entries from `.ddd/change-history.yaml` (implemented in the last session). If none, show all testable items and ask. | `/ddd-test` |
 
 **Files read:**
 - `ddd-project.json` — project config, domain list
@@ -38,7 +38,7 @@ Parse the argument to determine scope:
 
 3. **Resolve scope from the argument**:
 
-   **If no argument**: List all implemented flows and pages with their test status. Ask the user what to test.
+   **If no argument**: Check `.ddd/change-history.yaml` for entries with `status: implemented` and `implemented_at` within the current session (last 2 hours). If recent entries exist, collect their `code_files` and scope tests to those files only — show: "Testing {N} recently implemented items from change-history." If no recent entries, list all implemented flows and pages with their test status and ask the user what to test.
 
    **If `--all`**: Collect test files for all implemented flows AND all implemented pages.
 
