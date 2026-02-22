@@ -33,10 +33,12 @@ This copies the 11 DDD command files into `~/.claude/commands/`. Safe to run if 
 
 Restart Claude Code to load the commands.
 
-**Update:** Re-run `install.sh` (or the `cp` command) after pulling new versions:
+**Update:** Run `update.sh` to pull and apply only changed commands:
 ```bash
-cd claude-commands && git pull && ./install.sh
+cd claude-commands && ./update.sh
 ```
+
+Only changed files are copied. Output shows which commands were updated and the new version. Changes take effect immediately — no restart needed.
 
 **Uninstall:**
 ```bash

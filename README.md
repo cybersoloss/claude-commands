@@ -17,10 +17,10 @@ This installs all commands (general dev + Design Driven Development) into `~/.cl
 
 **Update commands:**
 ```bash
-cd ~/.claude/commands && git pull
+cd /path/to/claude-commands && ./update.sh
 ```
 
-`git pull` automatically fetches the latest DDD commands via a post-merge hook.
+Only changed files are copied. Output shows which commands were updated and the new version. Changes take effect immediately in all Claude Code sessions — no restart needed.
 
 ## Commands
 
