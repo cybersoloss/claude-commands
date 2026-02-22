@@ -143,8 +143,6 @@ Parse the argument to determine scope:
      - Review the failing test and fix the code, OR
      - Run /ddd-implement users/user-login to regenerate backend flow
      - Run /ddd-implement --ui inbox to regenerate page component
-     - If all tests pass, proceed to /ddd-sync to check spec alignment
-     - After sync, run /ddd-reflect to capture implementation wisdom, then /ddd-promote --review
    ```
 
    **Frontend-specific failure causes:**
@@ -156,9 +154,11 @@ Parse the argument to determine scope:
 9. **If `$ARGUMENTS` includes `--coverage`**, also run with coverage reporting enabled and show coverage summary per flow.
 
 10. **Next steps**: Based on results, suggest:
-    - If all tests pass: "Run `/ddd-sync` to check spec alignment, then `/ddd-reflect` to capture implementation wisdom, then `/ddd-promote --review`"
-    - If tests fail due to spec drift: "Run `/ddd-implement {scope}` to regenerate from updated specs, then re-run `/ddd-test`"
+    - If all tests pass (right after fresh implementation): "Run `/ddd-reflect {scope}` when ready to capture implementation wisdom, then `/ddd-promote --review`"
+    - If all tests pass (after a longer development period with manual edits): "Run `/ddd-reflect {scope}` to capture any wisdom from manual edits, then `/ddd-promote --review`"
+    - **Do NOT suggest `/ddd-sync` as a default next step after passing tests.** Sync is a Reflect phase command for checking project-wide alignment — it is expensive and not needed right after a single flow test passes.
+    - If tests fail due to spec drift: "Run `/ddd-implement {scope}` to regenerate from updated specs, then re-run `/ddd-test {scope}`"
     - If tests fail due to manual code changes: "Review the failing test and fix the code, or run `/ddd-implement {scope}` to regenerate"
-    - If tests fail due to environment issues: "Fix the environment issue (missing env var, database not running) and re-run `/ddd-test`"
+    - If tests fail due to environment issues: "Fix the environment issue (missing env var, database not running) and re-run `/ddd-test {scope}`"
 
 $ARGUMENTS
