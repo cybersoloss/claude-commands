@@ -46,13 +46,27 @@ Analyze DDD shortfall reports across all four pillars (Logic, Data, Interface, I
      c. Use `{dir}/specs/shortfalls.yaml` as the shortfall file.
    - If no valid shortfall files are found after resolution, show an error and exit.
 
-3. **Read all shortfall files**: Parse each resolved `shortfalls.yaml`. For each file, record the project name, date, and all shortfall entries.
+3. **Read all shortfall files**: Parse each resolved `shortfalls.yaml`. For each file, record the project name, date, and all shortfall entries. Map each entry to a pillar using its source section:
+
+   | shortfalls.yaml section | Pillar |
+   |------------------------|--------|
+   | `missing_node_types`, `inadequate_existing_nodes` | Determined by the node type: flow/logic nodes → `logic`; schema/data_store nodes → `data` |
+   | `missing_spec_fields` | Determined by which node/spec the field belongs to |
+   | `connection_limitations`, `layer_gaps` | `cross_cutting` |
+   | `workarounds` | Determined by what the workaround applies to |
+   | `cross_cutting_gaps` | `cross_cutting` |
+   | `ui_shortfalls.*` | `interface` |
+   | `pillar_balance` | `cross_cutting` |
+   | Infrastructure node types or `specs/infrastructure.yaml` fields | `infrastructure` |
+
+   Record a `pillar` value (`logic` | `data` | `interface` | `infrastructure` | `cross_cutting`) for every shortfall entry.
 
 4. **Deduplicate across projects**: Merge shortfalls that describe the same underlying gap (even if worded differently). Track:
    - `frequency` — how many projects reported this gap
    - `projects` — which projects
    - `max_severity` — highest severity reported across projects
    - `consistent_severity` — whether all projects agree on severity (high signal) or vary widely (low signal)
+   - `pillar` — from step 3; if duplicates disagree, use the most specific (prefer `logic` over `cross_cutting`)
 
 5. **Critically evaluate each shortfall**: This is the core of the command. For EVERY shortfall, apply these filters:
 
@@ -91,6 +105,9 @@ Analyze DDD shortfall reports across all four pillars (Logic, Data, Interface, I
    - `process` nodes are intentionally flexible (sometimes free-text IS the right answer)
    Rate as `likely_intentional` or `likely_unintentional`.
 
+   **Filter G — Pillar balance check**
+   Review the `pillar_balance` section of shortfalls.yaml. If any pillar shows `pages_without_specs`, `domains_without_flows`, or disproportionate gap counts, flag it as a systemic pillar coverage issue — this is a separate finding from individual node-level gaps. A pillar that is systematically under-spec'd in every project is a framework signal (perhaps the spec format for that pillar is too complex or too sparse), not just a project oversight.
+
 6. **Classify each shortfall** into one of these verdicts:
 
    | Verdict | Meaning | Criteria |
@@ -122,6 +139,12 @@ Analyze DDD shortfall reports across all four pillars (Logic, Data, Interface, I
        ALREADY_POSSIBLE: {count}
        BY_DESIGN: {count}
        PROJECT_SPECIFIC: {count}
+     pillar_distribution:
+       logic: {count}           # gaps in flow/logic nodes
+       data: {count}            # gaps in schema/data_store
+       interface: {count}       # gaps in UI spec / components
+       infrastructure: {count}  # gaps in system/infra spec
+       cross_cutting: {count}   # spans multiple pillars
 
    # ──────────────────────────────────────────────
    # TIER 1: Real gaps — recommended for action
@@ -142,6 +165,7 @@ Analyze DDD shortfall reports across all four pillars (Logic, Data, Interface, I
          it blocks, and why the current workaround is insufficient}
        recommendation:
          action: ADD_NODE_TYPE|ADD_FIELD|ADD_LAYER_ELEMENT|ADD_CONNECTION_FEATURE|UPDATE_SPEC
+         pillar: logic|data|interface|infrastructure|cross_cutting
          scope: "{what changes — e.g., 'Add retry_config field to service_call node'}"
          affects:
            spec: true|false        # DDD-USAGE-GUIDE.md
@@ -172,6 +196,7 @@ Analyze DDD shortfall reports across all four pillars (Logic, Data, Interface, I
          and why it's acceptable for now.}
        recommendation:
          action: "{proposed change}"
+         pillar: logic|data|interface|infrastructure|cross_cutting
          effort: small|medium
        decision: null  # ← Set during --review
 
@@ -220,6 +245,13 @@ Analyze DDD shortfall reports across all four pillars (Logic, Data, Interface, I
      NA-001  [VAGUE]       "Better error handling" — too unspecific
      NA-002  [BY_DESIGN]   Process node flexibility is intentional
      NA-003  [ALREADY_OK]  Can use custom_fields for this today
+
+   Pillar distribution (actionable items only):
+     Logic:          RG-001, RG-002          (2 items)
+     Data:           —                        (0 items)
+     Interface:      RG-003, EN-001          (2 items)
+     Infrastructure: —                        (0 items)
+     Cross-cutting:  —                        (0 items)
 
    Recommended execution: Phase 1 (RG-001, RG-003) → Phase 2 (RG-002, EN-001)
 
@@ -335,11 +367,32 @@ When `$ARGUMENTS` contains `--apply` and a path to an evolution plan:
 
 4. After confirmation, execute changes in dependency order (phase 1 first, then phase 2).
 
-5. For each approved item, make the actual changes:
-   - **spec changes** → edit `DDD-USAGE-GUIDE.md` in the DDD repo
-   - **command changes** → edit the affected command files (e.g., `ddd-create.md`)
-   - **tool changes** → edit source files in the ddd-tool repo (`src/`)
-   - **validator changes** → edit `src/utils/flow-validator.ts` in the ddd-tool repo
+5. For each approved item, make the actual changes. Use the item's `pillar` field to determine exactly which files to touch:
+
+   **Spec changes** (`affects.spec: true`) — always `DDD-USAGE-GUIDE.md`, but target the right section:
+   - `logic` → Flow Node Types section (node spec tables, sourceHandle docs, connection patterns)
+   - `data` → Schema spec section + data_store node table
+   - `interface` → UI Spec section (PageSpec, FormSpec, component type tables, interaction types)
+   - `infrastructure` → Infrastructure spec section (system.yaml, ports, service definitions)
+   - `cross_cutting` → wherever the gap spans (connections, layers, shared fields)
+
+   **Command changes** (`affects.commands: true`) — always `ddd-create.md`, targeting:
+   - `logic` → flow node instructions, connection wiring section
+   - `data` → schema generation instructions, data_store usage examples
+   - `interface` → UI spec generation instructions, component type lists, form field types
+   - `infrastructure` → infrastructure spec instructions
+   - Also update `ddd-implement.md` if the change affects how code is generated from specs
+
+   **Tool changes** (`affects.tool: true`) — edit `~/dev/ddd-tool/src/`:
+   - `logic` → node editor components (`src/components/nodes/`), flow canvas logic
+   - `data` → schema editor, data_store node editor
+   - `interface` → UI spec editors (`src/components/ui-spec/`), page/form/component editors
+   - `infrastructure` → infrastructure panel editors
+   - All pillars: update `src/utils/normalizeFlowDocument.ts` if new fields need normalization
+
+   **Validator changes** (`affects.validator: true`) — edit `~/dev/ddd-tool/src/utils/flow-validator.ts`:
+   - Add validation rules scoped to the affected node type or spec section
+   - For `interface` changes: also check `src/utils/uiSpecValidator.ts` if it exists
 
    **Validate applied changes**: After modifying framework files, verify each edited file is valid (YAML lint for spec files, markdown structure for commands, TypeScript compilation for tool/validator). Fix any issues before finalizing.
 
