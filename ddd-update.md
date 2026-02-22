@@ -127,7 +127,9 @@ Parse the argument to determine what to update:
    - Update startup order
    - Change deployment strategy
 
-6. **Apply the changes to the YAML specs**:
+6. **Apply the changes to the YAML specs** (**SPEC FILES ONLY — never edit implementation code**):
+
+   > **HARD RULE:** `/ddd-update` modifies YAML spec files ONLY (`specs/**/*.yaml`, `ddd-project.json`). It NEVER touches implementation files (`src/`, `*.ts`, `*.js`, `*.py`, `prisma/`, etc.). If the user's request involves fixing a bug or changing runtime behavior, update the spec to reflect the intended behavior — then the change-history entry ensures `/ddd-implement` regenerates the code. Editing implementation files directly in `/ddd-update` creates an inconsistency: change-history says `pending_implement` but code already exists, confusing the next steps.
 
    When **modifying an existing flow**, read the current flow YAML and update it:
    - **Adding a node**: Create a new node entry with proper `id`, `type`, `position`, `spec`, `label`, and `connections`. Update the upstream node's connections to include the new node. Position it logically on the canvas (below the node it follows, with ~130px vertical spacing).
