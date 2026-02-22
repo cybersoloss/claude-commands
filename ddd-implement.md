@@ -396,10 +396,12 @@ Parse the argument to determine scope:
     Pillar balance: Logic {N} flows, Interface {N} pages, Data {N} schemas, Infrastructure {N} configs
     ```
 
-17. **Next steps**: After implementation, suggest:
-    - "Run `/ddd-test --all` to verify all implementations"
-    - "Open the DDD Tool to review the implementation state"
-    - "Run `/ddd-sync` to update mapping hashes and detect any remaining drift"
-    - "When ready to capture implementation wisdom, run `/ddd-reflect --all` then `/ddd-promote --review`"
+17. **Next steps**: After implementation, suggest **scoped** commands — never `--all` unless the scope was already `--all`:
+    - **If scope was a single flow or page**: "Run `/ddd-test {domain/flow}` to verify the implemented flow" (or `/ddd-test` with no flags — it scopes automatically to recently implemented entries from change-history)
+    - **If scope was a domain**: "Run `/ddd-test {domain}` to verify all flows in the domain"
+    - **If scope was `--all` or all pending entries**: "Run `/ddd-test` (no flags) to verify recently implemented items"
+    - "Open the DDD Tool to review the implementation state (Cmd+R to reload)"
+    - **Do NOT suggest `/ddd-sync` here** — sync is a Reflect phase command, not a Build phase command. It's only relevant when checking project-wide alignment later (after multiple sessions). Suggesting it right after a fresh implement is misleading — the flow is by definition in sync just after being generated.
+    - "When ready to capture implementation wisdom (after using the code in development), run `/ddd-reflect {domain/flow}` then `/ddd-promote --review`"
 
 $ARGUMENTS
