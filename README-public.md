@@ -4,6 +4,8 @@
 
 Slash commands for the [Design Driven Development](https://github.com/cybersoloss/DDD) workflow in Claude Code.
 
+![DDD Workflow Demo](https://raw.githubusercontent.com/cybersoloss/DDD/main/assets/ddd-demo.gif)
+
 > **Note:** The abbreviation "DDD" is used in command names for brevity. This is not related to Eric Evans' Domain-Driven Design, which is an entirely separate methodology.
 
 ## Prerequisites
