@@ -204,7 +204,7 @@ Parse the argument to determine what to update:
 
 11. **Maintain UI spec integrity** (when updating Interface pillar): After making changes, verify:
     - All `data_source` values reference valid `domain/flow-id` that exist in flow specs
-    - All form field `type` values are valid (text, number, select, multi-select, search-select, date, datetime, textarea, toggle, tag-input, file, color, slider)
+    - All form field `type` values are valid (text, number, select, multi-select, search-select, date, datetime, date-range, textarea, toggle, tag-input, file, color, slider, markdown, repeating_group)
     - All `options_source` references point to valid spec paths (e.g., `shared/types.yaml#status`)
     - All `search_source` references point to valid backend flows
     - Page IDs in `pages.yaml` match corresponding `specs/ui/{page-id}.yaml` filenames

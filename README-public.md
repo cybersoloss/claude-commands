@@ -94,6 +94,10 @@ Run tests for implemented flows.
 | `--all` | `/ddd-test --all` |
 | `<domain>` | `/ddd-test users` |
 | `<domain/flow>` | `/ddd-test users/user-register` |
+| `--ui` | `/ddd-test --ui` — test all UI pages |
+| `--ui <page-id>` | `/ddd-test --ui dashboard` — test single page |
+| `--schema` | `/ddd-test --schema` — run schema tests |
+| `--infra` | `/ddd-test --infra` — run infrastructure tests |
 | `--coverage` | `/ddd-test --all --coverage` — include coverage report |
 
 ### Phase 1: Create (Existing Codebases)
@@ -120,6 +124,10 @@ Capture implementation wisdom — patterns code has that specs don't describe. W
 | `--all` | `/ddd-reflect --all` |
 | `<domain>` | `/ddd-reflect monitoring` |
 | `<domain/flow>` | `/ddd-reflect monitoring/check-social-sources` |
+| `--ui` | `/ddd-reflect --ui` — capture UI implementation patterns |
+| `--ui <page-id>` | `/ddd-reflect --ui dashboard` — single page patterns |
+| `--schema` | `/ddd-reflect --schema` — capture schema patterns |
+| `--infra` | `/ddd-reflect --infra` — capture infrastructure patterns |
 
 **`/ddd-promote [scope]`**
 

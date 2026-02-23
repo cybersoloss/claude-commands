@@ -273,6 +273,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `data_flows` — inter-zone directed data flow arrows for L1 visualization
    - `characteristics` — system-level badges (e.g., "Event-driven", "6 external APIs")
    - `pipelines` — cross-domain event chains that trace end-to-end pipelines
+   - `ws_topology` (optional) — describe WebSocket architecture for L1 visualization: `{ hubs: [{id, domain, path, description}], fanout: [{from, to, event}] }`. Include when using `ws` triggers or `websocket_broadcast` nodes.
    - `specs/architecture.yaml` — project structure, naming conventions, dependencies, infrastructure, API design, testing, deployment. Include a `cross_cutting_patterns: {}` placeholder section for patterns discovered during implementation.
    - `specs/config.yaml` — required and optional environment variables
    - `specs/shared/errors.yaml` — error codes with HTTP status mappings (cover at least: VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, DUPLICATE_ENTRY, RATE_LIMITED, INTERNAL_ERROR)
@@ -365,6 +366,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `button-group` — `buttons` array with `label`, `flow` (backend flow reference), optional `args`, `variant` (primary/secondary/danger), `icon`, `visible_when`, `confirm`/`confirm_message`
    - `page-header` — `title`, optional `subtitle`, `breadcrumbs`, `actions` (button-group for page-level actions)
    - `status-bar` — `items` array with `label`, `value` ($.field), `color_when` conditions
+   - `filter-bar` — `fields` array of filter inputs (each with `key`, `type`: select|date-range|search|toggle, `source`?, `label`), `apply_flow` (flow to call when filters change), optional `reset_label`. Use for table/list filtering controls.
    - `map-view` — `data_source`, `center_lat`/`center_lng` (initial center), `zoom`, `markers` ({lat_field, lng_field, label_field?, color_field?, click_action?}), `routes` ({points_field, color?, width?}), `realtime` (boolean). Use for shipment tracking, delivery maps, field service. **Do NOT use `chart` with `chart_type: map` for geographic data — use `map-view` instead.**
    - `timeline` — `data_source`, `timestamp_field`, `title_field`, `status_field`, `icon_field?`, `color_when` conditions, `direction` (vertical|horizontal). Use for shipment history, activity logs, audit trails.
    - `chart` — `data_source`, `fields` (series/labels/values), `chart_type` (line/bar/pie/area/donut). For geographic data, use `map-view` instead.
@@ -448,11 +450,13 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `stores` array (optional) — declare in-memory state stores with `name`, `shape`, `initial_state`, `selectors`, `access_pattern` (e.g., Zustand/Redux stores). Referenced by `data_store` nodes with `store_type: memory`.
    - `on_error` (optional) — domain-level error hook with `emit_event` name. `/ddd-implement` adds this to all error terminals.
    - `publishes_events` and `consumes_events` (cross-domain event wiring). Include `payload` field in events to document event data shape
-   - `event_groups` (optional) — named collections of events for use in multi-event triggers. Define `name`, `description`, and `events` array. Referenced as `event_group:{name}` in trigger `event` fields.
+   - `event_groups` (optional) — named collections of events for use in multi-event triggers. Define `name`, `description`, `events` array, and optional `correlation_key` (expression for matching events across a session, e.g. `"$.order_id"` — ensures only events sharing the same key satisfy the group). Referenced as `event_group:{name}` in trigger `event` fields.
+   - `sla_config` (optional) — domain-level SLA monitoring: `{ max_latency_ms, max_error_rate, alert_channel }`
+   - `memory_stores` (optional) — AI/agent memory stores available across flows in the domain: array of `{ name, type: key_value|list|counter, description }`. Distinct from `stores` (which are UI-layer in-memory state stores).
    - `layout` with flow positions (space flows vertically with ~200px gaps)
 
 13. **Create flow YAML files**: For each flow, create `specs/domains/{domain-id}/flows/{flow-id}.yaml` with:
-   - `flow` metadata (id, name, type, domain, description). Optionally add `emits: string[]` and `listens_to: string[]` to summarize the flow's event surface. For flows triggered by keyboard shortcuts, add `keyboard_shortcut` (e.g., `"Cmd+K"`). For reusable parameterized flows, add `template: true` and `parameters` (Record<string, FlowParameter> where FlowParameter has `type` and optional `values`) — callers pass parameters via `sub_flow` node's `input_mapping`. For HTTP-triggered flows, add `auth: { required: boolean, roles?: string[], strategy?: 'jwt'|'api_key'|'none' }` — `/ddd-implement` generates auth middleware from this field. Internal, cron, and event-triggered flows may omit `auth`. For performance-critical flows, optionally add `metrics: [{name, type: counter|gauge|histogram, labels?}]`.
+   - `flow` metadata (id, name, type, domain, description). Optionally add `emits: string[]` and `listens_to: string[]` to summarize the flow's event surface. For flows triggered by keyboard shortcuts, add `keyboard_shortcut` (e.g., `"Cmd+K"`). For reusable parameterized flows, add `template: true` and `parameters` (Record<string, FlowParameter> where FlowParameter has `type` and optional `values`) — callers pass parameters via `sub_flow` node's `input_mapping`. For HTTP-triggered flows, add `auth: { required: boolean, roles?: string[], strategy?: 'jwt'|'api_key'|'none' }` — `/ddd-implement` generates auth middleware from this field. Internal, cron, and event-triggered flows may omit `auth`. For performance-critical flows, optionally add `metrics: [{name, type: counter|gauge|histogram, labels?}]`. For flows that need per-flow log configuration, add `log: {level: 'debug'|'info'|'warn'|'error', include_input?: boolean, include_output?: boolean}` to override the default log level.
    - `trigger` node with `spec.event` set to one of these conventions:
      - `HTTP {METHOD} {path}` for API endpoints
      - `cron {expression}` for scheduled jobs. Add `job_config` to the trigger spec with queue, concurrency, timeout, and retry settings
@@ -635,15 +639,15 @@ Create a complete DDD (Design Driven Development) project from a software projec
     ── DDD Feature Usage Matrix ───────────────────────────────────────────────
     Category                        Available  Used  Unused
     ─────────────────────────────── ────────── ───── ──────────────────────────
-    Node Types (28)                 28         {N}   {list unused}
+    Node Types (29)                 29         {N}   {list unused}
     Trigger Types (13)              13         {N}   {list unused}
-    Collection Operations (8)       8          {N}   {list unused}
+    Collection Operations (11)      11         {N}   {list unused}
     Crypto Operations (6)           6          {N}   {list unused}
     Parse Formats (7)               7          {N}   {list unused}
     Data Store Types (3)            3          {N}   {list unused}
     Connection Behaviors (4)        4          {N}   {list unused}
-    UI Component Types (9)          9          {N}   {list unused}
-    Form Field Types (14)           14         {N}   {list unused}
+    UI Component Types (11)         11         {N}   {list unused}
+    Form Field Types (16)           16         {N}   {list unused}
     Schema Index Types (4)          4          {N}   {list unused}
     Schema Seed Strategies (3)      3          {N}   {list unused}
     Schema Relationship Types (4)   4          {N}   {list unused}
@@ -858,7 +862,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
     **Feature catalog cross-reference (MANDATORY):**
     - Include the Feature Usage Matrix from Step A in the `summary` section as `feature_coverage`
     - Every `process` node in every generated flow MUST be checked: could a structured node type (`collection`, `transform`, `parse`, `crypto`, `cache`, `batch`, `smart_router`, `transaction`, etc.) replace it? If yes → `workarounds` entry
-    - Every UI section using a generic description where a built-in component type (`stat-card`, `item-list`, `card-grid`, `detail-card`, `button-group`, `page-header`, `status-bar`, `chart`, `filter-bar`) would fit → `ui_shortfalls.inadequate_components` or `ui_shortfalls.missing_component_types` entry
+    - Every UI section using a generic description where a built-in component type (`stat-card`, `item-list`, `card-grid`, `detail-card`, `button-group`, `page-header`, `status-bar`, `chart`, `filter-bar`, `map-view`, `timeline`) would fit → `ui_shortfalls.inadequate_components` or `ui_shortfalls.missing_component_types` entry
 
     **Content rules:**
     - Only include sections that have entries — omit empty sections entirely

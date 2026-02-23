@@ -140,6 +140,8 @@ Parse the argument to determine scope:
      - `file` → file upload component
      - `color` → color picker
      - `slider` → range slider
+     - `markdown` → rich-text markdown editor (optional config: `markdown_config: { mode: toggle|split, toolbar: true, min_height }`)
+     - `repeating_group` → editable sub-table for repeating rows (e.g. order lines, schedule entries); uses `repeating_group: { columns, min_rows?, max_rows?, add_label?, remove_label? }`
    - For fields with `options`: render static options
    - For fields with `options_source`: load options from the referenced spec file
    - For fields with `required: true`: add client-side required validation
@@ -225,7 +227,7 @@ Parse the argument to determine scope:
    - `cache` → cache check before expensive operations (get/set/invalidate on cache store)
    - `delay` → deliberate wait (rate limiting, scheduling) with `min_ms`, `max_ms`, `strategy`
    - `transform` → structured data mapping between formats using `input_schema`/`output_schema`/`field_mappings`
-   - `collection` → collection operation (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten) on input
+   - `collection` → collection operation (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten, first, last, join) on input
    - `parse` → structured extraction from raw format (rss, atom, html, xml, json, csv, markdown)
    - `crypto` → cryptographic operation (encrypt, decrypt, hash, sign, verify, generate_key)
    - `batch` → execute operation template against each item in input collection with concurrency control

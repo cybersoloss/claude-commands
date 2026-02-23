@@ -192,6 +192,10 @@ Generate working code and tests from DDD specs — backend flows, frontend pages
 | `domain-name/flow-name` | Single flow | `/ddd-implement users/user-register` |
 | `--ui` | All UI pages | `/ddd-implement --ui` |
 | `--ui page-id` | Single UI page | `/ddd-implement --ui dashboard` |
+| `--schema` | Regenerate data layer from schemas | `/ddd-implement --schema` |
+| `--schema model-name` | Single schema model | `/ddd-implement --schema User` |
+| `--infra` | Regenerate infrastructure from specs | `/ddd-implement --infra` |
+| `--ignore-history` | Ignore change-history, implement scope directly | `/ddd-implement --all --ignore-history` |
 | *(empty)* | Interactive — shows flows/pages and asks | `/ddd-implement` |
 
 ### Examples
@@ -266,6 +270,10 @@ Update DDD specs from natural language change requests.
 | `domain` | Update domain config or flows | `/ddd-update users add email verification flow` |
 | `--add-flow domain` | Add a new flow to a domain | `/ddd-update --add-flow users` |
 | `--add-domain` | Add a new domain | `/ddd-update --add-domain` |
+| `--ui page-id` | Update a UI page spec | `/ddd-update --ui dashboard add a filter bar` |
+| `--add-page` | Add a new UI page spec | `/ddd-update --add-page add an analytics page` |
+| `--schema model` | Update a schema | `/ddd-update --schema User add avatar_url field` |
+| `--infra` | Update infrastructure spec | `/ddd-update --infra add Redis service` |
 | *(empty)* | Interactive — shows structure and asks | `/ddd-update` |
 
 ### Examples
@@ -468,6 +476,10 @@ Run tests for implemented flows without re-generating code.
 | `--all` | All implemented flows | `/ddd-test --all` |
 | `domain-name` | All flows in a domain | `/ddd-test users` |
 | `domain-name/flow-name` | Single flow | `/ddd-test users/user-register` |
+| `--ui` | All UI page tests | `/ddd-test --ui` |
+| `--ui page-id` | Single UI page tests | `/ddd-test --ui dashboard` |
+| `--schema` | Schema/data layer tests | `/ddd-test --schema` |
+| `--infra` | Infrastructure tests | `/ddd-test --infra` |
 | *(empty)* | Interactive — shows flows and asks | `/ddd-test` |
 
 ### Examples
@@ -580,6 +592,11 @@ Capture implementation wisdom — patterns and details that code has but specs d
 | `--all` | Entire project | `/ddd-reflect --all` |
 | `domain-name` | All flows in a domain | `/ddd-reflect monitoring` |
 | `domain-name/flow-name` | Single flow | `/ddd-reflect monitoring/check-social-sources` |
+| `--ui` | All UI pages | `/ddd-reflect --ui` |
+| `--ui page-id` | Single UI page | `/ddd-reflect --ui dashboard` |
+| `--schema` | All schemas | `/ddd-reflect --schema` |
+| `--schema model` | Single schema | `/ddd-reflect --schema User` |
+| `--infra` | Infrastructure spec | `/ddd-reflect --infra` |
 | *(empty)* | Interactive — shows flows and asks | `/ddd-reflect` |
 
 ### Examples
@@ -626,7 +643,13 @@ Move approved annotations into permanent specs. This is how implementation wisdo
 |----------|-------|---------|
 | `--all` | Promote all approved annotations | `/ddd-promote --all` |
 | `--review` | Interactive review of candidates | `/ddd-promote --review` |
+| `domain-name` | All flows in a domain | `/ddd-promote monitoring` |
 | `domain-name/flow-name` | Scope to specific flow | `/ddd-promote monitoring/check-social-sources` |
+| `--ui` | All UI page annotations | `/ddd-promote --ui` |
+| `--ui page-id` | Single UI page | `/ddd-promote --ui dashboard` |
+| `--schema` | All schema annotations | `/ddd-promote --schema` |
+| `--schema model` | Single schema | `/ddd-promote --schema User` |
+| `--infra` | Infrastructure annotations | `/ddd-promote --infra` |
 
 ### Examples
 
