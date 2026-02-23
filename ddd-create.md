@@ -489,7 +489,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Use `human_gate` for async human approval in agent flows — specify `notification_channels`, `approval_options` (array of `{id, label, description?, requires_input?}`), `timeout` ({duration?, action?: escalate/auto_approve/auto_reject}), `context_for_human`
      - Use `orchestrator` for multi-step agent task decomposition — specify `strategy`, `model`, `agents`
      - Use `smart_router` for intelligent 3+ way routing (works in both traditional and agent flows) — specify `rules` array with `id`, `condition`, `route`, optional `priority`; optional `llm_routing`, `fallback_chain`, `policies`
-     - Use `handoff` for agent-to-agent control transfer — specify `mode` (transfer/consult/collaborate), `target` ({flow?, domain?}), `context_transfer` ({include_types?, max_context_tokens?}), `on_complete`, `on_failure`, `notify_customer`
+     - Use `handoff` for agent-to-agent control transfer — specify `mode` (transfer/consult/collaborate), `target` ({flow?, domain?}), `context_transfer` ({include_types?, max_context_tokens?}), `on_complete`, `on_failure`, `notify_customer`. **REQUIRED: `target.flow` must be set for `transfer` and `consult` modes** — a handoff without a target flow is incomplete and unexecutable.
      - Use `agent_group` for multi-agent collaboration — specify `name`, `description`, `members` (array of `{flow, domain?}`), `shared_memory`, `coordination` ({communication?, max_active_agents?, selection_strategy?, sticky_session?})
      - Use `process` nodes for custom logic steps — set `category` (security/transform/integration/business_logic/infrastructure) to classify, `inputs`/`outputs` arrays to document data shape
      > **Note:** For exhaustive node spec field documentation, refer to the fetched DDD Usage Guide Section 6. The fields listed above cover the most commonly needed options.
@@ -557,6 +557,9 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `service_call` nodes reference integrations defined in `system.yaml` (if integrations section exists)
    - Agent flows have agent_loop with tools (at least one `is_terminal: true`)
    - If this is an existing project with `cross_cutting_patterns`, verify new flows apply relevant patterns
+   - **Every error output must reach a terminal** — every `error`, `invalid`, `rolled_back`, `block`, `empty` handle must connect to a terminal node with `outcome: error`. Never leave an error handle disconnected or floating.
+   - **No unreachable nodes** — every node except the trigger must have at least one incoming connection. A node with no incoming edge is never executed. Scan each flow: if any node has zero incoming connections and is not the trigger, it is unreachable — wire it or remove it.
+   - **Handoff nodes must specify target.flow** — `handoff` nodes with `mode: transfer` or `mode: consult` must have `target.flow` set to a valid `domain/flow-id`. A handoff with only `target.domain` or an empty `target` is incomplete.
 
    **Data (schemas):**
    - Every model referenced by `data_store` nodes in any flow exists in `specs/schemas/`
