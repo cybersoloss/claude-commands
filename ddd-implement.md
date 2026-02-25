@@ -9,12 +9,12 @@ Parse the argument to determine scope:
 | Argument | Scope | Example |
 |----------|-------|---------|
 | `--all` | Whole project — all domains, all flows, all pages | `/ddd-implement --all` |
-| `domain-name` | All flows in a domain | `/ddd-implement users` |
-| `domain-name/flow-name` | Single flow | `/ddd-implement users/user-registration` |
+| `{domain}` | All flows in a domain | `/ddd-implement users` |
+| `{domain}/{flow}` | Single flow | `/ddd-implement users/user-registration` |
 | `--ui` | All UI pages only (no backend flows) | `/ddd-implement --ui` |
-| `--ui page-id` | Single UI page | `/ddd-implement --ui dashboard` |
+| `--ui {page}` | Single UI page | `/ddd-implement --ui dashboard` |
 | `--schema` | Regenerate ORM/database schema from all schema specs | `/ddd-implement --schema` |
-| `--schema model-name` | Regenerate a single model's schema | `/ddd-implement --schema user` |
+| `--schema {model}` | Regenerate a single model's schema | `/ddd-implement --schema user` |
 | `--infra` | Regenerate infrastructure configs from infrastructure spec | `/ddd-implement --infra` |
 | *(empty)* | Read `.ddd/change-history.yaml` for `pending_implement` entries — implement those. If none pending, list available items and ask. | `/ddd-implement` |
 | `--ignore-history` | Skip change-history and list all available items to implement | `/ddd-implement --ignore-history` |
@@ -69,6 +69,15 @@ Parse the argument to determine scope:
    - Each node has `connections:` listing target nodes with `sourceHandle` for branching nodes
    - Each node has `spec:` with type-specific configuration fields
    - Each node may have `observability:` (logging, metrics, tracing) and `security:` (auth, rate limiting, encryption, audit) configs
+   - Each node may have `log:` for structured business event logging (`level`, `fields`, `condition`)
+   - Each node may have `pattern_governed:` naming the `cross_cutting_pattern` from architecture.yaml that governs it
+
+   **Flow-level fields** (on the `flow:` section, not on individual nodes):
+   - `auth:` — flow-level authentication config (`required`, `roles`, `strategy: jwt|api_key|none`). Generate auth middleware/guards when present.
+   - `contract:` — input/output contract for sub-flows (`inputs`, `outputs` arrays). Validate callers match the contract.
+   - `metrics:` — custom Prometheus metrics for this flow (`name`, `type: counter|gauge|histogram`, `labels`). Instrument the flow entry/exit.
+   - `template: true` + `parameters:` — parameterized flow templates (see Usage Guide Section 16). Generate a factory function that accepts parameters.
+   - `metadata:` — created/modified timestamps (preserve `created`, update `modified`)
 
 6. **Check existing implementation**: Read `.ddd/mapping.yaml` to see if this flow was previously implemented.
    - If yes and spec hasn't changed → skip (tell user it's up to date)
@@ -144,7 +153,9 @@ Parse the argument to determine scope:
      - `repeating_group` → editable sub-table for repeating rows (e.g. order lines, schedule entries); uses `repeating_group: { columns, min_rows?, max_rows?, add_label?, remove_label? }`
    - For fields with `options`: render static options
    - For fields with `options_source`: load options from the referenced spec file
+   - For fields with `options_depends_on`: dynamically filter/set options based on another field's value (`field`, `transform: filter|set_default|set_options`, `source_field`)
    - For fields with `required: true`: add client-side required validation
+   - For fields with `required_when`: conditionally require the field when another field matches a value (`{ field, value }` — value can be an array for "any of")
    - For fields with `validation`: add the described validation rule
    - For fields with `visible_when`: conditionally show/hide the field
    - Wire `submit.flow` to call the backend flow with form data (merge `submit.args` if present)
@@ -192,48 +203,49 @@ Parse the argument to determine scope:
 11. **Implement backend flows (Logic pillar)**:
 
    **Entry point — determine from trigger convention**:
-   - `HTTP {METHOD} {path}` → route handler (e.g., Express route, FastAPI endpoint)
-   - `cron {expression}` → scheduled job (e.g., node-cron, BullMQ repeatable). If the trigger has `job_config`, configure the job queue (e.g., BullMQ) with the specified concurrency, timeout, retry, and dead_letter settings
+   - `HTTP {METHOD} {path}` → route handler (e.g., Express route, FastAPI endpoint). Check for `tier_limits` (per-role rate limit overrides) and `rate_limit` fields.
+   - `cron {expression}` → scheduled job (e.g., node-cron, BullMQ repeatable). If the trigger has `job_config`, configure the job queue with the specified `concurrency`, `timeout`, `retry`, `dead_letter`, `lock_ttl_ms`, `jitter_ms`, `priority`, and `dedup_key` settings.
    - `event:{EventName}` → event listener/consumer (e.g., message queue subscriber)
-   - `event_group:{name}` → multi-event listener consuming a named group of events (defined in domain.yaml `event_groups`)
-   - `webhook {path}` → webhook handler route
+   - `event_group:{name}` → multi-event listener consuming a named group of events (defined in domain.yaml `event_groups`). Check for `correlation_key` on the event group.
+   - `webhook {path}` → webhook handler route. If trigger has `signature` field, implement webhook signature validation (algorithm, header, secret).
    - `manual` → CLI command or admin endpoint
    - `shortcut {keys}` → keyboard shortcut handler (e.g., `shortcut Cmd+K`)
    - `timer {interval_ms}` → interval/polling handler (e.g., `setInterval`, polling loop)
    - `ui:{action}` → UI action handler (e.g., drag-drop, click)
    - `ipc:{event}` → native IPC event handler (e.g., Tauri command listener, Electron IPC)
    - `sse {path}` → Server-Sent Events endpoint (streaming response with event source)
-   - `ws {path}` → WebSocket endpoint (bidirectional connection handler)
-   - `pattern:{EventName}` → event pattern trigger (aggregated/correlated events)
+   - `ws {path}` → WebSocket endpoint (bidirectional connection handler). Check for `connection_config` (auth, heartbeat, reconnect).
+   - `pattern:{EventName}` → event pattern trigger (aggregated/correlated events with `group_by`, `threshold`, `window`)
 
    **Follow the node graph** from trigger through all paths to terminal nodes. Each node becomes real code:
-   - `process` → service function call
+   - `process` → service function call. Check `category` (security/transform/integration/business_logic/infrastructure), `inputs`, and `outputs` fields for explicit I/O declarations.
    - `decision` → if/else or switch using the `condition` field
-   - `data_store` → database CRUD operations (`create`, `read`, `update`, `delete`, `upsert`, `create_many`, `update_many`, `delete_many`). For `upsert`, use `upsert_key` field for conflict resolution. For `include` field, implement eager-loading of related records (joins). For `returning` field on bulk ops, return the affected records. Check `safety` field — if `strict`, generate null-safe code with explicit checks.
-   - `service_call` → HTTP client call (method, url, headers, body, timeout, retry). If `system.yaml` has an `integrations:` section and the service_call URL matches an integration's `base_url`, use the integration's auth, retry, and rate limit config
-   - `event` → event emission (emit) or subscription handler (consume)
-   - `loop` → for/forEach over `collection` with `iterator` variable, optional `break_condition`
-   - `parallel` → Promise.all / concurrent execution of branches
-   - `sub_flow` → call to the referenced flow's entry function. If the target flow has a `contract` section, validate that `input_mapping` keys match contract inputs and `output_mapping` keys match contract outputs
-   - `llm_call` → LLM API call with model, prompt, temperature, structured output
-   - `agent_loop` → agent loop with tool dispatch, memory management, stop conditions
-   - `guardrail` → validation middleware (inline, sequential — input guard before agent, output guard after)
-   - `human_gate` → async approval workflow (pause, notify, wait for human decision)
-   - `orchestrator` → multi-agent coordination per `strategy` (supervisor, round_robin, broadcast, consensus)
-   - `smart_router` → routing logic from `rules` and/or `llm_routing`
-   - `handoff` → agent transfer with context passing per `mode` (transfer/consult/collaborate)
-   - `agent_group` → agent team coordination with shared memory
-   - `ipc_call` → local IPC or native function call (e.g., Tauri invoke, Electron IPC)
-   - `cache` → cache check before expensive operations (get/set/invalidate on cache store)
+   - `data_store` → database CRUD operations (`create`, `read`, `update`, `delete`, `upsert`, `create_many`, `update_many`, `delete_many`, `aggregate`). Also supports memory store operations (`get`, `set`, `merge`, `reset`, `subscribe`, `update_where`) via `store_type: memory`. For `upsert`, use `upsert_key` field for conflict resolution. For `include` field, implement eager-loading of related records (supports `via` for join tables and `as` for aliasing). For `returning` field on bulk ops, return the affected records. For `filters` array, apply optional filters conditionally (`required: false` entries only applied when their value is non-null). Check `safety` field — if `strict`, generate null-safe code with explicit checks.
+   - `service_call` → HTTP client call (method, url, headers, body, timeout, retry). If `system.yaml` has an `integrations:` section and the service_call URL matches an integration's `base_url`, use the integration's auth, retry, and rate limit config. Check for `capture_headers` to extract response headers for downstream use. Check for `fallback` to provide a default value on failure (graceful degradation). Check for `oauth1a_config` for OAuth 1.0a authentication. Check for `request_config` to configure HTTP client behavior (user_agent, delay, cookie_jar, proxy, tls_fingerprint).
+   - `event` → event emission (emit) or subscription handler (consume). Check for `dedup_key`, `target_queue`, `priority`, `delay_ms`, and `payload_source` fields.
+   - `loop` → for/forEach over `collection` with `iterator` variable, optional `break_condition`. Check `on_error` (`continue`/`break`/`fail`) for per-iteration error handling. Check `accumulate` for result collection across iterations (`field`, `strategy: push|merge|concat|sum|count`, `output`). Use `body_start` for nested loop layout.
+   - `parallel` → Promise.all / concurrent execution of branches. Check `failure_policy` (`all_required`/`any_required`/`best_effort`) and `merge_strategy` (`keyed_by_output_key`/`collect_success`/`collect_all`/`first_success`). `branches` can be `string[]`, `number`, or objects with `{ id, label, condition, output_key }` for conditional branches.
+   - `sub_flow` → call to the referenced flow's entry function. If the target flow has a `contract` section, validate that `input_mapping` keys match contract inputs and `output_mapping` keys match contract outputs.
+   - `llm_call` → LLM API call with model, prompt, temperature, structured output. Check `context_sources` for formal variable bindings with transforms (`truncate`, `join`, `lowercase`, `uppercase`, `first`, `last`, `json_stringify`, `strip_html`, `summarize`). Check `structured_output.ref` for enum resolution from `shared/types.yaml`.
+   - `agent_loop` → agent loop with tool dispatch, memory management, stop conditions (`answer_provided`, `task_complete`, `requires_human`, `max_confidence_reached`, `tool_result_terminal`). Check tool definitions for `requires_confirmation: true` (human approval before execution). Check `memory_stores` for agent memory configuration (type, eviction_strategy, embedding_model, similarity_threshold).
+   - `guardrail` → validation middleware (inline, sequential — input guard before agent, output guard after). Check `checks` array for types and `action` values (`block`/`warn`/`log`).
+   - `human_gate` → async approval workflow (pause, notify, wait for human decision). Check `approval_options` for `requires_input: true` (free-text input required with approval).
+   - `orchestrator` → multi-agent coordination per `strategy` (supervisor, round_robin, broadcast, consensus). Check `result_merge_strategy` (`last_wins`/`best_of`/`combine`/`supervisor_picks`).
+   - `smart_router` → routing logic from `rules` and/or `llm_routing` (check `confidence_threshold` for LLM-based routing)
+   - `handoff` → agent transfer with context passing per `mode`: `transfer` (fire-and-forget), `consult` (return result), `collaborate` (ongoing back-and-forth)
+   - `agent_group` → agent team coordination with shared memory. Check `selection_strategy` (`round_robin`/`broadcast`/`sequential`/`random`/`priority`).
+   - `ipc_call` → local IPC or native function call (e.g., Tauri invoke, Electron IPC). Check `result_condition` to map return values to success/error handles (eliminates separate decision node).
+   - `cache` → three operations: `check` (default — "hit"/"miss" handles), `set` (store value), `invalidate` (clear cached entry). Only `check` uses branching handles.
    - `delay` → deliberate wait (rate limiting, scheduling) with `min_ms`, `max_ms`, `strategy`
    - `transform` → structured data mapping between formats using `input_schema`/`output_schema`/`field_mappings`
-   - `collection` → collection operation (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten, first, last, join) on input
+   - `collection` → collection operation (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten, first, last, join) on input. For `join`, check `join_type` (`inner`/`left`/`anti`) for join semantics.
    - `parse` → structured extraction from raw format (rss, atom, html, xml, json, csv, markdown)
    - `crypto` → cryptographic operation (encrypt, decrypt, hash, sign, verify, generate_key)
-   - `batch` → execute operation template against each item in input collection with concurrency control
+   - `batch` → execute operation template (or `sub_flow_ref`) against each item in input collection with concurrency control
    - `transaction` → atomic multi-step database operation with rollback on error
+   - `websocket_broadcast` → push message to WebSocket clients (`channel`, `event_name`, `payload`, `include_sender`)
 
-   > **Advanced node fields:** The fetched DDD Usage Guide Section 6 defines additional fields per node type that affect implementation: trigger `filter` (event payload filtering — eliminates unnecessary decision nodes), trigger `debounce_ms`, terminal `response_type` (json/stream/sse/empty) and `headers`, data_store `include` (eager-loading joins) and `upsert_key`, event `payload_source`/`target_queue`/`priority`/`delay_ms`/`dedup_key`, llm_call `context_sources` (structured variable bindings), loop `accumulate` (result collection across iterations) and `body_start`, ipc_call `result_condition`, service_call `integration` (references system.yaml) and `request_config`, process `category`/`inputs`/`outputs`, parallel conditional `branches`. Always check the spec for these fields and implement them when present.
+   > **Advanced node fields:** The fetched DDD Usage Guide Section 6 defines the full specification for each node type. Always check the spec for type-specific fields and implement them when present. Key fields to watch for: trigger `filter` (event payload filtering — eliminates unnecessary decision nodes), trigger `debounce_ms`, terminal `response_type` (json/stream/sse/empty) and `headers`, data_store `pagination` and `sort` fields.
 
    When implementing nodes inside `loop` or `parallel` containers, respect the `parentId` field to maintain proper scoping of variables and execution context.
 
@@ -246,7 +258,7 @@ Parse the argument to determine scope:
    - `parallel` → `"branch-0"`, `"branch-1"`, etc. (parallel branches) / `"done"` path (join point)
    - `ipc_call` → `"success"` path (continue) / `"error"` path (IPC error handling)
    - `cache` → `"hit"` path (use cached value) / `"miss"` path (fetch fresh data)
-   - `guardrail` → `"pass"` path (continue) / `"block"` path (blocked terminal)
+   - `guardrail` → `"pass"` path (continue) / `"block"` path (blocked terminal). Also accepts `"valid"`/`"invalid"` as aliases.
    - `agent_loop` → `"done"` path (final answer) / `"error"` path (max iterations or failure)
    - `llm_call` → `"success"` path (continue) / `"error"` path (LLM error handling)
    - `smart_router` → dynamic route IDs (from `rules[].id`)
@@ -257,6 +269,12 @@ Parse the argument to determine scope:
    - `transaction` → `"committed"` path / `"rolled_back"` path
    - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
    - `human_gate` → dynamic option IDs (from `approval_options[].id`)
+
+   **Connection optional fields**: Connections may have additional fields beyond `target` and `sourceHandle`:
+   - `label` — human-readable description of the edge; use as code comment
+   - `data` — data shape annotation (e.g., `"userId, email, role"`) describing what flows between nodes; use for type annotations
+   - `condition` — conditional connection; only follow this edge when the condition evaluates to true
+   - `targetHandle` — target port on the receiving node (used for complex node layouts)
 
    **Connection error behavior:** When a connection has a `behavior` field, implement accordingly:
    - `continue` — catch errors and proceed to the next node (log the error)
@@ -403,7 +421,7 @@ Parse the argument to determine scope:
     - **If scope was a domain**: "Run `/ddd-test {domain}` to verify all flows in the domain"
     - **If scope was `--all` or all pending entries**: "Run `/ddd-test` (no flags) to verify recently implemented items"
     - "Open the DDD Tool to review the implementation state (Cmd+R to reload)"
-    - **Do NOT suggest `/ddd-sync` here** — sync is a Reflect phase command, not a Build phase command. It's only relevant when checking project-wide alignment later (after multiple sessions). Suggesting it right after a fresh implement is misleading — the flow is by definition in sync just after being generated.
-    - **Do NOT suggest `/ddd-reflect` or `/ddd-promote` as immediate next steps.** These are periodic Reflect phase commands — run them once across multiple flows after a development session, not after every single implement run. The core Build loop ends at `/ddd-test`. Only mention reflect if the user explicitly asks about capturing wisdom.
+    - **Do NOT suggest `/ddd-sync` here** — code was just generated from specs, so by definition it's in sync. Sync is appropriate later: after `/ddd-promote` changes spec files, after manual code edits, or when checking project-wide alignment across sessions.
+    - **Do NOT suggest `/ddd-reflect` or `/ddd-promote` as immediate next steps.** Reflect captures wisdom from *manual* code changes — freshly generated code has no wisdom to capture. The core Build loop is: `/ddd-implement` → `/ddd-test` → done. Reflect/promote are periodic Reflect phase commands run across multiple flows at the end of a development session.
 
 $ARGUMENTS

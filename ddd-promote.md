@@ -131,7 +131,7 @@ Parse `$ARGUMENTS` to determine scope:
    - If the detail is about a migration pattern → add to the schema's description or a `notes` field
    - Preserve all existing schema fields — only add, never remove
 
-   **Checkpoint:** Output "Data promotions complete: {N}/{N} schema patterns promoted."
+   **Checkpoint:** Output "Data complete: {N}/{N} schema patterns promoted"
 
    **GATE:** Compare actual promotions to plan. If any planned promotion was skipped, STOP and apply it now.
 
@@ -153,7 +153,7 @@ Parse `$ARGUMENTS` to determine scope:
    - Add to `specs/ui/pages.yaml` → `shared_components` section with `id`, `name`, `description`, `props`
    - Update page specs to reference the shared component ID
 
-   **Checkpoint:** Output "Interface promotions complete: {N}/{N} page patterns promoted."
+   **Checkpoint:** Output "Interface complete: {N}/{N} page patterns promoted"
 
    **GATE:** Compare actual promotions to plan. If any planned promotion was skipped, STOP and apply it now.
 
@@ -167,7 +167,7 @@ Parse `$ARGUMENTS` to determine scope:
    - If the detail is about dev tooling → add to the service's `dev_command` or add a top-level `scripts` section
    - Preserve all existing infrastructure fields — only add, never remove
 
-   **Checkpoint:** Output "Infrastructure promotions complete: {N}/{N} infrastructure patterns promoted."
+   **Checkpoint:** Output "Infrastructure complete: {N}/{N} infrastructure patterns promoted"
 
    **GATE:** Compare actual promotions to plan. If any planned promotion was skipped, STOP and apply it now.
 
@@ -203,7 +203,7 @@ Parse `$ARGUMENTS` to determine scope:
    - If the annotation describes a new error code → add to `specs/shared/errors.yaml`
    - If the annotation describes a new shared enum or value object → add to `specs/shared/types.yaml`
 
-   **Checkpoint:** Output "Logic promotions complete: {N}/{N} flow patterns promoted."
+   **Checkpoint:** Output "Logic complete: {N}/{N} flow patterns promoted"
 
    **GATE:** Compare actual promotions to plan. If any planned promotion was skipped, STOP and apply it now.
 

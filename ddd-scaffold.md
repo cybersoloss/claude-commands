@@ -64,7 +64,7 @@ Generate project skeleton files (package.json, config, middleware, ORM schemas, 
    - For `strategy: fixture` seeds — generate test fixture/factory files with the seed data for use in tests
    - For `strategy: script` seeds — generate a documented placeholder script with the source reference and count estimate
 
-   **Checkpoint:** Output "Data scaffold complete: {N}/{N} models created, {N}/{N} seed files created" (with actual counts matching the plan).
+   **Checkpoint:** Output "Data complete: {N}/{N} models created, {N}/{N} seed files created" (with actual counts matching the plan).
 
    **GATE:** Compare actual file count to plan. If any planned item is missing, STOP and create it now before proceeding.
 
@@ -100,7 +100,7 @@ Generate project skeleton files (package.json, config, middleware, ORM schemas, 
    - Set up the state management library (e.g., zustand store creator, Redux store, Context providers)
    - Create store files for each domain that has `stores` in its `domain.yaml`
 
-   **Checkpoint:** Output "Interface scaffold complete: {N}/{N} page files created, {N}/{N} shared components created" (with actual counts matching the plan).
+   **Checkpoint:** Output "Interface complete: {N}/{N} page files created, {N}/{N} shared components created" (with actual counts matching the plan).
 
    **GATE:** Compare actual file count to plan. If any planned item is missing, STOP and create it now before proceeding.
 
@@ -118,7 +118,7 @@ Generate project skeleton files (package.json, config, middleware, ORM schemas, 
    **Port documentation:**
    - Comment in the entry point or README noting which service runs on which port
 
-   **Checkpoint:** Output "Infrastructure scaffold complete: {N}/{N} service configs created" (with actual counts matching the plan).
+   **Checkpoint:** Output "Infrastructure complete: {N}/{N} service configs created" (with actual counts matching the plan).
 
    **GATE:** Compare actual file count to plan. If any planned item is missing, STOP and create it now before proceeding.
 
@@ -164,7 +164,7 @@ Generate project skeleton files (package.json, config, middleware, ORM schemas, 
      - Add exports to a barrel file if the project uses one
    - If no `cross_cutting_patterns` section exists, skip this step
 
-   **Checkpoint:** Output "Logic scaffold complete: {N}/{N} Logic files created" (with actual counts matching the plan).
+   **Checkpoint:** Output "Logic complete: {N}/{N} logic files created" (with actual counts matching the plan).
 
    **GATE:** Compare actual file count to plan. If any planned item is missing, STOP and create it now before proceeding.
 

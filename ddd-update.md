@@ -8,15 +8,15 @@ Parse the argument to determine what to update:
 
 | Argument | Scope | Example |
 |----------|-------|---------|
-| `domain-name/flow-name` | Update a specific flow spec | `/ddd-update users/user-register` |
-| `domain-name` | Update domain config and/or its flows | `/ddd-update users` |
-| `--add-flow domain-name` | Add a new flow to a domain | `/ddd-update --add-flow users` |
+| `{domain}/{flow}` | Update a specific flow spec | `/ddd-update users/user-register` |
+| `{domain}` | Update domain config and/or its flows | `/ddd-update users` |
+| `--add-flow {domain}` | Add a new flow to a domain | `/ddd-update --add-flow users` |
 | `--add-domain` | Add a new domain to the project | `/ddd-update --add-domain` |
-| `--ui page-id` | Update a specific page spec | `/ddd-update --ui dashboard` |
+| `--ui {page}` | Update a specific page spec | `/ddd-update --ui dashboard` |
 | `--ui` | Update pages.yaml (navigation, theme, shared components) | `/ddd-update --ui` |
 | `--add-page` | Add a new page to the project | `/ddd-update --add-page` |
 | `--infra` | Update infrastructure.yaml | `/ddd-update --infra` |
-| `--schema model-name` | Update a specific schema | `/ddd-update --schema user` |
+| `--schema {model}` | Update a specific schema | `/ddd-update --schema user` |
 | *(empty)* | Interactive — ask what to update | `/ddd-update` |
 
 ## Instructions
@@ -142,6 +142,7 @@ Parse the argument to determine what to update:
      - New `data_store` node writing credentials → apply `encryption` pattern if applicable
      - Any flow needing API keys → note `api_key_resolution` convention from patterns
    - **Changing flow type**: Update `flow.type` and add/remove agent-specific nodes as needed.
+   - **Flow-level fields**: When relevant, set flow-level fields: `auth` (required, roles, strategy), `contract` (inputs, outputs for sub-flows), `metrics` (custom Prometheus metrics), `template`/`parameters` (parameterized flow factories). See DDD Usage Guide for full specification.
 
    When **modifying a domain**, update `specs/domains/{domain}/domain.yaml`:
    - **Adding/removing flows**: Update the `flows` array and create/delete flow YAML files.
@@ -207,6 +208,8 @@ Parse the argument to determine what to update:
     - All form field `type` values are valid (text, number, select, multi-select, search-select, date, datetime, date-range, textarea, toggle, tag-input, file, color, slider, markdown, repeating_group)
     - All `options_source` references point to valid spec paths (e.g., `shared/types.yaml#status`)
     - All `search_source` references point to valid backend flows
+    - All `required_when` references point to valid field names in the same form
+    - All `options_depends_on` references point to valid field names with valid transforms (`filter`/`set_default`/`set_options`)
     - Page IDs in `pages.yaml` match corresponding `specs/ui/{page-id}.yaml` filenames
     - Navigation items reference valid page IDs
     - Shared component IDs referenced by sections exist in `pages.yaml` → `shared_components`

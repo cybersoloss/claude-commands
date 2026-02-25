@@ -1,6 +1,6 @@
 # DDD Test
 
-Run tests for DDD-implemented code across all four pillars — **Logic** (backend flows), **Interface** (UI pages), **Data** (schemas), and **Infrastructure** (services) — without re-generating code. Use this after manual code edits, refactoring, or dependency updates to verify implementations still work. **Lifecycle phase: Build.**
+Run tests for DDD-implemented code across all four pillars — **Logic** (backend flows), **Interface** (UI pages), **Data** (schemas), and **Infrastructure** (services) — without re-generating code. Test files are created by `/ddd-implement` during implementation; this command re-runs them to verify implementations still work after manual code edits, refactoring, or dependency updates. **Lifecycle phase: Build.**
 
 ## Scope Resolution
 
@@ -9,10 +9,10 @@ Parse the argument to determine scope:
 | Argument | Scope | Example |
 |----------|-------|---------|
 | `--all` | All implemented flows, pages, schemas, and infrastructure | `/ddd-test --all` |
-| `domain-name` | All flows in a domain | `/ddd-test users` |
-| `domain-name/flow-name` | Single flow | `/ddd-test users/user-register` |
+| `{domain}` | All flows in a domain | `/ddd-test users` |
+| `{domain}/{flow}` | Single flow | `/ddd-test users/user-register` |
 | `--ui` | All implemented UI pages | `/ddd-test --ui` |
-| `--ui page-id` | Single UI page | `/ddd-test --ui dashboard` |
+| `--ui {page}` | Single UI page | `/ddd-test --ui dashboard` |
 | `--schema` | Schema/migration tests | `/ddd-test --schema` |
 | `--infra` | Infrastructure health checks | `/ddd-test --infra` |
 | *(empty)* | Scope to recently implemented entries from `.ddd/change-history.yaml` (implemented in the last session). If none, show all testable items and ask. | `/ddd-test` |
@@ -155,7 +155,7 @@ Parse the argument to determine scope:
 
 10. **Next steps**: Based on results, suggest:
     - If all tests pass: **The core Build loop is complete.** Tell the user: "All tests pass — this flow is done. Continue with your next change or feature."
-    - **Do NOT suggest `/ddd-reflect`, `/ddd-promote`, or `/ddd-sync` as next steps after passing tests.** These are periodic Reflect phase commands — the user runs them intentionally across multiple flows at the end of a development session, not after every test run. Suggesting them here creates noise and implies they are mandatory after every build cycle. They are not.
+    - **Do NOT suggest `/ddd-reflect`, `/ddd-promote`, or `/ddd-sync` as next steps after passing tests.** Reflect captures wisdom from *manual* code changes, not freshly generated code. Sync detects drift, but code is by definition in sync right after implement+test. These are periodic Reflect phase commands the user runs intentionally across multiple flows at the end of a development session.
     - If tests fail due to spec drift: "Run `/ddd-implement {scope}` to regenerate from updated specs, then re-run `/ddd-test {scope}`"
     - If tests fail due to manual code changes: "Review the failing test and fix the code, or run `/ddd-implement {scope}` to regenerate"
     - If tests fail due to environment issues: "Fix the environment issue (missing env var, database not running) and re-run `/ddd-test {scope}`"

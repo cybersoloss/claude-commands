@@ -106,18 +106,20 @@ For small codebases (< 30 files) where everything fits in context.
 **B2. Extract schemas**: Find ORM/model files (Prisma, TypeORM, Drizzle, Sequelize, Mongoose, SQLAlchemy, Django, GORM, ActiveRecord, migrations, or TypeScript interfaces). For each model extract: fields with types/constraints, relationships, indexes, lifecycle/status fields with transitions, timestamps.
 
 **B3. Extract flows**: For each domain, scan for entry points:
-- HTTP routes → trigger `HTTP {METHOD} {path}`
-- Cron/scheduled jobs → trigger `cron {expression}` with `job_config`
+- HTTP routes → trigger `HTTP {METHOD} {path}`. Detect rate limiting middleware → `rate_limit` and `tier_limits` fields.
+- Cron/scheduled jobs → trigger `cron {expression}` with `job_config` (concurrency, timeout, retry, dead_letter, lock_ttl_ms, jitter_ms, priority, dedup_key)
 - Event listeners → trigger `event:{EventName}` (or `event_group:{name}` if consuming a group of events defined in domain.yaml)
-- WebSocket/SSE → trigger `ws {path}` or `sse {path}`
+- Webhook handlers → trigger `webhook {path}`. Detect signature validation → `signature` field (algorithm, header, secret).
+- WebSocket/SSE → trigger `ws {path}` or `sse {path}`. Detect connection auth/heartbeat → `connection_config`.
 - UI action handlers → trigger `ui:{action}`
+- Pattern/correlated event handlers → trigger `pattern:{EventName}` with `group_by`, `threshold`, `window`
 
 For each entry point, read the handler and trace through called functions to build the node graph:
 - Validation → `input` node
 - DB operations → `data_store` node (operation, model, query/data)
-- External API calls → `service_call` node (method, url, error_mapping)
+- External API calls → `service_call` node (method, url, error_mapping). Detect OAuth1a auth → `oauth1a_config`. Detect response header capture → `capture_headers`. Detect fallback values for non-critical calls → `fallback`. Detect stealth HTTP wrappers → `request_config`.
 - Conditionals → `decision` node (condition, both branches)
-- Loops → `loop` node; parallel ops → `parallel` node
+- Loops → `loop` node (detect `on_error` handling, `accumulate` patterns); parallel ops → `parallel` node (detect `failure_policy`, `merge_strategy`)
 - Event publishing → `event` node (direction: emit)
 - LLM/AI calls → `llm_call` node
 - Sub-routine calls → `sub_flow` node
@@ -136,11 +138,18 @@ For each entry point, read the handler and trace through called functions to bui
 - Multi-agent coordination → `orchestrator` node
 - Routing logic to different agents/handlers → `smart_router` node
 - Agent context transfer → `handoff` node
-- Parallel agent teams → `agent_group` node
+- Parallel agent teams → `agent_group` node (detect `selection_strategy`)
+- WebSocket push to clients → `websocket_broadcast` node (`channel`, `event_name`, `payload`, `include_sender`)
 - Response/return → `terminal` node (outcome, status, body)
 - Error handling → `terminal` on error paths
 
-Wire connections with proper sourceHandle values. Position nodes vertically (~130px spacing), error terminals to the right (x + 250). When the data flowing between nodes is evident from the code (e.g., a function returns a user object that the next function consumes), add a `data` annotation on the connection (e.g., `data: "userId, email, role"`). Add `label` for human-readable edge descriptions when the connection purpose isn't obvious from the node names. Add `behavior` (`continue`/`stop`/`retry`/`circuit_break`) when the code has explicit error handling on the connection path.
+**Flow-level fields**: For each flow, also detect:
+- Auth middleware/guards → flow `auth` field (`required`, `roles`, `strategy: jwt|api_key|none`)
+- Custom metrics instrumentation → flow `metrics` field
+- Flow contracts (typed input/output) → flow `contract` field
+- Parameterized/reusable flow factories → flow `template: true` + `parameters`
+
+Wire connections with proper sourceHandle values. Position nodes vertically (~130px spacing), error terminals to the right (x + 250). When the data flowing between nodes is evident from the code (e.g., a function returns a user object that the next function consumes), add a `data` annotation on the connection (e.g., `data: "userId, email, role"`). Add `label` for human-readable edge descriptions when the connection purpose isn't obvious from the node names. Add `condition` on conditional connections. Add `behavior` (`continue`/`stop`/`retry`/`circuit_break`) when the code has explicit error handling on the connection path.
 
 **B4. Extract frontend pages** (Interface pillar): Detect the frontend framework and scan for page components:
 - **Next.js (app router)**: Scan `app/` or `src/app/` for `page.tsx`/`page.jsx` files — each directory with a page file is a route
@@ -672,7 +681,7 @@ Wire with proper `sourceHandle` values:
 - `service_call` → `"success"` / `"error"`
 - `loop` → `"body"` / `"done"`
 - `parallel` → `"branch-0"`, `"branch-1"`, ... / `"done"`
-- `guardrail` → `"pass"` / `"block"`
+- `guardrail` → `"pass"` / `"block"` (also accepts `"valid"`/`"invalid"` as aliases)
 - `agent_loop` → `"done"` / `"error"`
 - `llm_call` → `"success"` / `"error"`
 - `collection` → `"result"` / `"empty"`

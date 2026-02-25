@@ -103,7 +103,7 @@ Synchronize the DDD project specs with the current implementation state across a
    - Full bidirectional check as described in (a), (b), (c) above
    - Check if flows use `cross_cutting_patterns` from `architecture.yaml` — if code applies a pattern (stealth_http, encryption, soft_delete) that the flow spec doesn't reference, classify as code-ahead
 
-   **Checkpoint:** After each pillar's drift check, output: "{Pillar} sync complete: {N}/{N} items checked"
+   **Checkpoint:** After each pillar's drift check, output: "{Pillar} complete: {N}/{N} items checked"
 
    **GATE:** Compare checked count to plan. If any planned item was skipped, STOP and check it now.
 
@@ -220,7 +220,7 @@ Synchronize the DDD project specs with the current implementation state across a
     - Save the full report to `.ddd/reconciliations/{timestamp}.yaml` for historical tracking
 
 10. **Next steps**: Based on findings, suggest the appropriate next commands:
-    - Flows with code ahead of spec: "Run `/ddd-reflect {domain/flow}` to capture implementation wisdom, then `/ddd-promote --review`"
+    - Flows with code ahead of spec: "Run `/ddd-reflect {domain/flow}` to capture implementation wisdom, then `/ddd-promote --review`" — reflect is appropriate here because code-ahead means someone *manually* edited code after implementation; those edits are the wisdom to capture. This differs from suggesting reflect right after `/ddd-implement`, where code was just generated from specs and has no new wisdom.
     - Flows with new spec logic: "Entries added to `.ddd/change-history.yaml` — run `/ddd-implement` (no flags) to implement all pending changes"
     - Pages with code ahead of spec: "Run `/ddd-reflect --ui {page-id}` to capture UI wisdom"
     - Pages with new spec sections: "Run `/ddd-implement --ui {page-id}` to update page"
