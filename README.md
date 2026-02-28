@@ -6,6 +6,10 @@ A curated collection of slash commands for AI-native software development with C
 
 ![DDD Lifecycle Demo](assets/ddd-lifecycle-demo.gif)
 
+**Full Feature Preview** — 9 domains, 53 flows, 28 node types (Vantage supply chain project):
+
+![Feature Preview](https://raw.githubusercontent.com/cybersoloss/ddd-tool/main/demo/demo-feature-preview.gif)
+
 **All other commands** (code verification, workflow, team & process, utility) are curated from third-party sources and distributed here for healthy code practices. Built on insights from McKinsey research, Jellyfish, Sonar, and Cursor.
 
 ## Installation
