@@ -56,7 +56,7 @@ Meta-level: /ddd-evolve
 
 ```
 New project:      /ddd-create → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test → /ddd-reflect → /ddd-promote
-Existing project: /ddd-reverse → DDD Tool → /ddd-scaffold → /ddd-implement → /ddd-test → /ddd-reflect → /ddd-promote
+Existing project: /ddd-reverse → DDD Tool → /ddd-sync → /ddd-reflect → /ddd-promote (code exists — do NOT /ddd-implement)
 Iterate:          /ddd-status → /ddd-update → /ddd-implement → /ddd-test → /ddd-sync
 Reflect:          /ddd-reflect → /ddd-promote --review → specs updated with implementation wisdom
 Evolve DDD:       /ddd-create --shortfalls → /ddd-evolve → /ddd-evolve --review → /ddd-evolve --apply
@@ -191,7 +191,7 @@ Auto-selected based on source file count (override with `--strategy`):
 - Complete DDD spec structure (same as `/ddd-create`)
 - Coverage report at `.ddd/reverse/coverage.yaml` (file, entry point, model, event, function coverage)
 - Intermediate files at `.ddd/reverse/` (resumable for swap/bottom-up/compiler/codex strategies)
-- Summary with coverage percentage, warnings, and next steps
+- Summary with coverage percentage, warnings, and next steps (`/ddd-sync` → `/ddd-reflect`, NOT `/ddd-implement` — code already exists)
 
 ---
 
@@ -798,11 +798,10 @@ Report of what was promoted and where (which spec files were updated).
 ```
 /ddd-reverse ~/code/my-existing-app
 # Review generated specs in DDD Tool
-/ddd-scaffold
-/ddd-implement --all
-/ddd-test --all
-/ddd-reflect --all       # Capture what reverse missed
+/ddd-sync                # Link specs to existing source files (populates mapping.yaml)
+/ddd-reflect --all       # Capture implementation wisdom reverse missed
 /ddd-promote --review    # Feed back into specs
+# WARNING: Do NOT run /ddd-implement or /ddd-scaffold — code already exists
 ```
 
 ### Add a feature

@@ -202,7 +202,8 @@ See [DDD-commands.md](DDD-commands.md) for detailed documentation including what
 
 # Existing codebase, no specs
 /ddd-reverse ~/code/my-existing-app
-/ddd-implement --all
+/ddd-sync                # link specs to existing files — do NOT /ddd-implement
+/ddd-reflect --all       # capture what reverse missed
 
 # Add a feature
 /ddd-update users/user-register "add email verification step"

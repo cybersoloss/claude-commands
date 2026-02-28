@@ -765,7 +765,11 @@ Next steps:
   1. Review coverage report at .ddd/reverse/coverage.yaml
   2. Open the project in DDD Tool to visualize and review
   3. Add any missing flows flagged in coverage report
-  4. Run /ddd-implement --all to verify round-trip
+  4. Run /ddd-sync to link specs to existing source files (populates mapping.yaml)
+  5. Run /ddd-reflect --all to capture implementation wisdom as annotations
+
+  WARNING: Do NOT run /ddd-implement — code already exists.
+  /ddd-implement would regenerate code from specs, overwriting the working codebase.
 ```
 
 ### Write change-history entries
@@ -773,11 +777,13 @@ Next steps:
 After generating all specs, write an entry to `.ddd/change-history.yaml` for each spec file created:
 - `source: ddd-reverse`
 - `change_type: added` (reverse-engineering creates new specs)
-- `status: pending_implement` — even though code already exists, the round-trip implementation verifies spec accuracy
+- `status: implemented` — code already exists, specs were derived from it
+- `implemented_at`: current ISO timestamp
+- `code_files`: list the source files that were analyzed to produce this spec (from the coverage report)
 - `spec_checksum`: SHA-256 of each generated spec file (first 12 chars)
 - Set `scope.pillar` based on the spec type: `logic` for flows, `data` for schemas, `interface` for pages, `infrastructure` for infrastructure.yaml
 
-This allows `/ddd-implement` (no flags) to pick up all reverse-engineered specs and `/ddd-status` to show them as pending.
+This allows `/ddd-status` to show all reverse-engineered specs as implemented and `/ddd-sync` to track them for future drift detection.
 
 ---
 
