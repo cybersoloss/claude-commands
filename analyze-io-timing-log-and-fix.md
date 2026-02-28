@@ -1,4 +1,4 @@
-A four-mode I/O diagnostic command that forms a complete cycle: instrument → run → analyze → fix → verify.
+A five-mode I/O diagnostic command that forms a complete cycle: instrument → run → analyze → fix → revert → verify.
 
 ## Usage
 
@@ -7,12 +7,13 @@ A four-mode I/O diagnostic command that forms a complete cycle: instrument → r
 /analyze-io-timing-log-and-fix --log              # Ask toggle preference → explore project → output implementation prompt
 /analyze-io-timing-log-and-fix --fix [log-path]   # Analyze log file → fix problems → record results
 /analyze-io-timing-log-and-fix --show             # Extract current logging coverage and rationale from codebase
+/analyze-io-timing-log-and-fix --revert [--all]    # Revert previously applied --fix changes using saved markers
 /analyze-io-timing-log-and-fix --status           # Show history: when --log and --fix were run, what was found
 ```
 
 **Default behavior (no parameter):** Run `--show` — extract current logging coverage and gap analysis from the live codebase.
 
-All modes that modify the project append a record to `.io-diag/session-log.md` in the project root. `--status` reads this file.
+All modes that modify the project (`--log`, `--fix`, `--revert`) append a record to `.io-diag/session-log.md` in the project root. `--status` reads this file.
 
 ---
 
@@ -248,7 +249,67 @@ For each pattern, read the source files and confirm before fixing:
 For each confirmed root cause:
 1. Read the affected file
 2. Apply the minimal targeted fix
-3. Explain what changed and why
+3. Wrap the fix with marker comments (see below)
+4. Explain what changed and why
+
+### Marker Comments
+
+Wrap every fix between `IO-FIX-START` / `IO-FIX-END` tags with a unique fix ID so `--revert` can find and undo them.
+
+**Fix ID format:** `io-fix-YYYY-MM-DD-NNN` (NNN is sequential within the session, starting at 001)
+
+**Comment syntax adapts to language:**
+| Languages | Syntax |
+|-----------|--------|
+| Swift, JS, TS, Go, Rust, Java, C, C++ | `// IO-FIX-START [id]` … `// IO-FIX-END [id]` |
+| Python, Ruby, Shell | `# IO-FIX-START [id]` … `# IO-FIX-END [id]` |
+| SQL, Lua | `-- IO-FIX-START [id]` … `-- IO-FIX-END [id]` |
+| CSS | `/* IO-FIX-START [id] */` … `/* IO-FIX-END [id] */` |
+
+**Marker placement:**
+- If a fix **replaces** existing code: markers wrap the new replacement code
+- If a fix **adds** new code (e.g., adding a debounce timer): markers wrap the addition
+
+**Example (Swift):**
+```swift
+// IO-FIX-START [io-fix-2026-02-28-001]
+DispatchQueue.global(qos: .userInitiated).async {
+    self.loadItems()
+}
+// IO-FIX-END [io-fix-2026-02-28-001]
+```
+
+### Fix Manifest
+
+Save all fix metadata to `.io-diag/fix-manifest.json` so `--revert` can restore originals.
+
+**Format:**
+```json
+{
+  "io-fix-2026-02-28-001": {
+    "file": "Sources/DataManager.swift",
+    "description": "Move loadItems() to background thread",
+    "pattern": "main-thread-io",
+    "original": "self.loadItems()",
+    "applied": "2026-02-28"
+  },
+  "io-fix-2026-02-28-002": {
+    "file": "Sources/Monitor.swift",
+    "description": "Add debounce timer to FS callback",
+    "pattern": "rate-violation",
+    "original": null,
+    "applied": "2026-02-28"
+  }
+}
+```
+
+- **file**: relative path to the modified file
+- **description**: what the fix does
+- **pattern**: which issue pattern from Step 2 (e.g., `feedback-loop`, `main-thread-io`, `rate-violation`, `slow-operation`, `unguarded-write`)
+- **original**: the exact code that was replaced, or `null` if the fix is a pure addition
+- **applied**: date the fix was applied
+
+If `.io-diag/fix-manifest.json` already exists (from a previous `--fix` session), append new entries to the existing object. Never overwrite previous entries.
 
 Run the build/test step after all fixes.
 
@@ -295,8 +356,78 @@ Issues found: N
   [list each: pattern — location]
 Fixes applied: N
   [list each: what changed — file:line]
+Manifest: .io-diag/fix-manifest.json (N entries added)
 Health after: 🔴/🟡/🟢 (estimated — re-run --fix after next log collection to confirm)
 Remaining risks: [list or "none"]
+```
+
+---
+
+# MODE: --revert
+
+Undo previously applied `--fix` changes by restoring original code using the marker comments and fix manifest.
+
+## Step 1: Read Manifest
+
+Load `.io-diag/fix-manifest.json`.
+- If the file does not exist: report "No fixes to revert. No fix manifest found at `.io-diag/fix-manifest.json`." and stop.
+- If the file is empty (no entries): report "No fixes to revert. Manifest is empty." and stop.
+
+## Step 2: List Applied Fixes
+
+Display all entries from the manifest:
+
+```
+Applied fixes:
+  [io-fix-2026-02-28-001]  Sources/DataManager.swift  —  Move loadItems() to background thread  (applied 2026-02-28)
+  [io-fix-2026-02-28-002]  Sources/Monitor.swift      —  Add debounce timer to FS callback       (applied 2026-02-28)
+```
+
+## Step 3: Ask What to Revert
+
+If `--all` flag is passed: skip this step and revert all fixes.
+
+Otherwise, ask the user:
+
+> Which fixes should be reverted?
+> 1. **All** — revert every fix listed above
+> 2. **Select by ID** — enter one or more fix IDs (comma-separated)
+
+Wait for the user's answer. If they select by ID, validate that each ID exists in the manifest.
+
+## Step 4: Revert Each Selected Fix
+
+For each fix to revert:
+
+1. Read the file specified in the manifest entry
+2. Search for the `IO-FIX-START [id]` and `IO-FIX-END [id]` markers
+3. If markers are **found**:
+   - If `original` is not `null`: replace the entire block (start marker + content + end marker) with the original code
+   - If `original` is `null` (pure addition): delete the entire block including both markers and all content between them
+4. If markers are **not found**: warn "Fix `[id]` markers not found in `[file]` — may have been manually edited. Skipping." and continue with remaining fixes
+
+## Step 5: Update Manifest
+
+Remove all successfully reverted entries from `.io-diag/fix-manifest.json`.
+- If the manifest is now empty: delete the file entirely
+- If entries remain (partial revert or skipped fixes): write the updated manifest
+
+## Step 6: Build and Test
+
+Run the project's build/test step to verify the revert didn't break anything. Report results.
+
+## Step 7: Append Session Record
+
+Append to `.io-diag/session-log.md`:
+
+```markdown
+## [YYYY-MM-DD] — --revert
+Fixes reverted: N
+  [list each: id — file — description]
+Fixes skipped: N (markers not found)
+  [list each if any: id — file — reason]
+Manifest: .io-diag/fix-manifest.json (N entries remaining, or "deleted — no entries remaining")
+Build/test: passed/failed
 ```
 
 ---
@@ -403,6 +534,12 @@ Regardless of session log, do a fast scan of the codebase for key pattern presen
 
 Mark each: ✅ present / ⚠️ partial / ❌ missing
 
+## Step 2b: Check Fix Manifest
+
+Check if `.io-diag/fix-manifest.json` exists:
+- If found: count entries and list them (ID, file, description, date applied)
+- Note: these are `--fix` changes currently applied to the codebase that can be reverted with `--revert`
+
 ## Step 3: Output Status Summary
 
 ```
@@ -417,6 +554,15 @@ Rate warning:        ✅/⚠️/❌
 FS snapshot diff:    ✅/⚠️/❌
 
 Overall: [🟢 Fully instrumented | 🟡 Partially instrumented | 🔴 Not instrumented]
+
+### Applied Fixes (revertible)
+[If .io-diag/fix-manifest.json exists:]
+N fixes currently applied:
+  [io-fix-YYYY-MM-DD-NNN]  file  —  description  (applied YYYY-MM-DD)
+  ...
+Run `--revert` to undo these changes.
+
+[If no manifest: "No applied fixes."]
 
 ### Session History
 
