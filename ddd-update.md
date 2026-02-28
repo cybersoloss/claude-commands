@@ -78,7 +78,24 @@ Parse the argument to determine what to update:
 
    **If `--add-domain`**: Ask the user for the domain name, description, and initial flows. Create:
    - Add the domain entry to `ddd-project.json`
-   - Create `specs/domains/{domain-id}/domain.yaml` with the domain config
+   - Create `specs/domains/{domain-id}/domain.yaml` with **flat top-level fields** (NOT nested under a `domain:` key):
+     ```yaml
+     name: "Domain Name"
+     description: "What this domain does"
+     role: entity    # entity | process | interface | orchestration
+     flows:
+       - id: flow-id
+         name: "Flow Name"
+         description: "What this flow does"
+         type: traditional
+     publishes_events: []
+     consumes_events: []
+     layout:
+       flows:
+         flow-id: { x: 100, y: 100 }
+       portals: {}
+     ```
+     **CRITICAL:** `name`, `description`, `role`, `flows`, `publishes_events`, `consumes_events` must all be at the YAML root level. Do NOT wrap under a `domain:` key.
    - Create flow YAML files for any initial flows
 
    **If `--add-flow domain-name`**: Ask the user for the flow details. Create:

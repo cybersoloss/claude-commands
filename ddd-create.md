@@ -455,6 +455,31 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `memory_stores` (optional) — AI/agent memory stores available across flows in the domain: array of `{ name, type: key_value|list|counter, description }`. Distinct from `stores` (which are UI-layer in-memory state stores).
    - `layout` with flow positions (space flows vertically with ~200px gaps)
 
+   **Domain YAML format** — use **flat top-level fields** (NOT nested under a `domain:` key):
+   ```yaml
+   name: "Users"
+   description: "User management and authentication"
+   role: entity
+   owns_schemas: ["User", "Session"]
+   flows:
+     - id: user-register
+       name: "User Registration"
+       description: "Register a new user account"
+       type: traditional
+   publishes_events:
+     - event: UserRegistered
+       schema: User
+       from_flow: user-register
+       description: "Fired after successful registration"
+   consumes_events: []
+   layout:
+     flows:
+       user-register: { x: 100, y: 100 }
+     portals: {}
+   ```
+
+   **CRITICAL:** Do NOT wrap domain fields under a `domain:` key. The DDD Tool parses domain.yaml as a flat `DomainConfig` object — `name`, `description`, `role`, `flows`, `publishes_events`, `consumes_events` must all be at the YAML root level.
+
 13. **Create flow YAML files**: For each flow, create `specs/domains/{domain-id}/flows/{flow-id}.yaml` with:
    - `flow` metadata (id, name, type, domain, description). Optionally add `emits: string[]` and `listens_to: string[]` to summarize the flow's event surface. For flows triggered by keyboard shortcuts, add `keyboard_shortcut` (e.g., `"Cmd+K"`). For reusable parameterized flows, add `template: true` and `parameters` (Record<string, FlowParameter> where FlowParameter has `type` and optional `values`) — callers pass parameters via `sub_flow` node's `input_mapping`. For HTTP-triggered flows, add `auth: { required: boolean, roles?: string[], strategy?: 'jwt'|'api_key'|'none' }` — `/ddd-implement` generates auth middleware from this field. Internal, cron, and event-triggered flows may omit `auth`. For performance-critical flows, optionally add `metrics: [{name, type: counter|gauge|histogram, labels?}]`. For flows that need per-flow log configuration, add `log: {level: 'debug'|'info'|'warn'|'error', include_input?: boolean, include_output?: boolean}` to override the default log level.
    - `trigger` node with `spec.event` set to one of these conventions:

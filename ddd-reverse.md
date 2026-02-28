@@ -667,6 +667,37 @@ Action: run /ddd-reverse with --domains to add missing flows, or manually create
           {flow-id}.yaml
 ```
 
+### Domain YAML format
+Each domain.yaml uses **flat top-level fields** (NOT nested under a `domain:` key):
+```yaml
+name: "Users"
+description: "User management and authentication"
+role: entity          # entity | process | interface | orchestration
+owns_schemas: ["User", "Session"]
+flows:
+  - id: user-register
+    name: "User Registration"
+    description: "Register a new user account"
+    type: traditional
+  - id: user-login
+    name: "User Login"
+    description: "Authenticate and issue JWT"
+    type: traditional
+publishes_events:
+  - event: UserRegistered
+    schema: User
+    from_flow: user-register
+    description: "Fired after successful registration"
+consumes_events: []
+layout:
+  flows:
+    user-register: { x: 100, y: 100 }
+    user-login: { x: 100, y: 300 }
+  portals: {}
+```
+
+**CRITICAL:** Do NOT wrap domain fields under a `domain:` key. The DDD Tool parses domain.yaml as a flat `DomainConfig` object — `name`, `description`, `role`, `flows`, `publishes_events`, `consumes_events` must all be at the YAML root level. Do NOT use `events.emits`/`events.listens` — use `publishes_events`/`consumes_events` arrays with `{event, description}` objects.
+
 ### Node ID convention
 Use `{type}-{8-char-random}` format (e.g., `input-xK9mR2vL`, `process-aPq3nW8j`).
 
