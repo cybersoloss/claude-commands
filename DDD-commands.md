@@ -565,6 +565,9 @@ Run tests for implemented flows without re-generating code.
 
 # Test infrastructure
 /ddd-test --infra
+
+# Test infrastructure
+/ddd-test --infra
 ```
 
 ### What it does
@@ -741,6 +744,9 @@ Move approved annotations into permanent specs. This is how implementation wisdo
 
 # Promote annotations for a specific flow
 /ddd-promote monitoring/check-social-sources
+
+# Promote all annotations in a domain
+/ddd-promote monitoring
 
 # Promote UI page annotations
 /ddd-promote --ui
