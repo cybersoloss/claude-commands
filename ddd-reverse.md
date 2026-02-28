@@ -796,11 +796,12 @@ Next steps:
   1. Review coverage report at .ddd/reverse/coverage.yaml
   2. Open the project in DDD Tool to visualize and review
   3. Add any missing flows flagged in coverage report
-  4. Run /ddd-sync to link specs to existing source files (populates mapping.yaml)
-  5. Run /ddd-reflect --all to capture implementation wisdom as annotations
+  4. Run /ddd-reflect --all to capture implementation wisdom as annotations
+  5. Run /ddd-promote --review to approve annotations into permanent specs
 
   WARNING: Do NOT run /ddd-implement — code already exists.
   /ddd-implement would regenerate code from specs, overwriting the working codebase.
+  mapping.yaml was already created with correct hashes — no need to run /ddd-sync.
 ```
 
 ### Write change-history entries
@@ -815,6 +816,47 @@ After generating all specs, write an entry to `.ddd/change-history.yaml` for eac
 - Set `scope.pillar` based on the spec type: `logic` for flows, `data` for schemas, `interface` for pages, `infrastructure` for infrastructure.yaml
 
 This allows `/ddd-status` to show all reverse-engineered specs as implemented and `/ddd-sync` to track them for future drift detection.
+
+### Create mapping.yaml
+
+**IMPORTANT:** Create `.ddd/mapping.yaml` as part of the reverse-engineering output — do NOT defer this to `/ddd-sync`. The mapping links each spec to its source files with SHA-256 hashes, establishing the drift detection baseline.
+
+For each flow spec generated, identify which source files implement that flow (the same files analyzed during flow extraction). For each page spec, identify which component files implement that page.
+
+Compute SHA-256 hashes of ALL spec files and ALL implementation files. Use the same hashing method consistently (e.g., `shasum -a 256` in a single batch).
+
+Write `.ddd/mapping.yaml` in this format:
+```yaml
+flows:
+  {domain}/{flow-id}:
+    spec: specs/domains/{domain}/flows/{flow-id}.yaml
+    specHash: "{sha256 of spec file}"
+    files:
+      - src/path/to/implementation.ts
+      - src/path/to/component.tsx
+    fileHashes:
+      src/path/to/implementation.ts: "{sha256}"
+      src/path/to/component.tsx: "{sha256}"
+    implementedAt: "{ISO timestamp}"
+    mode: new
+    syncState: in_sync
+    annotationCount: 0
+
+pages:
+  {page-id}:
+    spec: specs/ui/{page-id}.yaml
+    specHash: "{sha256 of spec file}"
+    files:
+      - src/components/PageComponent.tsx
+    fileHashes:
+      src/components/PageComponent.tsx: "{sha256}"
+    implementedAt: "{ISO timestamp}"
+    mode: new
+    syncState: in_sync
+    annotationCount: 0
+```
+
+**Why this matters:** Without mapping.yaml, the DDD Tool shows "Code has changes not in spec" drift warnings on every flow. Creating it during `/ddd-reverse` prevents the user from needing to run `/ddd-sync` immediately after and eliminates false drift warnings on first open.
 
 ---
 
