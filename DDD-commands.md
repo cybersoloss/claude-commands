@@ -253,6 +253,8 @@ Generate working code and tests from DDD specs — backend flows, frontend pages
 
 ### What it does
 
+**No-flags mode (change-history driven):** Reads `.ddd/change-history.yaml` for `pending_implement` entries. Routes each entry by its `scope.pillar` — `logic` → flow implementation, `data` → schema, `interface` → UI page, `infrastructure` → configs. Processes in dependency order: Data → Infrastructure → Logic → Interface. This means after any DDD Tool save, the user just runs `/ddd-implement` and everything is handled automatically.
+
 **Backend flows:**
 1. Finds `ddd-project.json` in current or parent directory
 2. Reads all relevant specs (system, architecture, config, errors, schemas, domain, flow, infrastructure)

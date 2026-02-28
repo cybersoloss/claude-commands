@@ -25,7 +25,20 @@ Parse the argument to determine scope:
 
 2. **Resolve the scope from the argument**:
 
-   **If no argument**: First check `.ddd/change-history.yaml` for entries with `status: pending_implement`. If pending entries exist, use those as the scope — implement only those flows/pages/schemas without asking. Show a brief summary: "Found {N} pending changes from change-history — implementing those." If no pending entries (or `--ignore-history` flag), list all domains and their flows with implementation status (check `.ddd/mapping.yaml`), list UI pages with implementation status, show which are implemented (with date), which have drift, and which are new. Ask the user what to implement.
+   **If no argument**: First check `.ddd/change-history.yaml` for entries with `status: pending_implement`. If pending entries exist, use those as the scope — implement only those without asking. Show a brief summary: "Found {N} pending changes from change-history — implementing those."
+
+   **Route each pending entry by its `scope.pillar` field:**
+
+   | `scope.pillar` | Implementation method | What it does |
+   |----------------|----------------------|-------------|
+   | `logic` | Flow implementation (default path) | Read flow spec → generate route/handler/service code + tests |
+   | `data` | `--schema` logic | Read schema spec → regenerate ORM model/migration |
+   | `interface` | `--ui` logic | Read page spec → generate page component + tests |
+   | `infrastructure` | `--infra` logic | Read infrastructure spec → regenerate configs/scripts |
+
+   Group pending entries by pillar and process in order: Data → Infrastructure → Logic → Interface (schemas and infra first, since flows and pages may depend on them).
+
+   If no pending entries (or `--ignore-history` flag), list all domains and their flows with implementation status (check `.ddd/mapping.yaml`), list UI pages with implementation status, show which are implemented (with date), which have drift, and which are new. Ask the user what to implement.
 
    **If `--all`**: Collect all flows across all domains and all UI pages. Implement backend flows first (in dependency order — flows that publish events before flows that consume them), then implement UI pages.
 
