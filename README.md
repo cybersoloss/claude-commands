@@ -52,6 +52,11 @@ Run `/helpmecode` for the complete guide.
 | `/perf-review` | Performance bottlenecks |
 | `/spec-verify` | Specification alignment |
 | `/code-enhance` | Apply improvements |
+| `/analyze-io-timing-log-and-fix` | Default (no param): same as --show — coverage + gap analysis from live codebase |
+| `/analyze-io-timing-log-and-fix --log` | Ask toggle preference → explore project I/O → output implementation prompt (+ `/ddd-update` line) |
+| `/analyze-io-timing-log-and-fix --fix [log]` | Parse I/O timing log → detect feedback loops, main-thread blocks, slow ops → fix + record results |
+| `/analyze-io-timing-log-and-fix --show` | Extract current logging coverage and gap analysis from live codebase |
+| `/analyze-io-timing-log-and-fix --status` | Show full diagnostic history (when --log/--fix ran, issues found, health trend) |
 
 ### Team & Process Commands
 
