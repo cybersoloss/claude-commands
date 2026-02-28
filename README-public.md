@@ -6,6 +6,10 @@ Slash commands for the [Design Driven Development](https://github.com/cybersolos
 
 ![DDD Workflow Demo](https://raw.githubusercontent.com/cybersoloss/DDD/main/assets/ddd-demo.gif)
 
+**Full Feature Preview** — 9 domains, 53 flows, 28 node types (Vantage supply chain project):
+
+![Feature Preview](https://raw.githubusercontent.com/cybersoloss/ddd-tool/main/demo/demo-feature-preview.gif)
+
 > **Note:** The abbreviation "DDD" is used in command names for brevity. This is not related to Eric Evans' Domain-Driven Design, which is an entirely separate methodology.
 
 ## Prerequisites
