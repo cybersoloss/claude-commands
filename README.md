@@ -4,6 +4,8 @@ A curated collection of slash commands for AI-native software development with C
 
 **DDD commands** (Design Driven Development) are original work — the methodology, spec format, and all 11 commands. See the [DDD repo](https://github.com/cybersoloss/DDD) for documentation.
 
+![DDD Lifecycle Demo](assets/ddd-lifecycle-demo.gif)
+
 **All other commands** (code verification, workflow, team & process, utility) are curated from third-party sources and distributed here for healthy code practices. Built on insights from McKinsey research, Jellyfish, Sonar, and Cursor.
 
 ## Installation
