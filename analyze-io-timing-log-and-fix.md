@@ -39,7 +39,31 @@ Wait for the user's answer before proceeding. If they're unsure, recommend the o
 
 ## Step 2: Explore the Project
 
-Read the project to understand:
+### 2a. Detect Project Architecture
+
+Before diving into I/O hotspots, classify the project structure:
+
+| Architecture | How to detect | Layers |
+|-------------|--------------|--------|
+| **Single-process** | One entry point, no API routes serving a frontend | `app` |
+| **API backend** | Express/Hono/Fastify routes, no frontend build | `server` |
+| **Frontend SPA** | React/Vue/Svelte with fetch calls, no backend in same repo | `client` |
+| **Full-stack** | Both API routes AND frontend components in same repo | `server` + `client` |
+| **SSR/hybrid** | Next.js/Nuxt/SvelteKit with server and client code | `server` + `client` + `ssr` |
+| **Monorepo** | packages/, apps/ with multiple services | one layer per package/app |
+
+Detection signals:
+- `package.json` scripts: `dev:server`, `dev:client`, `dev:all` → full-stack
+- `next.config.*`, `nuxt.config.*` → SSR/hybrid
+- `src/app/api/` or `src/routes/` + `src/components/` → full-stack
+- `docker-compose.yaml` with multiple services → monorepo or multi-service
+- Separate `server/` and `client/` directories → full-stack
+
+Record the detected architecture and layers. All subsequent steps are performed **per layer**.
+
+### 2b. Explore Each Layer
+
+For each detected layer, read the project to understand:
 - **Language and platform** (Swift/macOS, TypeScript/Node, Python, Go, etc.)
 - **I/O operations**: file reads/writes, database queries, network calls, cache operations
 - **FS monitoring**: directory watchers, file observers, polling loops, inotify/FSEvents/kqueue/chokidar
@@ -48,20 +72,32 @@ Read the project to understand:
 - **Existing debug infrastructure**: any logging utilities, debug flags, settings screens/env vars
 - **Existing settings mechanism** (if toggle = GUI): where the settings screen is, what pattern it uses
 
+**Per-layer focus areas:**
+
+| Layer | Primary hotspots |
+|-------|-----------------|
+| `server` | DB queries, external API calls, middleware chains, file uploads, event loop blocking |
+| `client` | Fetch waterfalls, re-render storms, large bundle imports, state update cascades |
+| `ssr` | Data fetching in server components, hydration mismatches, streaming delays |
+| `app` (single-process) | All of the above + FS monitoring, disk I/O, threading |
+
 Focus on files with heavy or repeated I/O. Look for:
 - Functions that load collections from disk or network
 - Monitor/watcher callbacks that trigger cascading reads
 - Save/write operations that might re-trigger their own monitor
 - Any operation that runs on app startup or on every user keystroke
+- (Full-stack) API route handlers and the frontend fetch calls that invoke them
 
 ## Step 3: Identify Hotspots
 
 For each I/O hotspot found, note:
+- **Layer**: `server`, `client`, `ssr`, or `app`
 - Function name and file:line
 - What triggers it (user action, timer, file change, every keystroke, etc.)
 - What it does (reads N items, writes to disk, queries DB)
 - Whether it runs on the main thread / event loop
 - Risk level: HIGH (blocks main thread or called every keystroke), MEDIUM (called frequently but not per-keystroke), LOW (one-time or rare)
+- **Route correlation** (full-stack only): if a server hotspot serves a specific API route, and a client hotspot fetches that same route, note the pair — these form an end-to-end chain
 
 ## Step 4: Map the Logger Pattern to This Project
 
@@ -78,7 +114,87 @@ A singleton or module-level logger with:
   - Python: `threading.current_thread().name`; async: `"async"` vs `"sync-call"`
   - Go: inject a label into context or use a goroutine-local tag
 - **Duration thresholds**: ⚠️ > 50ms (slow), 🚨 > 200ms (visible stall / likely user-felt)
-- **Log prefix format**: `[IO:<context>] <label>: <duration>ms [⚠️/🚨]`
+- **Log prefix format**: `[IO:<layer>:<context>] <label>: <duration>ms [⚠️/🚨]`
+
+### Multi-Layer Logger (full-stack / SSR / monorepo projects)
+
+When multiple layers are detected (Step 2a), create one logger utility per layer sharing the same format:
+
+| Layer | Logger location | Toggle | Log prefix |
+|-------|----------------|--------|------------|
+| `server` | `src/lib/io-logger.ts` (or server util dir) | `IO_DEBUG` env var | `[IO:server:...]` |
+| `client` | `src/utils/io-logger.ts` (or client util dir) | `localStorage.setItem('IO_DEBUG', '1')` | `[IO:client:...]` |
+| `ssr` | Same as server logger, but annotated | `IO_DEBUG` env var | `[IO:ssr:...]` |
+
+**Route correlation** (full-stack only): The server logger should log the route path on every request handler:
+```
+[IO:server:event-loop] GET /api/posts: 45ms (3 queries)
+```
+The client logger should log the same route on every fetch:
+```
+[IO:client:main] fetch /api/posts: 62ms (includes network)
+```
+The route path (`/api/posts`) is the natural correlation key — no special IDs needed. When analyzing logs, `--fix` matches server and client entries by route to build end-to-end chains.
+
+**Single-process projects:** Use the single-layer `[IO:<context>]` format (no layer prefix needed).
+
+### Log Output & Collection
+
+Logs need to be collectable as a file for `--fix` to analyze. Where logs go and how to collect them depends on the layer and environment.
+
+**This is a dev/staging diagnostic tool, not production monitoring.** Production environments should use APM tools (Datadog, New Relic, etc.). The logger toggle should default to OFF and never be enabled in production.
+
+**Backend / server / single-process:**
+
+| Environment | Output | How to collect for `--fix` |
+|-------------|--------|---------------------------|
+| Development | stdout | Redirect: `IO_DEBUG=1 npm run dev 2>&1 \| tee .io-diag/server.log` |
+| Staging | stdout → log aggregator | Filter by `[IO:server:]` prefix, export to file |
+
+The implementation prompt should include the `tee` command in the "How to enable" section so the user gets a file automatically.
+
+**Frontend / client:**
+
+Browser logs are ephemeral — they vanish when the tab closes. The client logger must include an **in-memory ring buffer** with export capability:
+
+1. **Ring buffer** — store last 500 entries in an array (configurable). Old entries rotate out.
+2. **Console output** — also log to `console.log` for real-time viewing in DevTools.
+3. **Export function** — `window.__exportIOLog()` dumps the buffer as a downloadable `.log` file (or copies to clipboard). This is how the user gets the log for `--fix`.
+4. **Optional: export button** — if the project has a settings/debug screen, add a "Download I/O Log" button that calls the export function.
+
+```javascript
+// Client logger — ring buffer + export
+const IO_BUFFER = [];
+const IO_BUFFER_MAX = 500;
+
+function ioLog(message) {
+  if (!localStorage.getItem('IO_DEBUG')) return;
+  const entry = `${new Date().toISOString()} ${message}`;
+  IO_BUFFER.push(entry);
+  if (IO_BUFFER.length > IO_BUFFER_MAX) IO_BUFFER.shift();
+  console.log(entry);
+}
+
+window.__exportIOLog = () => {
+  const blob = new Blob([IO_BUFFER.join('\n')], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `io-client-${Date.now()}.log`;
+  a.click(); URL.revokeObjectURL(url);
+};
+```
+
+**SSR:**
+
+SSR log entries use the server logger (stdout) but with `[IO:ssr:...]` prefix. Collected the same way as backend logs.
+
+**Combined log for `--fix`:**
+
+When running `--fix` on a multi-layer project, the user may provide separate log files or a combined one:
+- `--fix server.log` — analyze server only
+- `--fix client.log` — analyze client only
+- `--fix combined.log` — `--fix` splits by layer prefix automatically
+- If the user provides only one layer's log, `--fix` analyzes what's available and notes which cross-boundary patterns can't be detected without the other layer's log.
 
 ### Settings Toggle Implementation (based on user choice in Step 1)
 
@@ -140,14 +256,22 @@ Self-write guard: [yes/no + which writes to guard + guard implementation]
 Rate warning: [which callbacks + threshold]
 Debounce: [yes/no + where + interval]
 
+Log collection:
+  Server: IO_DEBUG=1 npm run dev 2>&1 | tee .io-diag/server.log
+  Client: Enable in browser console: localStorage.setItem('IO_DEBUG', '1')
+          Export: run window.__exportIOLog() in console → downloads .log file
+  [Include ring buffer + export function in client logger implementation]
+
 Expected log output when working correctly:
-[IO:bg]   loadItems: 12.3ms
-[IO:MAIN] saveState: 8.1ms ⚠️ (should be on bg thread)
+[IO:server:event-loop] GET /api/posts: 45ms (3 queries)
+[IO:client:main] fetch /api/posts: 62ms (includes network)
+[IO:server:event-loop] loadItems: 12.3ms
+[IO:client:main] saveState: 8.1ms ⚠️ (should be on bg thread)
 FS event [data] — modified: state.json
 callback suppressed (self-write)
-[IO:bg→main] reloadFromDisk: END — 34.2ms (+1 new, -0 removed)
 
 How to enable: [exact steps based on chosen toggle mechanism]
+How to collect: [tee command for server, export function for client]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -173,15 +297,17 @@ Create `.io-diag/` directory if it doesn't exist. Append to `.io-diag/session-lo
 
 ```markdown
 ## [YYYY-MM-DD] — --log
-Language: [detected]
-Toggle: [chosen mechanism]
+Architecture: [single-process | full-stack | SSR | monorepo]
+Layers: [server, client, ssr — or "app"]
+Language: [detected per layer]
+Toggle: [chosen mechanism per layer]
 Hotspots identified: N
-  HIGH: [list]
-  MEDIUM: [list]
+  HIGH: [list with layer prefix]
+  MEDIUM: [list with layer prefix]
 FS labeling: yes/no
 Self-write guard: yes/no
 Implementation prompt: generated
-/ddd-update line: included
+/ddd-update line: included (if DDD project)
 ```
 
 ---
@@ -190,14 +316,19 @@ Implementation prompt: generated
 
 Analyze a log file produced by `--log` instrumentation and apply targeted code fixes.
 
-If no path is given, ask the user to paste log content or provide a file path.
+If no path is given, check for log files in `.io-diag/` first (e.g., `server.log`, `client.log`). If none found, ask the user to paste log content or provide a file path.
+
+**Multi-layer log handling:** If the log contains mixed layer prefixes (`[IO:server:...]` and `[IO:client:...]`), split entries by layer before analysis. If only one layer's log is provided, analyze what's available and note which cross-boundary patterns (H–L) can't be detected without the other layer.
 
 ## Log Format Reference
 
 ```
-[IO:MAIN]     <message>   — on main/event-loop thread (potential freeze/block)
-[IO:bg]       <message>   — on background thread/worker (correct)
-[IO:bg→main]  <message>   — bg I/O dispatched to main for state update (correct)
+[IO:MAIN]              <message>   — single-process: on main thread (potential freeze)
+[IO:bg]                <message>   — single-process: on background thread (correct)
+[IO:bg→main]           <message>   — single-process: bg I/O dispatched to main (correct)
+[IO:server:event-loop] <message>   — multi-layer: server event loop
+[IO:client:main]       <message>   — multi-layer: browser main thread
+[IO:ssr:event-loop]    <message>   — multi-layer: SSR rendering context
 ```
 
 | Log Line | Meaning |
@@ -240,6 +371,21 @@ High `FS event` count relative to user actions. Debounce may be working (collaps
 
 ### G. Unguarded Writes
 Own-written files appearing in FS events with unsuppressed callbacks. Find the write call and add the self-write guard.
+
+### H. Fetch Waterfall (multi-layer)
+Client makes sequential fetch calls that could be parallel. Detected by multiple `[IO:client:main] fetch` entries with non-overlapping timestamps to different routes. Fix: `Promise.all()` or parallel data loading.
+
+### I. N+1 Query via API (multi-layer)
+Client fetches a list, then fetches detail for each item individually. Detected by `[IO:client:main] fetch /api/items` followed by N × `[IO:client:main] fetch /api/items/{id}`. Fix: batch endpoint or include detail in list response.
+
+### J. Overfetching (multi-layer)
+Server route returns large payload but client uses few fields. Detected by `[IO:server:event-loop] GET /api/posts: 45ms (24 fields)` where client-side usage shows only a subset. Flag for investigation — suggest field selection or separate lightweight endpoint.
+
+### K. Redundant Calls (multi-layer)
+Same route fetched multiple times within a short window. Detected by repeated `[IO:client:main] fetch /api/settings` entries with identical route. Fix: client-side cache, SWR/React Query deduplication, or lift data fetching to shared parent.
+
+### L. SSR/Client Mismatch (SSR projects)
+Same data fetched in SSR then re-fetched on client hydration. Detected by `[IO:ssr:...]` and `[IO:client:...]` entries for the same route in quick succession. Fix: pass SSR data to client via props/context instead of re-fetching.
 
 ## Step 3: Root Cause Analysis
 
@@ -485,14 +631,14 @@ Search the codebase for the logger implementation:
 
 ## Step 2: Map Instrumentation Coverage
 
-Search for all call sites:
+Detect the project architecture (same logic as `--log` Step 2a). Then search **per layer** for all call sites:
 - `timed(` / `.timed(` calls — wrapping I/O operations
 - `log(` / `.log(` calls from the logger (exclude unrelated log calls)
 - Self-write guard usages (`pendingSelfWrites`, `withSelfWriteGuard`, or equivalent)
 - Rate warning counters
 - FS event snapshot logic in monitor callbacks
 
-For each instrumented site, record: file, function, what it's measuring, why it matters.
+For each instrumented site, record: layer, file, function, what it's measuring, why it matters.
 
 ## Step 3: Gap Analysis
 
@@ -516,22 +662,38 @@ Verify the toggle mechanism works as documented:
 ```
 ## I/O Logging Coverage Report
 
-### Logger: [file location]
-Enable: [exact command/step to turn on]
+### Architecture: [single-process | full-stack | SSR | monorepo]
+Layers: [server, client, ssr — or "app" for single-process]
+
+### Logger(s)
+| Layer | File | Enable |
+|-------|------|--------|
+| server | [path] | `IO_DEBUG=1` |
+| client | [path] | `localStorage.setItem('IO_DEBUG', '1')` |
 
 ### Instrumented Sites
-| File | Function | What's measured | Guard/Rate |
-|------|----------|-----------------|------------|
-| ...  | ...      | ...             | ...        |
+| Layer | File | Function | What's measured | Guard/Rate |
+|-------|------|----------|-----------------|------------|
+| server | ... | ... | ... | ... |
+| client | ... | ... | ... | ... |
 
-### Coverage by Risk Level
-HIGH risk hotspots:   N instrumented / N total  [🟢/🟡/🔴]
-MEDIUM risk hotspots: N instrumented / N total
-LOW risk hotspots:    N instrumented / N total
+### Coverage by Layer and Risk Level
+**Server:**
+  HIGH risk:   N / N  [🟢/🟡/🔴]
+  MEDIUM risk: N / N
+**Client:**
+  HIGH risk:   N / N  [🟢/🟡/🔴]
+  MEDIUM risk: N / N
+
+[Single-process projects show one section without layer labels]
 
 ### Gaps (Not Instrumented)
-| File | Function | Risk | Why it matters |
-|------|----------|------|----------------|
+| Layer | File | Function | Risk | Why it matters |
+|-------|------|----------|------|----------------|
+
+### Cross-Boundary Coverage (multi-layer only)
+Route pairs with both server and client instrumentation: N / N total API routes
+[List routes where only one side is instrumented]
 
 ### Self-Write Guard
 Writes guarded: N / N total own-initiated writes

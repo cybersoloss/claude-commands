@@ -110,6 +110,27 @@ All DDD commands now generate specs across four foundational pillars — **Logic
 | `--revert [--all]` | Undo previously applied --fix changes using saved markers |
 | `--status` | Full diagnostic history and health trend |
 
+### Multi-Layer Apps (Full-Stack, SSR, Monorepo)
+
+The command auto-detects project architecture — no scope flags needed:
+
+| Architecture | Detection | Layers |
+|-------------|-----------|--------|
+| Single-process | One entry point, no API routes | `app` |
+| Full-stack | API routes + frontend components | `server` + `client` |
+| SSR/hybrid | Next.js, Nuxt, SvelteKit | `server` + `client` + `ssr` |
+
+Each layer gets its own logger with a layer prefix (`[IO:server:...]`, `[IO:client:...]`). Route paths serve as the natural correlation key between layers — `--fix` matches server and client log entries by route to build end-to-end chains and detect cross-boundary patterns (fetch waterfalls, N+1 via API, overfetching, redundant calls, SSR/client re-fetch).
+
+### Log Collection
+
+| Layer | How to collect |
+|-------|---------------|
+| Server | `IO_DEBUG=1 npm run dev 2>&1 \| tee .io-diag/server.log` |
+| Client | `localStorage.setItem('IO_DEBUG', '1')` then `window.__exportIOLog()` → downloads `.log` file |
+
+This is a dev/staging tool. Production environments should use APM tools (Datadog, New Relic).
+
 ### DDD Project Integration (Hybrid Flow)
 
 In DDD projects (`ddd-project.json` detected), `--fix` splits fixes into two categories:

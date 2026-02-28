@@ -153,6 +153,10 @@ Update specs from natural language.
 | `<domain>` | `/ddd-update users add email verification flow` |
 | `--add-flow <domain>` | `/ddd-update --add-flow orders add refund-order flow` |
 | `--add-domain` | `/ddd-update --add-domain add notifications domain with email and push flows` |
+| `--ui <page-id>` | `/ddd-update --ui dashboard add a filter bar` |
+| `--add-page` | `/ddd-update --add-page add an analytics page` |
+| `--schema <model>` | `/ddd-update --schema User add avatar_url field` |
+| `--infra` | `/ddd-update --infra add Redis service` |
 
 **`/ddd-sync [flags]`**
 
@@ -164,6 +168,7 @@ Keep specs and implementation aligned.
 | `--discover` | Scan for untracked code, suggest new flow specs |
 | `--fix-drift` | Re-implement drifted flows from updated specs |
 | `--full` | All of the above |
+| `--verify` | Behavioral conformance — node-by-node check that code implements spec intent (read-only). Not included in `--full`. |
 
 **`/ddd-status [--json]`**
 
