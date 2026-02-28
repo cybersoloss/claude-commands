@@ -215,7 +215,7 @@ Generate working code and tests from DDD specs — backend flows, frontend pages
 | `--ui` | All UI pages | `/ddd-implement --ui` |
 | `--ui page-id` | Single UI page | `/ddd-implement --ui dashboard` |
 | `--schema` | Regenerate data layer from schemas | `/ddd-implement --schema` |
-| `--schema model-name` | Single schema model | `/ddd-implement --schema User` |
+| `--schema model` | Single schema model | `/ddd-implement --schema User` |
 | `--infra` | Regenerate infrastructure from specs | `/ddd-implement --infra` |
 | `--ignore-history` | Ignore change-history, implement scope directly | `/ddd-implement --all --ignore-history` |
 | *(empty)* | Interactive — shows flows/pages and asks | `/ddd-implement` |
