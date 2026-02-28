@@ -114,11 +114,13 @@ For small codebases (< 30 files) where everything fits in context.
 - UI action handlers → trigger `ui:{action}`
 - Pattern/correlated event handlers → trigger `pattern:{EventName}` with `group_by`, `threshold`, `window`
 
-For each entry point, read the handler and trace through called functions to build the node graph:
-- Validation → `input` node
-- DB operations → `data_store` node (operation, model, query/data)
-- External API calls → `service_call` node (method, url, error_mapping). Detect OAuth1a auth → `oauth1a_config`. Detect response header capture → `capture_headers`. Detect fallback values for non-critical calls → `fallback`. Detect stealth HTTP wrappers → `request_config`.
-- Conditionals → `decision` node (condition, both branches)
+For each entry point, read the handler and trace through called functions to build the node graph. **For each flow, you will output THREE things: (1) nodes, (2) connections, (3) positions. Do NOT write the flow YAML until all three are complete.**
+
+Build the node list:
+- Validation → `input` node (MUST have `fields` array)
+- DB operations → `data_store` node (MUST have `operation` and `model`)
+- External API calls → `service_call` node (MUST have `method`, `url`). Detect OAuth1a auth → `oauth1a_config`. Detect response header capture → `capture_headers`. Detect fallback values for non-critical calls → `fallback`. Detect stealth HTTP wrappers → `request_config`.
+- Conditionals → `decision` node (MUST have `condition`)
 - Loops → `loop` node (detect `on_error` handling, `accumulate` patterns); parallel ops → `parallel` node (detect `failure_policy`, `merge_strategy`)
 - Event publishing → `event` node (direction: emit)
 - LLM/AI calls → `llm_call` node
@@ -140,8 +142,8 @@ For each entry point, read the handler and trace through called functions to bui
 - Agent context transfer → `handoff` node
 - Parallel agent teams → `agent_group` node (detect `selection_strategy`)
 - WebSocket push to clients → `websocket_broadcast` node (`channel`, `event_name`, `payload`, `include_sender`)
-- Response/return → `terminal` node (outcome, status, body)
-- Error handling → `terminal` on error paths
+- Response/return → `terminal` node (MUST have `outcome`: success/error/redirect, `status`: HTTP code, `body`)
+- Error handling → `terminal` on error paths (MUST have `outcome: error`, `status`, `body`)
 
 **Flow-level fields**: For each flow, also detect:
 - Auth middleware/guards → flow `auth` field (`required`, `roles`, `strategy: jwt|api_key|none`)
@@ -149,23 +151,30 @@ For each entry point, read the handler and trace through called functions to bui
 - Flow contracts (typed input/output) → flow `contract` field
 - Parameterized/reusable flow factories → flow `template: true` + `parameters`
 
-**CRITICAL — Write the full `connections:` array for every flow.** This is the most commonly missed step. After building the node list, you MUST explicitly write out every connection:
+**After building all nodes for a flow, STOP and build connections before writing the YAML file.** This is a mandatory step — flows with empty `connections: []` are broken and unusable.
 
-```yaml
-connections:
-  - sourceNodeId: trigger-xK9mR2vL
-    targetNodeId: input-aPq3nW8j
-  - sourceNodeId: input-aPq3nW8j
-    targetNodeId: data_store-bRt5mW2k
-    sourceHandle: valid
-  - sourceNodeId: input-aPq3nW8j
-    targetNodeId: terminal-eRr0rN0d
-    sourceHandle: invalid
-```
+**Connection building process (do this for EVERY flow):**
 
-Every node must appear as either a source or target (except the trigger which is only a source, and terminals which are only targets). If a flow has N nodes, it must have at least N-1 connections. Use proper sourceHandle values (see Connection Wiring section below).
+1. Start at the trigger node. What node does the code call first? That's your first connection.
+2. For each node, follow the code's control flow to find the next node(s):
+   - Sequential code (function calls in order) → one connection to next node
+   - if/else → two connections with `sourceHandle: "true"` / `"false"` (decision) or `"valid"` / `"invalid"` (input)
+   - try/catch → `sourceHandle: "success"` / `"error"`
+   - return/response → connection to terminal node
+3. Write each connection as `{sourceNodeId, targetNodeId, sourceHandle}`.
+4. **Verify:** count connections. A flow with N nodes needs at least N-1 connections. If you have fewer, you missed a link.
 
-Walk the code's control flow to determine connection order — function call sequence, if/else branches, try/catch blocks, loop bodies. Do NOT leave `connections: []` empty.
+**Self-check before writing each flow YAML:**
+- [ ] `connections:` array has entries (NOT empty)
+- [ ] Every node appears as source or target (except trigger=source only, terminal=target only)
+- [ ] Every `input` node has both `valid` and `invalid` connections
+- [ ] Every `decision` node has both `true` and `false` connections
+- [ ] Every `data_store` has both `success` and `error` connections
+- [ ] Every `terminal` node has `outcome`, `status`, and `body`
+- [ ] Every `input` node has `fields` array
+- [ ] Every `data_store` has `operation` and `model`
+
+**If any check fails, fix it before writing the file.** Do NOT defer to Phase 2 Quality Checks.
 
 Position nodes vertically (~130px spacing), error terminals to the right (x + 250). When the data flowing between nodes is evident from the code (e.g., a function returns a user object that the next function consumes), add a `data` annotation on the connection (e.g., `data: "userId, email, role"`). Add `label` for human-readable edge descriptions when the connection purpose isn't obvious from the node names. Add `condition` on conditional connections. Add `behavior` (`continue`/`stop`/`retry`/`circuit_break`) when the code has explicit error handling on the connection path.
 
