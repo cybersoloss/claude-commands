@@ -149,7 +149,25 @@ For each entry point, read the handler and trace through called functions to bui
 - Flow contracts (typed input/output) → flow `contract` field
 - Parameterized/reusable flow factories → flow `template: true` + `parameters`
 
-Wire connections with proper sourceHandle values. Position nodes vertically (~130px spacing), error terminals to the right (x + 250). When the data flowing between nodes is evident from the code (e.g., a function returns a user object that the next function consumes), add a `data` annotation on the connection (e.g., `data: "userId, email, role"`). Add `label` for human-readable edge descriptions when the connection purpose isn't obvious from the node names. Add `condition` on conditional connections. Add `behavior` (`continue`/`stop`/`retry`/`circuit_break`) when the code has explicit error handling on the connection path.
+**CRITICAL — Write the full `connections:` array for every flow.** This is the most commonly missed step. After building the node list, you MUST explicitly write out every connection:
+
+```yaml
+connections:
+  - sourceNodeId: trigger-xK9mR2vL
+    targetNodeId: input-aPq3nW8j
+  - sourceNodeId: input-aPq3nW8j
+    targetNodeId: data_store-bRt5mW2k
+    sourceHandle: valid
+  - sourceNodeId: input-aPq3nW8j
+    targetNodeId: terminal-eRr0rN0d
+    sourceHandle: invalid
+```
+
+Every node must appear as either a source or target (except the trigger which is only a source, and terminals which are only targets). If a flow has N nodes, it must have at least N-1 connections. Use proper sourceHandle values (see Connection Wiring section below).
+
+Walk the code's control flow to determine connection order — function call sequence, if/else branches, try/catch blocks, loop bodies. Do NOT leave `connections: []` empty.
+
+Position nodes vertically (~130px spacing), error terminals to the right (x + 250). When the data flowing between nodes is evident from the code (e.g., a function returns a user object that the next function consumes), add a `data` annotation on the connection (e.g., `data: "userId, email, role"`). Add `label` for human-readable edge descriptions when the connection purpose isn't obvious from the node names. Add `condition` on conditional connections. Add `behavior` (`continue`/`stop`/`retry`/`circuit_break`) when the code has explicit error handling on the connection path.
 
 **B4. Extract frontend pages** (Interface pillar): Detect the frontend framework and scan for page components:
 - **Next.js (app router)**: Scan `app/` or `src/app/` for `page.tsx`/`page.jsx` files — each directory with a page file is a route
@@ -518,6 +536,29 @@ Before writing final spec files, verify across all four pillars:
 - Every flow has exactly one trigger
 - All paths from trigger reach a terminal node (no dead ends)
 - No orphaned nodes (all reachable from trigger)
+- **`connections:` array is NOT empty** — every flow must have connections wiring nodes together. If connections is empty or missing, STOP and trace the code's control flow to build them.
+- **Per-node required fields** (self-check before writing each flow):
+
+  | Node Type | Required Fields |
+  |-----------|----------------|
+  | `trigger` | `event` (e.g., `http POST /api/users`) |
+  | `input` | `fields` array with at least one field |
+  | `process` | `action` or `description` |
+  | `decision` | `condition` |
+  | `terminal` | `outcome` (success/error/redirect), `status` (HTTP code), `body` |
+  | `data_store` | `operation` (find/create/update/delete), `model` |
+  | `service_call` | `method`, `url` |
+  | `event` | `direction` (emit/consume), `event_name` |
+  | `llm_call` | `model` or `provider`, `prompt` or `messages` |
+  | `loop` | `collection` |
+  | `parallel` | `branches` array |
+  | `cache` | `operation` (get/set/invalidate), `key` |
+  | `parse` | `format` (json/xml/html/csv/rss) |
+  | `crypto` | `operation` (hash/encrypt/sign/generate_token) |
+  | `batch` | `collection`, `operation` |
+  | `transaction` | `steps` or description of atomic operations |
+  | `ipc_call` | `command` |
+  | `transform` | `mapping` or `expression` |
 - Decision nodes have both true and false branches wired
 - Input nodes have valid/invalid paths wired
 - Data store nodes have success/error paths wired
@@ -697,6 +738,18 @@ layout:
 ```
 
 **CRITICAL:** Do NOT wrap domain fields under a `domain:` key. The DDD Tool parses domain.yaml as a flat `DomainConfig` object — `name`, `description`, `role`, `flows`, `publishes_events`, `consumes_events` must all be at the YAML root level. Do NOT use `events.emits`/`events.listens` — use `publishes_events`/`consumes_events` arrays with `{event, description}` objects.
+
+### Flow ID derivation
+
+Derive flow IDs from the **trigger source**, not the handler function name. Priority order:
+
+1. **HTTP route** → verb + resource: `POST /api/tasks` → `create-task`, `GET /api/tasks` → `list-tasks`, `DELETE /api/tasks/:id` → `delete-task`
+2. **Event consumer** → event name: `task.created` → `handle-task-created`, `UserRegistered` → `handle-user-registered`
+3. **Cron/timer** → action description: `daily cleanup` → `daily-cleanup`
+4. **IPC command** → command name: `open_project` → `open-project`
+5. **Fallback** → handler function name (only if none of the above apply)
+
+This ensures flow IDs are stable and meaningful — a renamed function won't change the flow ID.
 
 ### Node ID convention
 Use `{type}-{8-char-random}` format (e.g., `input-xK9mR2vL`, `process-aPq3nW8j`).
