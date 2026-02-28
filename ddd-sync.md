@@ -4,6 +4,8 @@ Synchronize the DDD project specs with the current implementation state across a
 
 **Core principle:** Specs and code are BOTH sources of truth at different levels. Specs describe *what* and *why*; code may include *how* details the spec doesn't capture. Sync must respect both directions.
 
+**Two levels of checking:** Plain `/ddd-sync` detects drift via SHA-256 hash comparison — it answers "has the file changed?" and classifies the direction (metadata-only, spec enriched, code ahead, new logic). `--verify` goes deeper with node-by-node behavioral analysis — it answers "does the code actually do what the spec describes?" Both can detect code-ahead situations, but through different mechanisms: hash drift sees *that* code changed, `--verify` sees *what* behavior diverged.
+
 **Files read:**
 - `ddd-project.json` — domain list, project config
 - `.ddd/mapping.yaml` — implementation tracking with `specHash`, `syncState`, `files`, `fileHashes`, `implementedAt`, `annotationCount`, and `mode` per entry (flows and pages sections)
@@ -106,6 +108,82 @@ Synchronize the DDD project specs with the current implementation state across a
    **Checkpoint:** After each pillar's drift check, output: "{Pillar} complete: {N}/{N} items checked"
 
    **GATE:** Compare checked count to plan. If any planned item was skipped, STOP and check it now.
+
+5b. **Behavioral conformance analysis** (only if `--verify` flag is active):
+
+   **Purpose:** Hash-based drift (Step 5) answers "has the file changed?" — this step answers "does the code actually do what the spec describes?" A flow can show `in_sync` while missing node implementations or containing undocumented behavior.
+
+   **Scope:** Only items in mapping.yaml with existing implementation files. Skip stale entries (missing files).
+
+   **Processing order:** Data → Interface → Infrastructure → Logic (same as Step 5).
+
+   **Plan table first** — enumerate all items to verify per pillar before starting:
+
+   | Pillar | Items to Verify | Count |
+   |--------|----------------|-------|
+   | Data | {list of schemas with mapped files} | {N} |
+   | Interface | {list of pages with mapped files} | {N} |
+   | Infrastructure | {services from spec with config files} | {N} |
+   | Logic | {list of flows with mapped files} | {N} |
+
+   **Per-pillar checks:**
+
+   **Data (schemas — field by field):**
+   - Read schema spec fields, indexes, relationships, seed
+   - Read ORM model/migration files
+   - Compare: each spec field ↔ ORM field (type, constraints, required, unique, default)
+   - Check indexes exist, relationships have foreign keys
+   - Reverse: ORM fields not in spec
+
+   **Interface (pages — section by section):**
+   - Read page spec sections, forms, data_source bindings
+   - Read component files
+   - Check each section has a rendering component
+   - Check each form has fields, validation, submit handler
+   - Check data_source API calls are present
+   - Reverse: major UI elements not in spec
+
+   **Infrastructure (service by service):**
+   - Read infrastructure.yaml services, ports, startup_order
+   - Read docker-compose, package.json scripts
+   - Compare services, ports, depends_on
+   - Reverse: services in code not in spec
+
+   **Logic (flows — node by node):**
+
+   Walk the spec graph from trigger through every path to terminals. For each node:
+
+   | Node Type | What to Check |
+   |-----------|--------------|
+   | `trigger` | Route/handler/listener matching event type+path. Auth middleware if `flow.auth`. Rate limits if specified. |
+   | `input` | Validation matching field definitions. Valid/invalid branching. |
+   | `process` | Code implementing the described action/service. |
+   | `decision` | Conditional matching the condition. True/false branches lead to correct targets. |
+   | `data_store` | DB operation matching model, operation, query/filters. Pagination/sort if specified. |
+   | `service_call` | HTTP call matching method, url. Error mapping, retry/timeout if specified. |
+   | `event` | Event emission/consumption with correct name and payload. |
+   | `loop` | Iteration over collection. on_error, accumulate if specified. |
+   | `parallel` | Concurrent execution matching branches. failure_policy, merge_strategy if specified. |
+   | `terminal` | Response matching status code and body shape. |
+   | All 29 types | Type-specific check per the node's spec fields. |
+
+   **Connection graph check:** Code control flow matches spec's connection order and sourceHandle branching.
+
+   **Reverse check (code → spec):** Scan for significant behavior not represented by any node — middleware, error handling, data transforms, cross-cutting patterns. Before flagging as `missing_in_spec`, check if it matches an `architecture.yaml` cross-cutting pattern (if so → `conforms`).
+
+   **Don't flag** (same exclusions as `/ddd-reflect`): Standard framework boilerplate, type definitions, logging, test-specific code, default framework patterns.
+
+   **Conformance statuses** (S = Spec, C = Code):
+
+   | Status | S / C | Meaning | Action |
+   |--------|-------|---------|--------|
+   | `conforms` | S✓ C✓ | Spec describes it, code implements it | None needed |
+   | `missing_in_code` | S✓ C✗ | Spec describes it, code doesn't implement it | `/ddd-implement {scope}` |
+   | `missing_in_spec` | S✗ C✓ | Code has it, spec doesn't describe it | `/ddd-reflect {scope}` → `/ddd-promote` |
+   | `diverged` | S✓ C≠ | Both exist, behavior differs | Manual review |
+   | `partial` | S✓ C~ | Spec describes it, code partially implements it | Context-dependent |
+
+   **Per-pillar checkpoints + gates:** After each pillar, output: "{Pillar} conformance: {N}/{N} items verified". If any planned item was skipped, STOP and check it now.
 
    **RULE: Never update a specHash unless both directions are verified.** If code has details the spec doesn't describe, updating the hash would falsely declare "in sync" and risk losing those details on future re-implementation.
 
@@ -211,6 +289,63 @@ Synchronize the DDD project specs with the current implementation state across a
       - (If --discover) Untracked code — backend routes, page components, infrastructure configs, data models
       - (If --fix-drift) Flows, pages, schemas, and services that were re-implemented or enriched
 
+      **Behavioral conformance** (with `--verify`):
+      ```
+      ── Behavioral Conformance (Logic) ────────────────────────────────
+      Domain/Flow              Nodes  Conform  Missing(code)  Missing(spec)  Diverged
+      ──────────────────────── ────── ──────── ───────────── ────────────── ────────
+      users/create-post        8      6        1              1              0       ISSUES
+      users/user-login         6      6        0              0              0       OK
+      ```
+
+      Similar tables for Data, Interface, and Infrastructure pillars.
+
+      **Per-finding action cards** (for every non-conforming finding):
+
+      Each finding must show: (1) the S/C status, (2) what the spec says, (3) what the code does, and (4) actionable choices the user can pick from — not a dead-end "manual review."
+
+      ```
+      ── Finding 1 ─────────────────────────────────────────────
+      Flow:    blog/update-post
+      Node:    decision-abc123 (Role check)
+      Status:  S✓ C≠ (diverged)
+
+      Spec says: Editors can update posts they authored (author_id check)
+      Code does: authenticateRequest({ requiredRole: 'admin' }) — editors blocked
+
+      Choose:
+        A) Spec is correct → /ddd-implement blog/update-post (fix code to match spec)
+        B) Code is correct → /ddd-update blog/update-post (update spec to match code)
+        C) Skip — decide later
+      ─────────────────────────────────────────────────────────
+
+      ── Finding 2 ─────────────────────────────────────────────
+      Flow:    media/delete-media
+      Node:    trigger-xyz789
+      Status:  S✓ C✗ (missing_in_code)
+
+      Spec says: Architecture rule — all DELETE endpoints must rate-limit
+      Code does: No rateLimit call in route handler
+
+      Action: /ddd-implement media/delete-media
+      ─────────────────────────────────────────────────────────
+
+      ── Finding 3 ─────────────────────────────────────────────
+      Flow:    blog/update-post
+      Node:    [undocumented]
+      Status:  S✗ C✓ (missing_in_spec)
+
+      Spec says: (nothing — no node describes this)
+      Code does: Locks slug on title update (SEO preservation)
+
+      Action: /ddd-reflect blog/update-post → /ddd-promote --review
+      ─────────────────────────────────────────────────────────
+      ```
+
+      ```
+      Conformance summary: 87 checks, 72 conform, 5 missing in code, 4 missing in spec, 3 diverged
+      ```
+
       **Pillar balance summary:**
       ```
       Pillar balance: Logic {N} flows, Interface {N} pages, Data {N} schemas, Infrastructure {N} services
@@ -218,6 +353,7 @@ Synchronize the DDD project specs with the current implementation state across a
       ```
 
     - Save the full report to `.ddd/reconciliations/{timestamp}.yaml` for historical tracking
+    - (with `--verify`) Also save conformance report to `.ddd/reconciliations/{timestamp}-conformance.yaml`
 
 10. **Next steps**: Based on findings, suggest the appropriate next commands:
     - Flows with code ahead of spec: "Run `/ddd-reflect {domain/flow}` to capture implementation wisdom, then `/ddd-promote --review`" — reflect is appropriate here because code-ahead means someone *manually* edited code after implementation; those edits are the wisdom to capture. This differs from suggesting reflect right after `/ddd-implement`, where code was just generated from specs and has no new wisdom.
@@ -229,7 +365,15 @@ Synchronize the DDD project specs with the current implementation state across a
     - Infrastructure drift (code ahead): "Run `/ddd-reflect --infra` to capture infrastructure wisdom, then `/ddd-promote --review`"
     - Infrastructure drift (spec ahead): "Run `/ddd-implement --infra` to update configs"
     - Untracked code discovered: "Run `/ddd-reverse` to generate specs from existing code"
-    - All in sync: "All pillars are in sync — no action needed"
+    - (with `--verify`) `missing_in_code` (S✓ C✗) findings: Direct action — "Run `/ddd-implement {scope}` to add missing implementations"
+    - (with `--verify`) `missing_in_spec` (S✗ C✓) findings: Direct action — "Run `/ddd-reflect {scope}` to capture undocumented behavior, then `/ddd-promote --review`"
+    - (with `--verify`) `diverged` (S✓ C≠) findings: **Present choices using AskUserQuestion** for each diverged finding. The user cannot be expected to open files and investigate — give them the context and let them choose:
+      - **A) Spec is correct** → queue `/ddd-implement {scope}` to fix code
+      - **B) Code is correct** → queue `/ddd-update {scope}` to fix spec
+      - **C) Skip** → leave for later
+      After all choices are collected, execute the queued commands (implement first, then update).
+    - (with `--verify`) `partial` (S✓ C~) findings: Show what's implemented vs missing, then present same A/B/C choices per missing aspect
+    - All in sync (and all conform with `--verify`): "Specs and code are in full behavioral agreement — no action needed"
 
 ## Usage
 
@@ -238,5 +382,7 @@ The user will say something like:
 - `/ddd-sync --discover` — also discover untracked code and propose new specs (analyze-approve-apply)
 - `/ddd-sync --fix-drift` — resolve all drift using the decision tree (metadata→hash, code-ahead→reverse, new-logic→implement)
 - `/ddd-sync --full` — do all of the above: sync, discover, and fix drift
+- `/ddd-sync --verify` — behavioral conformance: verify code implements spec intent node-by-node (read-only diagnostic)
+- `/ddd-sync --full --verify` — full sync + behavioral verification
 
 $ARGUMENTS

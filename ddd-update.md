@@ -243,15 +243,16 @@ Parse the argument to determine what to update:
     Next steps:
       - Reload the DDD Tool to see changes (Cmd+R)
       - Run /ddd-implement to process all pending changes
-      - Run /ddd-scaffold to regenerate infrastructure scripts (if infra changed)
+      - Run /ddd-implement --infra to update infrastructure (if infra changed)
+      - Run /ddd-implement --schema to update data layer (if schema changed)
       - Run /ddd-test to verify after implementation
     ```
 
 13. **Suggest next steps**: After updating specs, tell the user:
     - "Reload the DDD Tool to see the updated flow graph (Cmd+R)"
     - "Run `/ddd-implement` to implement all pending changes (change-history entries written)"
-    - For infrastructure changes: "Run `/ddd-scaffold` to regenerate infrastructure scripts"
-    - For schema changes: "Run `/ddd-scaffold` to update database schema, then `/ddd-implement`"
+    - For infrastructure changes: "Run `/ddd-implement --infra` to update infrastructure configs"
+    - For schema changes: "Run `/ddd-implement --schema` to update ORM models/migrations"
     - If cross-domain changes were made, list which other domains were also written to change-history
     - After implementation: "Run `/ddd-test` to verify the updated code passes tests"
 
@@ -261,7 +262,7 @@ When creating new nodes, use the DDD Usage Guide as your reference. It defines a
 
 ## Node ID Convention
 
-When creating new nodes, use the format `{type}-{nanoid(8)}` where nanoid is an 8-character random string. Examples:
+When creating new nodes, use the format `{type}-{8-char-random}` (8-character random alphanumeric string). Examples:
 - `process-xK9mR2vL`
 - `decision-aPq3nW8j`
 - `data_store-bY7cT4hK`

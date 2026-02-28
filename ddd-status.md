@@ -44,7 +44,7 @@ Show a quick read-only overview of the DDD project's implementation state across
    |------------|---------------|-------------------|
    | **Metadata-only** | Only `metadata.modified`, `metadata.updated`, `position` fields, or formatting changed. No nodes, connections, or spec logic changed. | `/ddd-sync` — safe to update hash only |
    | **Spec enriched, code already covers it** | Spec added detail (e.g., new field description) but the implementation code already handles it. | `/ddd-sync` — verify and update hash |
-   | **Code has details spec doesn't** | Implementation has patterns (error handling, caching, stealth HTTP, encryption) that the spec doesn't describe. | `/ddd-reflect {domain/flow}` first to capture wisdom, then `/ddd-promote --review`, then `/ddd-sync` |
+   | **Code has details spec doesn't** | Implementation has patterns (error handling, caching, stealth HTTP, encryption) that the spec doesn't describe. This includes code applying `cross_cutting_patterns` from `architecture.yaml` that the flow spec doesn't explicitly reference. | `/ddd-reflect {domain/flow}` first to capture wisdom, then `/ddd-promote --review`, then `/ddd-sync` |
    | **Spec has new logic code doesn't** | New nodes, connections, tools, or business logic were added to the spec that the code does not implement. | `/ddd-implement {domain/flow}` — only case where re-implementation is appropriate |
 
    **WARNING:** Never recommend `/ddd-implement` without first confirming the drift is type 4 (new logic). Re-implementing a flow overwrites existing code, which can destroy working implementation details that the spec doesn't capture.
@@ -164,7 +164,9 @@ Show a quick read-only overview of the DDD project's implementation state across
 
    **Pending change-history entries:** "Run `/ddd-implement` (no flags) to implement {N} pending changes"
 
-   **All pillars up to date:** "All flows and pages are implemented and in sync"
+   **All pillars up to date:** "All flows and pages are implemented and in sync. Run `/ddd-sync --verify` for deeper behavioral conformance — confirms code actually does what specs describe, not just that files haven't changed."
+
+   **After resolving drift** (all previously drifted items now show Up to date): "Drift resolved. Run `/ddd-sync --verify` to confirm fixes landed correctly — verifies node-by-node behavioral alignment."
 
    **NEVER suggest `/ddd-implement` as the default action for drifted flows.** Always classify the drift first and recommend the least destructive action.
 

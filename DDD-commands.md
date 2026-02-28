@@ -20,15 +20,37 @@ Meta-level: /ddd-evolve
 |-------|---------|---------|-------------|
 | 1 Create | `/ddd-create` | `--from`, `--shortfalls` | Design a new project → YAML specs across all four pillars (logic, data, interface, infrastructure) |
 | 3 Build | `/ddd-scaffold` | — | Set up project skeleton — backend, frontend, data, infrastructure — from specs |
-| 3 Build | `/ddd-implement` | `--all`, `--ui`, `domain`, `domain/flow`, `--ui page-id` | Read specs → generate backend flow code, frontend pages, and tests |
-| 3 Build | `/ddd-test` | `--all`, `--coverage`, `domain`, `domain/flow` | Run tests for implemented flows |
+| 3 Build | `/ddd-implement` | `--all`, `--ui`, `--schema`, `--infra`, `--ignore-history`, `domain`, `domain/flow` | Read specs → generate backend flow code, frontend pages, and tests |
+| 3 Build | `/ddd-test` | `--all`, `--coverage`, `--ui`, `--schema`, `--infra`, `domain`, `domain/flow` | Run tests for implemented flows |
 | 1 Create | `/ddd-reverse` | `--output`, `--domains`, `--merge`, `--strategy` | Reverse-engineer existing code → YAML specs |
-| 4 Reflect | `/ddd-reflect` | `--all`, `domain`, `domain/flow` | Capture implementation wisdom as annotations |
-| 4 Reflect | `/ddd-promote` | `--all`, `--review`, `domain/flow` | Move approved annotations into permanent specs |
+| 4 Reflect | `/ddd-reflect` | `--all`, `--ui`, `--schema`, `--infra`, `domain`, `domain/flow` | Capture implementation wisdom as annotations |
+| 4 Reflect | `/ddd-promote` | `--all`, `--review`, `--ui`, `--schema`, `--infra`, `domain`, `domain/flow` | Move approved annotations into permanent specs |
 | Any | `/ddd-status` | `--json` | Quick read-only project overview |
-| Any | `/ddd-update` | `--add-flow`, `--add-domain`, `domain/flow` | Natural language → updated specs |
-| Any | `/ddd-sync` | `--discover`, `--fix-drift`, `--full` | Keep specs and code aligned |
+| Any | `/ddd-update` | `--add-flow`, `--add-domain`, `--add-page`, `--ui`, `--schema`, `--infra`, `domain/flow` | Natural language → updated specs |
+| Any | `/ddd-sync` | `--discover`, `--fix-drift`, `--full`, `--verify` | Keep specs and code aligned |
 | Meta | `/ddd-evolve` | `--dir`, `--review`, `--apply` | Analyze shortfall reports → review → apply approved changes |
+
+### Transitions (P = Product intent, S = Spec, C = Code)
+
+| Command | Options | Transition | Description |
+|---------|---------|-----------|-------------|
+| `/ddd-create` | | P → S | Product intent → spec files |
+| | `--shortfalls` | P → DDD meta | Generates gap report for `/ddd-evolve` |
+| `/ddd-reverse` | | C → S | Existing code → spec files |
+| `/ddd-update` | | P → S | Product change request → updated specs |
+| `/ddd-scaffold` | | S → C | Specs → project skeleton code |
+| `/ddd-implement` | | S✓ C✗ → S✓ C✓ | Spec exists, code doesn't → generate code |
+| `/ddd-test` | | S✓ C✓ → S✓ C✓✔ | Verify code behaves as spec intends |
+| `/ddd-reflect` | | S✗ C✓ → S~ C✓ | Code has wisdom spec doesn't → annotations |
+| `/ddd-promote` | | S~ C✓ → S✓ C✓ | Approved annotations → permanent specs |
+| `/ddd-sync` | | S? C? → classified | Diagnose drift direction across all pillars |
+| | `--discover` | S✗ C✓ → S✓ C✓ | Untracked code → propose new specs |
+| | `--fix-drift` | S✓ C≠ → S✓ C✓ | Resolve drift by re-implementing or enriching |
+| | `--verify` | S✓ C✓ → S✓ C✓✔ | Verify code actually does what spec describes |
+| `/ddd-status` | | — (read-only) | Report current S/C state per flow |
+| `/ddd-evolve` | | shortfalls → plan | Analyze shortfalls → evolution plan |
+| | `--review` | plan → reviewed plan | Interactive approve/defer/reject decisions |
+| | `--apply` | reviewed plan → DDD framework | Execute approved changes to DDD itself |
 
 ### Workflow
 
@@ -57,7 +79,7 @@ Generate a complete DDD spec structure from a project description.
 | Flag | Purpose |
 |------|---------|
 | `--from <path-or-url>` | Use a design file as reference input. Supports images (PNG, JPG), PDFs, markdown, text, YAML, and URLs (Figma, Miro, web pages). Extracts all four pillars — domains, flows, data models, UI pages, events, infrastructure, and architecture — from the design. Combine with a text description for additional context. |
-| `--shortfalls` | Generate `specs/shortfalls.yaml` — a structured report of DDD framework gaps encountered during design (7 categories). Feed into `/ddd-evolve` for analysis. |
+| `--shortfalls` | Generate `specs/shortfalls.yaml` — a structured gap analysis report documenting DDD framework limitations encountered during design (7 categories: missing node types, inadequate nodes, missing fields, connection limitations, layer gaps, workarounds, cross-cutting gaps). Feed into `/ddd-evolve` for analysis. |
 
 ### Examples
 
@@ -216,6 +238,15 @@ Generate working code and tests from DDD specs — backend flows, frontend pages
 # Implement a single page
 /ddd-implement --ui dashboard
 
+# Regenerate data layer from schemas
+/ddd-implement --schema
+
+# Regenerate a single schema model
+/ddd-implement --schema User
+
+# Regenerate infrastructure from specs
+/ddd-implement --infra
+
 # Interactive mode — pick what to implement
 /ddd-implement
 ```
@@ -291,6 +322,18 @@ Update DDD specs from natural language change requests.
 # Change a flow's behavior
 /ddd-update orders/create-order add a coupon validation step before calculating total
 
+# Update a UI page
+/ddd-update --ui dashboard add a filter bar to the metrics section
+
+# Add a new UI page
+/ddd-update --add-page add an analytics page with charts and date range picker
+
+# Update a schema
+/ddd-update --schema User add avatar_url field
+
+# Update infrastructure
+/ddd-update --infra add Redis service for caching
+
 # Interactive mode
 /ddd-update
 ```
@@ -333,6 +376,7 @@ Synchronize specs and implementation state.
 | `--discover` | Also scan for untracked code and suggest new flow specs |
 | `--fix-drift` | Resolve drift using decision tree: metadata-only → update hash, code-ahead → reverse into specs, new-logic → re-implement from spec |
 | `--full` | All of the above: sync + discover + fix drift |
+| `--verify` | Behavioral conformance — verify code implements spec intent node-by-node (read-only). Not included in `--full`; use `--full --verify` for comprehensive analysis. |
 
 ### Examples
 
@@ -348,6 +392,12 @@ Synchronize specs and implementation state.
 
 # Everything — sync, discover, and fix
 /ddd-sync --full
+
+# Verify code actually does what specs describe
+/ddd-sync --verify
+
+# Full analysis including behavioral verification
+/ddd-sync --full --verify
 ```
 
 ### What it does
@@ -368,6 +418,7 @@ Summary showing:
 - Flows with missing implementation
 - (with `--discover`) Untracked code that should become flows
 - (with `--fix-drift`) Flows that were re-implemented
+- (with `--verify`) Per-node conformance status: which nodes are implemented, missing, or diverged
 
 ---
 
@@ -378,6 +429,13 @@ Set up the project skeleton and shared infrastructure across all four pillars fr
 ### Usage
 
 ```
+/ddd-scaffold
+```
+
+### Examples
+
+```
+# Set up project skeleton after creating specs
 /ddd-scaffold
 ```
 
@@ -442,9 +500,10 @@ Quick read-only overview of project implementation state.
 
 1. Reads `ddd-project.json`, all domain.yaml files, and `.ddd/mapping.yaml`
 2. For each flow, computes status: **Up to date**, **Drifted**, **Stale**, or **Not implemented**
-3. Checks scaffold state (package.json, entry point, database schema)
-4. Shows a table with domain, flow, status, and implementation date
-5. Suggests next actions based on what it finds
+3. For drifted flows, classifies the drift type: **metadata-only**, **spec enriched**, **code ahead**, or **new logic** — by reading both the spec diff and the implementation code
+4. Checks scaffold state (package.json, entry point, database schema)
+5. Shows a table with domain, flow, status (including drift type), and implementation date
+6. Suggests next actions using safe recommendations — never recommends `/ddd-implement` for drifted flows without confirming the drift type is "new logic" (see Section 12.1 in Usage Guide)
 
 ### Output
 
@@ -478,7 +537,8 @@ Run tests for implemented flows without re-generating code.
 | `domain-name/flow-name` | Single flow | `/ddd-test users/user-register` |
 | `--ui` | All UI page tests | `/ddd-test --ui` |
 | `--ui page-id` | Single UI page tests | `/ddd-test --ui dashboard` |
-| `--schema` | Schema/data layer tests | `/ddd-test --schema` |
+| `--schema` | All schema/data layer tests | `/ddd-test --schema` |
+| `--schema model` | Single schema model tests | `/ddd-test --schema User` |
 | `--infra` | Infrastructure tests | `/ddd-test --infra` |
 | *(empty)* | Interactive — shows flows and asks | `/ddd-test` |
 
@@ -496,6 +556,15 @@ Run tests for implemented flows without re-generating code.
 
 # Test a single flow
 /ddd-test users/user-register
+
+# Test all UI pages
+/ddd-test --ui
+
+# Test schema/data layer
+/ddd-test --schema
+
+# Test infrastructure
+/ddd-test --infra
 ```
 
 ### What it does
@@ -610,6 +679,15 @@ Capture implementation wisdom — patterns and details that code has but specs d
 
 # Reflect on a specific flow
 /ddd-reflect monitoring/check-social-sources
+
+# Reflect on UI pages
+/ddd-reflect --ui
+
+# Reflect on schemas
+/ddd-reflect --schema
+
+# Reflect on infrastructure
+/ddd-reflect --infra
 ```
 
 ### What it does
@@ -650,6 +728,7 @@ Move approved annotations into permanent specs. This is how implementation wisdo
 | `--schema` | All schema annotations | `/ddd-promote --schema` |
 | `--schema model` | Single schema | `/ddd-promote --schema User` |
 | `--infra` | Infrastructure annotations | `/ddd-promote --infra` |
+| *(empty)* | Interactive — same as `--review` | `/ddd-promote` |
 
 ### Examples
 
@@ -662,6 +741,18 @@ Move approved annotations into permanent specs. This is how implementation wisdo
 
 # Promote annotations for a specific flow
 /ddd-promote monitoring/check-social-sources
+
+# Promote UI page annotations
+/ddd-promote --ui
+
+# Promote schema annotations
+/ddd-promote --schema
+
+# Promote infrastructure annotations
+/ddd-promote --infra
+
+# Interactive mode — review and decide
+/ddd-promote
 ```
 
 ### What it does

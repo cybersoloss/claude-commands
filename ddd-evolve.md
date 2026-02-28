@@ -396,11 +396,19 @@ When `$ARGUMENTS` contains `--apply` and a path to an evolution plan:
 
    **Validate applied changes**: After modifying framework files, verify each edited file is valid (YAML lint for spec files, markdown structure for commands, TypeScript compilation for tool/validator). Fix any issues before finalizing.
 
-6. After all changes:
+6. **Cross-check documentation consistency**: After applying changes, verify that command documentation is in sync across all files that reference it:
+
+   - **DDD-commands.md** ↔ **DDD-USAGE-GUIDE.md**: For every command touched by the evolution, compare flags, scope options, and behavioral descriptions between both files. Fix any discrepancies introduced by the apply step.
+   - **DDD-commands.md transitions table**: If new flags or scope options were added, update the P/S/C transitions table (the "Transitions (P = Product intent, S = Spec, C = Code)" section) to include any new transitions.
+   - **README.md**: If command descriptions changed significantly, check if the high-level command table in `~/dev/DDD/README.md` still accurately summarizes each command.
+
+   This step prevents documentation drift — a recurring problem where evolution changes update one file but not its counterparts.
+
+7. After all changes:
    - Update `meta.status: applied` and `applied_at: {ISO timestamp}` in the plan file
    - Show what was modified and suggest committing
 
-7. **Next steps**: After applying changes, suggest:
+8. **Next steps**: After applying changes, suggest:
     - "Commit the changes to DDD and claude-commands repos with `git push-all`"
     - "Run `/ddd-create --shortfalls` on a new project to verify the applied improvements"
     - "Update any existing projects' specs to use the new features with `/ddd-update` or `/ddd-sync --discover`"
