@@ -216,7 +216,15 @@ Parse `$ARGUMENTS` to determine scope:
    - Update `annotationCount` (decrement by promoted count)
    - Update `syncState` to `in_sync` if the promotion brought spec in line with code
 
-12. **Report what was promoted**:
+12. **Write change-history entries**: For each spec file modified by promotion, append an entry to `.ddd/change-history.yaml`:
+   - `source: ddd-promote`
+   - `change_type: modified` (promotions enrich existing specs, never add or remove them)
+   - `status: pending_implement` — promoted patterns may require code regeneration (e.g., a new cross-cutting pattern needs to be applied in implementation)
+   - `spec_checksum`: current SHA-256 of the modified spec file (first 12 chars)
+   - Skip if a `pending_implement` entry already exists for the same `spec_file` with the same checksum
+   - This allows `/ddd-implement` (no flags) to automatically pick up spec enrichments from promotion
+
+13. **Report what was promoted**:
    ```
    Promoted: {N} patterns — Logic: {L}, Interface: {P}, Data: {S}, Infrastructure: {I}
 

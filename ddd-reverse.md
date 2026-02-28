@@ -768,6 +768,17 @@ Next steps:
   4. Run /ddd-implement --all to verify round-trip
 ```
 
+### Write change-history entries
+
+After generating all specs, write an entry to `.ddd/change-history.yaml` for each spec file created:
+- `source: ddd-reverse`
+- `change_type: added` (reverse-engineering creates new specs)
+- `status: pending_implement` — even though code already exists, the round-trip implementation verifies spec accuracy
+- `spec_checksum`: SHA-256 of each generated spec file (first 12 chars)
+- Set `scope.pillar` based on the spec type: `logic` for flows, `data` for schemas, `interface` for pages, `infrastructure` for infrastructure.yaml
+
+This allows `/ddd-implement` (no flags) to pick up all reverse-engineered specs and `/ddd-status` to show them as pending.
+
 ---
 
 ## Node Type Reference
