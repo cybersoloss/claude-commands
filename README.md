@@ -52,11 +52,7 @@ Run `/helpmecode` for the complete guide.
 | `/perf-review` | Performance bottlenecks |
 | `/spec-verify` | Specification alignment |
 | `/code-enhance` | Apply improvements |
-| `/analyze-io-timing-log-and-fix` | Default (no param): same as --show — coverage + gap analysis from live codebase |
-| `/analyze-io-timing-log-and-fix --log` | Ask toggle preference → explore project I/O → output implementation prompt (+ `/ddd-update` line) |
-| `/analyze-io-timing-log-and-fix --fix [log]` | Parse I/O timing log → detect feedback loops, main-thread blocks, slow ops → fix + record results |
-| `/analyze-io-timing-log-and-fix --show` | Extract current logging coverage and gap analysis from live codebase |
-| `/analyze-io-timing-log-and-fix --status` | Show full diagnostic history (when --log/--fix ran, issues found, health trend) |
+| `/analyze-io-timing-log-and-fix` | I/O diagnostic cycle (see [I/O Diagnostics](#io-diagnostics) below) |
 
 ### Team & Process Commands
 
@@ -101,6 +97,38 @@ All DDD commands now generate specs across four foundational pillars — **Logic
 # Team assessment
 /org-assess
 ```
+
+## I/O Diagnostics
+
+`/analyze-io-timing-log-and-fix` is a five-mode diagnostic cycle: instrument → run → analyze → fix → revert.
+
+| Mode | What it does |
+|------|-------------|
+| `--log` | Explore project I/O → output implementation prompt for timing logger |
+| `--fix [log]` | Parse timing log → detect feedback loops, main-thread blocks, slow ops → fix |
+| `--show` | Coverage + gap analysis from live codebase (default when no flag) |
+| `--revert [--all]` | Undo previously applied --fix changes using saved markers |
+| `--status` | Full diagnostic history and health trend |
+
+### DDD Project Integration (Hybrid Flow)
+
+In DDD projects (`ddd-project.json` detected), `--fix` splits fixes into two categories:
+
+**Architectural fixes** (background threading, debounce, self-write guards) — output as `/ddd-update` commands instead of editing code directly. Specs get updated first, then `/ddd-implement` generates the code. No drift.
+
+**Instrumentation fixes** (`timed()` wrappers, rate warnings, FS snapshots) — applied directly with `IO-FIX` markers. These are temporary diagnostic tooling, revertible with `--revert`.
+
+```
+1. /analyze-io-timing-log-and-fix --log        → outputs /ddd-update command
+2. Run the /ddd-update → /ddd-implement         → logger added through specs
+3. Enable logger, use app, collect logs
+4. /analyze-io-timing-log-and-fix --fix log.txt → splits: /ddd-update commands + direct instrumentation
+5. Run /ddd-update commands → /ddd-implement     → architectural fixes through specs
+6. /analyze-io-timing-log-and-fix --show        → verify coverage
+7. /analyze-io-timing-log-and-fix --revert      → remove instrumentation when done
+```
+
+In non-DDD projects, all fixes are applied directly (no change from standard behavior).
 
 ## Key Concepts
 

@@ -151,11 +151,21 @@ How to enable: [exact steps based on chosen toggle mechanism]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-### Output B — /ddd-update Compatible Line
+### Output B — DDD Integration (only if `ddd-project.json` exists)
+
+Check if the project is a DDD project by looking for `ddd-project.json` in the current directory or parent directories. If found, output:
 
 ```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DDD COMMANDS — run these to update specs before implementing
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 /ddd-update "Add I/O timing diagnostic logger: [concise description — logger utility, toggle mechanism, hotspots instrumented, self-write guard if applicable, rate warning]"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
+
+If `ddd-project.json` is NOT found, skip this output entirely.
 
 ## Step 6: Write Session Record
 
@@ -246,7 +256,22 @@ For each pattern, read the source files and confirm before fixing:
 
 ## Step 4: Fix
 
-For each confirmed root cause:
+**DDD project detection:** Check if `ddd-project.json` exists in the current directory or parent directories.
+
+**If DDD project — hybrid approach:** Classify each fix into one of two categories:
+
+| Category | Examples | Action |
+|----------|---------|--------|
+| **Architectural** (changes behavior) | Move I/O to background thread, add debounce, add self-write guard | Output as `/ddd-update` commands — specs first, then `/ddd-implement` generates the code |
+| **Instrumentation** (diagnostic only) | `timed()` wrappers, `log()` calls, rate warning counters, FS snapshot diffs | Apply directly with marker comments — these are temporary diagnostic tooling, not business logic |
+
+For architectural fixes, output a DDD commands block (see Step 5). Do NOT apply them directly to code.
+
+For instrumentation fixes, apply them directly using the marker comments below.
+
+**If NOT a DDD project:** Apply all fixes directly using marker comments (current behavior — no change).
+
+For each fix applied directly:
 1. Read the affected file
 2. Apply the minimal targeted fix
 3. Wrap the fix with marker comments (see below)
@@ -334,8 +359,20 @@ Run the build/test step after all fixes.
 | # | Pattern | Severity | Location | Description |
 |---|---------|----------|----------|-------------|
 
-### Fixes Applied
-[Each fix: description + before/after snippet]
+### Fixes Applied (instrumentation — direct)
+[Each instrumentation fix: description + before/after snippet]
+
+### DDD Commands (architectural — specs first)
+[Only if DDD project. Each architectural fix as a ready-to-run command:]
+
+```
+/ddd-update {scope} "Move file loading to background thread with debounce"
+/ddd-update {scope} "Add self-write guard to file watcher callback"
+```
+
+After running these commands: `/ddd-implement {scope}` to generate code from updated specs.
+
+[If NOT a DDD project, this section is omitted and all fixes appear under "Fixes Applied" above.]
 
 ### Remaining Risks
 [Confirmed issues that need runtime data or broader refactor]
@@ -351,11 +388,14 @@ Append to `.io-diag/session-log.md`:
 ```markdown
 ## [YYYY-MM-DD] — --fix
 Log file: [path or "pasted"]
+DDD project: yes/no
 Health before: 🔴/🟡/🟢
 Issues found: N
   [list each: pattern — location]
-Fixes applied: N
+Fixes applied (direct): N
   [list each: what changed — file:line]
+DDD commands output: N (if DDD project)
+  [list each: /ddd-update command generated]
 Manifest: .io-diag/fix-manifest.json (N entries added)
 Health after: 🔴/🟡/🟢 (estimated — re-run --fix after next log collection to confirm)
 Remaining risks: [list or "none"]
