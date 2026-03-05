@@ -243,11 +243,25 @@ Parse `$ARGUMENTS` to determine scope:
    - Update `annotationCount` (decrement by promoted count)
    - Update `syncState` to `in_sync` if the promotion brought spec in line with code
 
-12. **Write change-history entries**: For each spec file modified by promotion, append an entry to `.ddd/change-history.yaml`:
-   - `source: ddd-promote`
-   - `change_type: modified` (promotions enrich existing specs, never add or remove them)
+12. **Write change-history entries**: For each spec file modified by promotion, append an entry to `.ddd/change-history.yaml` using the full entry format:
+   ```yaml
+   - id: "chg-{next 4-digit sequential id}"
+     timestamp: "{ISO 8601}"
+     source: ddd-promote
+     change_type: modified
+     scope:
+       level: L3
+       domain: "{domain}"
+       flow: "{flow}"
+       pillar: "{pillar}"
+     spec_file: "{relative path to modified spec file}"
+     spec_checksum: "{SHA-256 first 12 chars of modified spec}"
+     status: pending_implement
+     implemented_at: null
+     code_files: []
+   ```
+   - Promotions enrich existing specs, never add or remove them
    - `status: pending_implement` — promoted patterns may require code regeneration (e.g., a new cross-cutting pattern needs to be applied in implementation)
-   - `spec_checksum`: current SHA-256 of the modified spec file (first 12 chars)
    - Skip if a `pending_implement` entry already exists for the same `spec_file` with the same checksum
    - This allows `/ddd-implement` (no flags) to automatically pick up spec enrichments from promotion
 

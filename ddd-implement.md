@@ -12,7 +12,7 @@ Parse the argument to determine scope:
 | `{domain}` | All flows in a domain | `/ddd-implement users` |
 | `{domain}/{flow}` | Single flow | `/ddd-implement users/user-registration` |
 | `--ui` | All UI pages only (no backend flows) | `/ddd-implement --ui` |
-| `--ui {page}` | Single UI page | `/ddd-implement --ui dashboard` |
+| `--ui {page-id}` | Single UI page | `/ddd-implement --ui dashboard` |
 | `--schema` | Regenerate ORM/database schema from all schema specs | `/ddd-implement --schema` |
 | `--schema {model}` | Regenerate a single model's schema | `/ddd-implement --schema user` |
 | `--infra` | Regenerate infrastructure configs from infrastructure spec | `/ddd-implement --infra` |
@@ -130,9 +130,9 @@ Parse the argument to determine scope:
    | Pillar | Items | Count |
    |--------|-------|-------|
    | Data | (list all schema specs to implement) | N |
-   | Interface | (list all UI page specs to implement) | N |
    | Infrastructure | (list all infrastructure configs to implement) | N |
    | Logic | (list all backend flows to implement) | N |
+   | Interface | (list all UI page specs to implement) | N |
 
    This plan is your commitment — every item listed must be implemented.
 

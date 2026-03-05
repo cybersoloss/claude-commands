@@ -12,7 +12,7 @@ Parse the argument to determine scope:
 | `{domain}` | All flows in a domain | `/ddd-test users` |
 | `{domain}/{flow}` | Single flow | `/ddd-test users/user-register` |
 | `--ui` | All implemented UI pages | `/ddd-test --ui` |
-| `--ui {page}` | Single UI page | `/ddd-test --ui dashboard` |
+| `--ui {page-id}` | Single UI page | `/ddd-test --ui dashboard` |
 | `--schema` | Schema/migration tests | `/ddd-test --schema` |
 | `--infra` | Infrastructure health checks | `/ddd-test --infra` |
 | *(empty)* | Scope to recently implemented entries from `.ddd/change-history.yaml` (implemented in the last session). If none, show all testable items and ask. | `/ddd-test` |

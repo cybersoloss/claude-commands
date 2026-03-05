@@ -12,7 +12,7 @@ Parse the argument to determine what to update:
 | `{domain}` | Update domain config and/or its flows | `/ddd-update users` |
 | `--add-flow {domain}` | Add a new flow to a domain | `/ddd-update --add-flow users` |
 | `--add-domain` | Add a new domain to the project | `/ddd-update --add-domain` |
-| `--ui {page}` | Update a specific page spec | `/ddd-update --ui dashboard` |
+| `--ui {page-id}` | Update a specific page spec | `/ddd-update --ui dashboard` |
 | `--ui` | Update pages.yaml (navigation, theme, shared components) | `/ddd-update --ui` |
 | `--add-page` | Add a new page to the project | `/ddd-update --add-page` |
 | `--infra` | Update infrastructure.yaml | `/ddd-update --infra` |
