@@ -21,6 +21,21 @@ If no project path is provided, ask the user for it.
 - DDD Usage Guide (fetched via `gh api`) — YAML formats, node types, spec fields reference
 - Existing specs (if `--merge` mode) — `ddd-project.json`, `specs/domains/*/domain.yaml`, `specs/domains/*/flows/*.yaml`, `specs/schemas/*.yaml`, `specs/ui/pages.yaml`, `specs/ui/*.yaml`, `specs/infrastructure.yaml`
 
+**Files written:**
+- `ddd-project.json` — project config with domain list
+- `specs/system.yaml` — tech stack, environments
+- `specs/architecture.yaml` — project structure, conventions
+- `specs/config.yaml` — environment variables (from `.env` files)
+- `specs/shared/errors.yaml` — error codes discovered in code
+- `specs/schemas/*.yaml` — data models (from ORM models/migrations)
+- `specs/domains/*/domain.yaml` — domain config, event definitions
+- `specs/domains/*/flows/*.yaml` — flow graphs (from route handlers/services)
+- `specs/ui/pages.yaml` — page registry (from frontend routes/components)
+- `specs/ui/*.yaml` — per-page specs (from page components)
+- `specs/infrastructure.yaml` — services, ports (from Docker/config files)
+- `.ddd/change-history.yaml` — append entries for all created specs
+- `.ddd/mapping.yaml` — initialized with implementation tracking
+
 ## Strategy Selection
 
 Six strategies are available, each optimized for different codebase sizes. By default, auto-select based on source file count (excluding tests, configs, assets, node_modules, vendor, dist, build):
@@ -856,19 +871,23 @@ Warnings:
 
 Next steps:
   1. Review coverage report at .ddd/reverse/coverage.yaml
-  2. Open the project in DDD Tool to visualize and review
+  2. Open the project in DDD Tool to visualize and review specs
   3. Add any missing flows flagged in coverage report
-  4. Run /ddd-reflect --all to capture implementation wisdom as annotations
-  5. Run /ddd-promote --review to approve annotations into permanent specs
+  4. Run /ddd-sync --verify to check specs accurately describe the code
+  5. (Optional) Run /ddd-reflect --all to capture implementation details
+     that reverse-engineering couldn't express in spec format, then
+     /ddd-promote --review to write them into specs
 
   WARNING: Do NOT run /ddd-implement — code already exists.
   /ddd-implement would regenerate code from specs, overwriting the working codebase.
-  mapping.yaml was already created with correct hashes — no need to run /ddd-sync.
+  mapping.yaml was already created with correct hashes.
 ```
 
 ### Write change-history entries
 
-After generating all specs, write an entry to `.ddd/change-history.yaml` for each spec file created:
+After generating all specs, write an entry to `.ddd/change-history.yaml` for each spec file created. **Dedup check:** if `--merge` mode is active, read existing change-history entries first — skip any spec file that already has an entry with the same `spec_file` path and matching `spec_checksum`.
+
+Entry format:
 - `source: ddd-reverse`
 - `change_type: added` (reverse-engineering creates new specs)
 - `status: implemented` — code already exists, specs were derived from it

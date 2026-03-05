@@ -25,6 +25,8 @@ Parse the argument to determine scope:
 - `specs/ui/pages.yaml` — page registry (for page test resolution)
 - `specs/domains/*/domain.yaml` — domain configs (for flow test resolution)
 
+**Files written:** None (runs tests only, does not modify specs or tracking files)
+
 ## Instructions
 
 1. **Find the DDD project**: Look for `ddd-project.json` in the current directory or parent directories.
@@ -38,7 +40,7 @@ Parse the argument to determine scope:
 
 3. **Resolve scope from the argument**:
 
-   **If no argument**: Check `.ddd/change-history.yaml` for entries with `status: implemented` and `implemented_at` within the current session (last 2 hours). If recent entries exist, collect their `code_files` and scope tests to those files only — show: "Testing {N} recently implemented items from change-history." If no recent entries, list all implemented flows and pages with their test status and ask the user what to test.
+   **If no argument**: Check `.ddd/change-history.yaml` for entries with `status: implemented` and `implemented_at` within the current session (last 2 hours). Skip entries with `status: pending_implement` — those haven't been implemented yet and have no code to test. If recent implemented entries exist, collect their `code_files` and scope tests to those files only — show: "Testing {N} recently implemented items from change-history." If no recent entries, list all implemented flows and pages with their test status and ask the user what to test.
 
    **If `--all`**: Collect test files for all implemented flows AND all implemented pages.
 

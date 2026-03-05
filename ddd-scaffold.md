@@ -2,6 +2,30 @@
 
 Generate project skeleton files (package.json, config, middleware, ORM schemas, page stubs, Docker configs) from DDD specs across all four pillars (Logic, Data, Interface, Infrastructure), creating the foundation that `/ddd-implement` builds on. **Lifecycle phase: Build.**
 
+**Files read:**
+- `ddd-project.json` — project config, domain list
+- `specs/system.yaml` — project identity, tech stack, environments, integrations
+- `specs/architecture.yaml` — project structure, naming conventions, dependencies, cross-cutting patterns
+- `specs/config.yaml` — required and optional environment variables
+- `specs/infrastructure.yaml` — services, ports, startup order, deployment
+- `specs/shared/errors.yaml` — error codes with HTTP status mappings
+- `specs/shared/types.yaml` — shared enums and value objects
+- `specs/schemas/_base.yaml` — base model fields
+- `specs/schemas/*.yaml` — data model definitions (fields, indexes, seed)
+- `specs/ui/pages.yaml` — page registry, navigation, theme, shared components
+- `specs/ui/*.yaml` — per-page specs
+
+**Files written:**
+- `package.json`, `tsconfig.json` — project config and dependencies
+- `src/` — directory structure, config loader, error handler, shared types, middleware, app entry point, integration clients, event infrastructure, test setup
+- Frontend page files, layout components, shared components, theme, API client, state management stores
+- `prisma/schema.prisma` (or equivalent ORM schema) — with indexes from schema specs
+- Seed files — migration seeds, test fixtures, script placeholders
+- `Dockerfile`, `docker-compose.yaml` — if applicable
+- `.env.example`, `.gitignore`
+- `.ddd/mapping.yaml` — initialized with empty `flows:` and `pages:` sections
+- `.ddd/annotations/` — directory created
+
 ## Instructions
 
 1. **Find the DDD project**: Look for `ddd-project.json` in the current directory or parent directories.

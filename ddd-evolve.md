@@ -31,6 +31,14 @@ Analyze DDD shortfall reports across all four pillars (Logic, Data, Interface, I
 - `DDD-USAGE-GUIDE.md` (fetched via `gh api`) — canonical spec format reference for evaluating shortfalls
 - `specs/shortfalls.yaml` (from arguments or `--dir`) — gap reports to analyze
 - `ddd-evolution-plan.yaml` (for `--review` and `--apply` modes) — the recommendation plan
+- `~/dev/DDD/templates/command-template.md` (for `--apply` mode, when creating/modifying commands) — structural skeleton
+- `~/dev/DDD/templates/command-checklist.md` (for `--apply` mode, when creating/modifying commands) — quality verification
+
+**Files written:**
+- `ddd-evolution-plan.yaml` — shortfall analysis with recommendations (default mode creates, `--review` updates decisions)
+- `DDD-USAGE-GUIDE.md` — spec format updates (`--apply` only)
+- `~/.claude/commands/ddd-*.md` — command definition updates (`--apply` only)
+- `~/dev/ddd-tool/src/` — DDD Tool source changes (`--apply` only, if `affects.tool: true`)
 
 ## Instructions
 
@@ -382,6 +390,8 @@ When `$ARGUMENTS` contains `--apply` and a path to an evolution plan:
    - `interface` → UI spec generation instructions, component type lists, form field types
    - `infrastructure` → infrastructure spec instructions
    - Also update `ddd-implement.md` if the change affects how code is generated from specs
+   - When creating a NEW command: use `~/dev/DDD/templates/command-template.md` as the structural skeleton
+   - After creating or modifying any command: validate against `~/dev/DDD/templates/command-checklist.md` — all Required items must pass, all applicable Conditional items must pass
 
    **Tool changes** (`affects.tool: true`) — edit `~/dev/ddd-tool/src/`:
    - `logic` → node editor components (`src/components/nodes/`), flow canvas logic

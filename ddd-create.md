@@ -15,6 +15,22 @@ Create a complete DDD (Design Driven Development) project from a software projec
 - `.ddd/annotations/` — implementation wisdom (if existing project)
 - DDD Usage Guide (fetched via `gh api`) — YAML formats, node types, spec fields reference
 
+**Files written:**
+- `ddd-project.json` — project config with domain list
+- `specs/system.yaml` — tech stack, environments, integrations
+- `specs/architecture.yaml` — project structure, conventions, cross-cutting patterns
+- `specs/config.yaml` — environment variables
+- `specs/shared/errors.yaml` — error codes with HTTP status mappings
+- `specs/shared/types.yaml` — shared enums and value objects
+- `specs/schemas/*.yaml` — data model definitions (fields, indexes, seed)
+- `specs/domains/*/domain.yaml` — domain config, event definitions
+- `specs/domains/*/flows/*.yaml` — flow graphs (the core specs)
+- `specs/ui/pages.yaml` — page registry, navigation, theme
+- `specs/ui/*.yaml` — per-page specs (sections, forms, data sources)
+- `specs/infrastructure.yaml` — services, ports, startup order, deployment
+- `.ddd/change-history.yaml` — append entries for all created specs
+- `specs/shortfalls.yaml` — framework gap report (only with `--shortfalls`)
+
 ## Instructions
 
 1. **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all YAML formats, node types, spec fields, connection patterns, UI spec format, infrastructure spec format, and conventions. It is your primary reference for creating correct specs.
@@ -341,7 +357,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
    **Per-page specs** (`specs/ui/{page-id}.yaml`) — for each page:
    - `sections` — visual sections with:
-     - `component` type (stat-card, item-list, card-grid, detail-card, button-group, page-header, status-bar, chart, filter-bar, map-view, timeline, or shared component ID)
+     - `component` type (stat-card, item-list, card-grid, detail-card, button-group, page-header, status-bar, chart, filter-bar, map-view, timeline, chat-interface, markdown-viewer, tree-view, or shared component ID)
      - `data_source` referencing a backend flow in `domain/flow-id` format
      - `fields` mapping data using `$.field` syntax
      - `item_template` for list/grid items
@@ -370,6 +386,9 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `map-view` — `data_source`, `center_lat`/`center_lng` (initial center), `zoom`, `markers` ({lat_field, lng_field, label_field?, color_field?, click_action?}), `routes` ({points_field, color?, width?}), `realtime` (boolean). Use for shipment tracking, delivery maps, field service. **Do NOT use `chart` with `chart_type: map` for geographic data — use `map-view` instead.**
    - `timeline` — `data_source`, `timestamp_field`, `title_field`, `status_field`, `icon_field?`, `color_when` conditions, `direction` (vertical|horizontal). Use for shipment history, activity logs, audit trails.
    - `chart` — `data_source`, `fields` (series/labels/values), `chart_type` (line/bar/pie/area/donut). For geographic data, use `map-view` instead.
+   - `chat-interface` — `data_source`, `message_roles` ({user, assistant}), `streaming_source` (flow ref for SSE stream), `input_config` ({placeholder?, submit_flow, submit_key?}), `typing_indicator` (boolean), `message_template` ({content_field, role_field, timestamp_field?}). Use for AI agent conversations, chatbots, conversational UIs. Pair with `streaming_behavior` on the section.
+   - `markdown-viewer` — `data_source`, `fields.content` ($.field for markdown string), optional `collapsible`, `copy_button`, `syntax_highlight`. Use for documentation, AI-generated content, knowledge base entries.
+   - `tree-view` — `data_source`, `fields.children` ($.field for child nodes), `fields.label` ($.field for node label), optional `fields.icon`, `collapsible` (default true), `default_expanded_depth`, `item_actions`. Use for hierarchical data (org trees, category trees, file trees).
    - Shared component ID — reference a component from `pages.yaml` → `shared_components` by its ID
 
    **Page inference rules** — derive UI structure from backend flows:
@@ -460,6 +479,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    name: "Users"
    description: "User management and authentication"
    role: entity
+   auth: { required: true, strategy: jwt }  # domain-level default — flows inherit, can override
    owns_schemas: ["User", "Session"]
    flows:
      - id: user-register
@@ -478,7 +498,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      portals: {}
    ```
 
-   **CRITICAL:** Do NOT wrap domain fields under a `domain:` key. The DDD Tool parses domain.yaml as a flat `DomainConfig` object — `name`, `description`, `role`, `flows`, `publishes_events`, `consumes_events` must all be at the YAML root level.
+   **CRITICAL:** Do NOT wrap domain fields under a `domain:` key. The DDD Tool parses domain.yaml as a flat `DomainConfig` object — `name`, `description`, `role`, `auth`, `flows`, `publishes_events`, `consumes_events` must all be at the YAML root level.
 
 13. **Create flow YAML files**: For each flow, create `specs/domains/{domain-id}/flows/{flow-id}.yaml` with:
    - `flow` metadata (id, name, type, domain, description). Optionally add `emits: string[]` and `listens_to: string[]` to summarize the flow's event surface. For flows triggered by keyboard shortcuts, add `keyboard_shortcut` (e.g., `"Cmd+K"`). For reusable parameterized flows, add `template: true` and `parameters` (Record<string, FlowParameter> where FlowParameter has `type` and optional `values`) — callers pass parameters via `sub_flow` node's `input_mapping`. For HTTP-triggered flows, add `auth: { required: boolean, roles?: string[], strategy?: 'jwt'|'api_key'|'none' }` — `/ddd-implement` generates auth middleware from this field. Internal, cron, and event-triggered flows may omit `auth`. For performance-critical flows, optionally add `metrics: [{name, type: counter|gauge|histogram, labels?}]`. For flows that need per-flow log configuration, add `log: {level: 'debug'|'info'|'warn'|'error', include_input?: boolean, include_output?: boolean}` to override the default log level.
@@ -517,8 +537,8 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Use `transform` for data mapping (set `input_schema`, `output_schema`, `field_mappings` for schema-to-schema; or set `mode: 'expression'` with computed `field_mappings` for response shaping without schema refs)
      - Use `sub_flow` to call reusable flows from other domains (set `flow_ref` as `domain/flow-id`)
      - Use `llm_call` for single LLM invocations — specify `model`, `prompt`, `temperature`, `max_tokens`, and optionally `structured_output` for typed responses (properties support `{ type: string, ref: my_enum }` to resolve enum values from `shared/types.yaml` without duplication), `context_sources` (array of data references to inject into prompt context)
-     - Use `agent_loop` for autonomous agent iterations — specify `tools` (array with at least one `is_terminal: true`), `max_iterations`, `model`. For `vector_store` memory types, also set `embedding_model`, `similarity_threshold`, `max_results`, and optionally `namespace`.
-     - Use `guardrail` for input/output validation in agent flows — specify `checks` array, inline and sequential
+     - Use `agent_loop` for autonomous agent iterations — specify `tools` (array with at least one `is_terminal: true`), `max_iterations`, `model`. For `vector_store` memory types, also set `embedding_model`, `similarity_threshold`, `max_results`, and optionally `namespace`. For real-time streaming UIs, add `streaming: { enabled: true, format: sse|websocket }` to stream tokens progressively instead of blocking.
+     - Use `guardrail` for inline validation in agent or traditional flows — specify `checks` array (types: `content_policy`, `prompt_injection`, `file_type`, `file_size`, `required_fields`, `business_rule`), inline and sequential. In traditional flows, use instead of process nodes for structured rule-based validation.
      - Use `human_gate` for async human approval in agent flows — specify `notification_channels`, `approval_options` (array of `{id, label, description?, requires_input?}`), `timeout` ({duration?, action?: escalate/auto_approve/auto_reject}), `context_for_human`
      - Use `orchestrator` for multi-step agent task decomposition — specify `strategy`, `model`, `agents`
      - Use `smart_router` for intelligent 3+ way routing (works in both traditional and agent flows) — specify `rules` array with `id`, `condition`, `route`, optional `priority`; optional `llm_routing`, `fallback_chain`, `policies`
@@ -887,7 +907,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
     **Feature catalog cross-reference (MANDATORY):**
     - Include the Feature Usage Matrix from Step A in the `summary` section as `feature_coverage`
     - Every `process` node in every generated flow MUST be checked: could a structured node type (`collection`, `transform`, `parse`, `crypto`, `cache`, `batch`, `smart_router`, `transaction`, etc.) replace it? If yes → `workarounds` entry
-    - Every UI section using a generic description where a built-in component type (`stat-card`, `item-list`, `card-grid`, `detail-card`, `button-group`, `page-header`, `status-bar`, `chart`, `filter-bar`, `map-view`, `timeline`) would fit → `ui_shortfalls.inadequate_components` or `ui_shortfalls.missing_component_types` entry
+    - Every UI section using a generic description where a built-in component type (`stat-card`, `item-list`, `card-grid`, `detail-card`, `button-group`, `page-header`, `status-bar`, `chart`, `filter-bar`, `map-view`, `timeline`, `chat-interface`, `markdown-viewer`, `tree-view`) would fit → `ui_shortfalls.inadequate_components` or `ui_shortfalls.missing_component_types` entry
 
     **Content rules:**
     - Only include sections that have entries — omit empty sections entirely
@@ -901,7 +921,24 @@ Create a complete DDD (Design Driven Development) project from a software projec
     - If the product definition describes pages/screens that have no corresponding `specs/ui/{page-id}.yaml`, that's automatically a `pillar_balance` → `pages_without_specs` entry with severity `high`
     - If logic flows outnumber UI pages by more than 5:1 for a user-facing project, add an `imbalance_warnings` entry
 
-17. **Write change-history entries**: After all spec files are created, append one entry per generated spec file to `.ddd/change-history.yaml` (create the file if it doesn't exist). Use `source: ddd-create`, current ISO timestamp, file checksum, and `status: pending_implement`. Determine `level`, `domain`, `flow`, and `pillar` from the file path (same rules as ddd-tool). This enables `/ddd-implement` (no flags) to implement everything in one targeted pass without needing `--all`.
+17. **Write change-history entries**: After all spec files are created, append one entry per generated spec file to `.ddd/change-history.yaml` (create the file if it doesn't exist). Each entry must include all fields:
+    ```yaml
+    - id: "chg-{next 4-digit id}"
+      timestamp: "{ISO 8601}"
+      source: ddd-create
+      change_type: added
+      scope:
+        level: L3            # L3 for flows/pages, L2 for domain configs, L1 for system-level
+        domain: "{domain}"   # from file path (null for system-level specs)
+        flow: "{flow}"       # from file path (null for non-flow specs)
+        pillar: "{pillar}"   # logic | data | interface | infrastructure
+      spec_file: "{relative path to spec file}"
+      spec_checksum: "{SHA-256 first 12 chars}"
+      status: pending_implement
+      implemented_at: null
+      code_files: []
+    ```
+    Determine `level`, `domain`, `flow`, and `pillar` from the file path (same rules as ddd-tool). This enables `/ddd-implement` (no flags) to implement everything in one targeted pass without needing `--all`.
 
 18. **Summary**: After creating all files, show:
     ```

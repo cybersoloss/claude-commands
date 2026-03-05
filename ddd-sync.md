@@ -20,6 +20,18 @@ Synchronize the DDD project specs with the current implementation state across a
 - `specs/config.yaml` — environment variables (context when creating new specs in --discover mode)
 - `specs/shared/errors.yaml` — error codes (for validating error terminal references)
 
+**Files written:**
+- `.ddd/mapping.yaml` — updated specHash, fileHashes, syncState per entry
+- `.ddd/reconciliations/{timestamp}.yaml` — sync report for historical tracking
+- `.ddd/reconciliations/{timestamp}-conformance.yaml` — behavioral conformance report (with `--verify`)
+- `.ddd/change-history.yaml` — append `pending_implement` entries for new-logic drift
+- `specs/domains/*/flows/*.yaml` — enriched specs (with `--fix-drift`, code-ahead case)
+- `specs/domains/*/domain.yaml` — new domain specs (with `--discover`)
+- `specs/ui/*.yaml` — new/enriched page specs (with `--discover`)
+- `specs/schemas/*.yaml` — new/enriched schema specs (with `--discover`)
+- `specs/infrastructure.yaml` — updated service definitions (with `--discover`)
+- `specs/architecture.yaml` — updated cross-cutting patterns (with `--discover`)
+
 ## Instructions
 
 1. **Find the DDD project**: Look for `ddd-project.json` in the current directory or parent directories.

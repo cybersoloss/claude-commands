@@ -2,6 +2,19 @@
 
 Show a quick read-only overview of the DDD project's implementation state across all four pillars (Logic, Data, Interface, Infrastructure). No files are modified — this is purely informational. **Lifecycle phase: Any (cross-cutting).**
 
+**Files read:**
+- `ddd-project.json` — domain list
+- `.ddd/mapping.yaml` — implementation tracking (specHash, syncState, files, fileHashes, annotationCount, implementedAt)
+- `.ddd/change-history.yaml` — pending and recent change entries
+- `specs/domains/{domain}/domain.yaml` — flow list per domain
+- `specs/schemas/*.yaml` — data model definitions
+- `specs/ui/pages.yaml` — page registry
+- `specs/ui/*.yaml` — per-page specs
+- `specs/infrastructure.yaml` — services and deployment
+- `specs/architecture.yaml` — `cross_cutting_patterns` (for drift classification)
+
+**Files written:** None (read-only command)
+
 ## Instructions
 
 1. **Find the DDD project**: Look for `ddd-project.json` in the current directory or parent directories.

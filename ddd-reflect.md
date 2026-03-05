@@ -18,11 +18,32 @@ Parse `$ARGUMENTS` to determine scope:
 | `--infra` | Infrastructure implementation | `/ddd-reflect --infra` |
 | *(empty)* | Interactive — show all pillars, ask which to reflect on | `/ddd-reflect` |
 
+**Files read:**
+- `ddd-project.json` — domain list
+- `.ddd/mapping.yaml` — implementation tracking (flows and pages sections)
+- `specs/architecture.yaml` — `cross_cutting_patterns` (reference for classifying findings)
+- `specs/domains/*/flows/*.yaml` — flow specs (for spec vs code comparison)
+- `specs/schemas/*.yaml` — schema specs (for schema vs ORM comparison)
+- `specs/ui/pages.yaml` — page registry
+- `specs/ui/{page-id}.yaml` — per-page specs (for page vs component comparison)
+- `specs/infrastructure.yaml` — infrastructure spec (for infra vs config comparison)
+- `.ddd/annotations/` — existing annotations (to skip duplicates)
+- DDD Usage Guide (fetched via `gh api`) — node type specs for accurate pattern classification
+- Implementation source files — from `mapping.yaml` file lists
+
+**Files written:**
+- `.ddd/annotations/{domain}/{flow}.yaml` — flow annotations
+- `.ddd/annotations/ui/{page-id}.yaml` — page annotations
+- `.ddd/annotations/schemas/{model}.yaml` — schema annotations
+- `.ddd/annotations/infrastructure.yaml` — infrastructure annotations
+- `.ddd/mapping.yaml` — updated `annotationCount` per flow
+
 ## Instructions
 
 1. **Find the DDD project**: Look for `ddd-project.json` in the current directory or parent directories.
 
 2. **Read project context**:
+   - **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` — reference for node type specs, enabling accurate classification of implementation patterns vs spec intent
    - `ddd-project.json` — domain list
    - `.ddd/mapping.yaml` — implementation tracking (both `flows:` and `pages:` sections)
    - `specs/architecture.yaml` — especially `cross_cutting_patterns` section (reference for classifying findings)

@@ -19,10 +19,10 @@ Meta-level: /ddd-evolve
 | Phase | Command | Options | Description |
 |-------|---------|---------|-------------|
 | 1 Create | `/ddd-create` | `--from`, `--shortfalls` | Design a new project → YAML specs across all four pillars (logic, data, interface, infrastructure) |
+| 1 Create | `/ddd-reverse` | `--output`, `--domains`, `--merge`, `--strategy` | Reverse-engineer existing code → YAML specs |
 | 3 Build | `/ddd-scaffold` | — | Set up project skeleton — backend, frontend, data, infrastructure — from specs |
 | 3 Build | `/ddd-implement` | `--all`, `--ui`, `--schema`, `--infra`, `--ignore-history`, `domain`, `domain/flow` | Read specs → generate backend flow code, frontend pages, and tests |
 | 3 Build | `/ddd-test` | `--all`, `--coverage`, `--ui`, `--schema`, `--infra`, `domain`, `domain/flow` | Run tests for implemented flows |
-| 1 Create | `/ddd-reverse` | `--output`, `--domains`, `--merge`, `--strategy` | Reverse-engineer existing code → YAML specs |
 | 4 Reflect | `/ddd-reflect` | `--all`, `--ui`, `--schema`, `--infra`, `domain`, `domain/flow` | Capture implementation wisdom as annotations |
 | 4 Reflect | `/ddd-promote` | `--all`, `--review`, `--ui`, `--schema`, `--infra`, `domain`, `domain/flow` | Move approved annotations into permanent specs |
 | Any | `/ddd-status` | `--json` | Quick read-only project overview |
@@ -218,7 +218,7 @@ Generate working code and tests from DDD specs — backend flows, frontend pages
 | `--schema model` | Single schema model | `/ddd-implement --schema User` |
 | `--infra` | Regenerate infrastructure from specs | `/ddd-implement --infra` |
 | `--ignore-history` | Ignore change-history, implement scope directly | `/ddd-implement --all --ignore-history` |
-| *(empty)* | Interactive — shows flows/pages and asks | `/ddd-implement` |
+| *(empty)* | Change-history driven — implements `pending_implement` entries. If none, interactive | `/ddd-implement` |
 
 ### Examples
 
@@ -376,7 +376,7 @@ Synchronize specs and implementation state.
 |---|---|
 | *(no flag)* | Sync `.ddd/mapping.yaml` with current implementation state |
 | `--discover` | Also scan for untracked code and suggest new flow specs |
-| `--fix-drift` | Resolve drift using decision tree: metadata-only → update hash, code-ahead → reverse into specs, new-logic → re-implement from spec |
+| `--fix-drift` | Resolve drift using decision tree: metadata-only → update hash, code-ahead → reflect into specs, new-logic → re-implement from spec |
 | `--full` | All of the above: sync + discover + fix drift |
 | `--verify` | Behavioral conformance — verify code implements spec intent node-by-node (read-only). Not included in `--full`; use `--full --verify` for comprehensive analysis. |
 
@@ -389,7 +389,7 @@ Synchronize specs and implementation state.
 # Find code that doesn't have specs yet
 /ddd-sync --discover
 
-# Re-implement drifted flows
+# Resolve drifted flows (classify and fix by type)
 /ddd-sync --fix-drift
 
 # Everything — sync, discover, and fix
@@ -410,7 +410,7 @@ Synchronize specs and implementation state.
    - Computes current spec hash, compares to stored hash
    - Updates file lists and timestamps
 3. With `--discover`: scans `src/` for routes, services, models not mapped to any flow spec. Suggests new flow specs.
-4. With `--fix-drift`: for each drifted flow (spec changed since implementation), re-implements from updated spec, runs tests, updates mapping.
+4. With `--fix-drift`: classifies each drift and resolves accordingly — metadata-only → update hash, code-ahead → reflect into specs, new-logic → re-implement from spec.
 
 ### Output
 
@@ -419,7 +419,7 @@ Summary showing:
 - Flows with spec drift (spec changed since implementation)
 - Flows with missing implementation
 - (with `--discover`) Untracked code that should become flows
-- (with `--fix-drift`) Flows that were re-implemented
+- (with `--fix-drift`) Flows resolved by type: hashes updated, specs enriched, or code re-implemented
 - (with `--verify`) Per-node conformance status: which nodes are implemented, missing, or diverged
 
 ---
@@ -542,7 +542,7 @@ Run tests for implemented flows without re-generating code.
 | `--schema` | All schema/data layer tests | `/ddd-test --schema` |
 | `--schema model` | Single schema model tests | `/ddd-test --schema User` |
 | `--infra` | Infrastructure tests | `/ddd-test --infra` |
-| *(empty)* | Interactive — shows flows and asks | `/ddd-test` |
+| *(empty)* | Scoped to recently implemented entries from change-history. If none, interactive | `/ddd-test` |
 
 ### Examples
 
@@ -578,7 +578,7 @@ Run tests for implemented flows without re-generating code.
 2. Runs the test runner (auto-detected from config files)
 3. Reports pass/fail per flow with detailed failure analysis
 4. Identifies likely failure cause: spec drift, manual code change, environment issue, or dependency issue
-5. Suggests fix actions (re-implement, manual fix, or environment fix)
+5. Suggests appropriate fix actions based on cause (manual fix, environment fix, or scoped re-implement only when spec drift is confirmed)
 
 ### Output
 
@@ -637,7 +637,7 @@ Analyze DDD shortfall reports, critically evaluate each gap, and produce a prior
 
 ### What it does
 
-1. **Analyze** — Reads shortfall files, deduplicates, evaluates through 6 filters (already possible? recurring? specific? breaking? adequate workaround? intentional?), classifies as `REAL_GAP`/`ENHANCEMENT`/`VAGUE`/`ALREADY_POSSIBLE`/`BY_DESIGN`/`PROJECT_SPECIFIC`, writes `ddd-evolution-plan.yaml`
+1. **Analyze** — Reads shortfall files, deduplicates, evaluates through 7 filters (already possible? recurring? specific? breaking? adequate workaround? intentional? pillar balance?), classifies as `REAL_GAP`/`ENHANCEMENT`/`VAGUE`/`ALREADY_POSSIBLE`/`BY_DESIGN`/`PROJECT_SPECIFIC`, writes `ddd-evolution-plan.yaml`
 2. **Review** — Presents each item with analysis and evidence, asks human to approve/defer/reject via interactive prompts, records decisions and notes back to the plan file
 3. **Apply** — Requires reviewed plan. Shows what will change, asks confirmation, executes approved items (updates spec, commands, tool, validator)
 

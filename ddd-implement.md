@@ -19,6 +19,32 @@ Parse the argument to determine scope:
 | *(empty)* | Read `.ddd/change-history.yaml` for `pending_implement` entries — implement those. If none pending, list available items and ask. | `/ddd-implement` |
 | `--ignore-history` | Skip change-history and list all available items to implement | `/ddd-implement --ignore-history` |
 
+**Files read:**
+- `ddd-project.json` — project config, domain list
+- `.ddd/change-history.yaml` — pending entries (no-flags mode)
+- `.ddd/mapping.yaml` — existing implementations
+- `specs/system.yaml` — tech stack, integrations
+- `specs/architecture.yaml` — conventions, cross-cutting patterns
+- `specs/config.yaml` — environment variables
+- `specs/infrastructure.yaml` — services, ports
+- `specs/shared/errors.yaml` — error codes
+- `specs/shared/types.yaml` — shared enums
+- `specs/schemas/_base.yaml` — base model fields
+- `specs/schemas/*.yaml` — data model definitions
+- `specs/domains/{domain}/domain.yaml` — domain config, event wiring
+- `specs/domains/{domain}/flows/{flow}.yaml` — flow specs (node graphs)
+- `specs/ui/pages.yaml` — page registry
+- `specs/ui/{page-id}.yaml` — per-page specs
+- DDD Usage Guide (fetched via `gh api`) — node types, spec fields reference
+
+**Files written:**
+- `src/` — route handlers, service files, tests (Logic pillar)
+- Frontend page components, section components, tests (Interface pillar)
+- ORM schema, migrations, seed files (Data pillar)
+- `docker-compose.yaml`, `package.json` scripts, `Dockerfile` (Infrastructure pillar)
+- `.ddd/mapping.yaml` — updated with specHash, files, fileHashes, syncState, implementedAt, mode
+- `.ddd/change-history.yaml` — marks entries as `status: implemented`
+
 ## Instructions
 
 1. **Find the DDD project**: Look for `ddd-project.json` in the current directory or parent directories. This file lists all domains and project configuration (tech stack, etc.).

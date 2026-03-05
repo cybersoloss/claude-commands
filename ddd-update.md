@@ -19,6 +19,25 @@ Parse the argument to determine what to update:
 | `--schema {model}` | Update a specific schema | `/ddd-update --schema user` |
 | *(empty)* | Interactive — ask what to update | `/ddd-update` |
 
+**Files read:**
+- `ddd-project.json` — project config, domain list
+- `.ddd/mapping.yaml` — implementation tracking (for awareness of spec state)
+- `specs/domains/{domain}/domain.yaml` — domain config, event wiring
+- `specs/domains/{domain}/flows/{flow}.yaml` — flow specs
+- `specs/schemas/*.yaml` — schema definitions
+- `specs/shared/errors.yaml` — error codes
+- `specs/system.yaml` — tech stack, integrations
+- `specs/architecture.yaml` — conventions, cross-cutting patterns
+- `specs/ui/pages.yaml` — page registry
+- `specs/ui/{page-id}.yaml` — per-page specs
+- `specs/infrastructure.yaml` — services, ports, deployment
+- DDD Usage Guide (fetched via `gh api`) — if adding/modifying nodes
+
+**Files written:**
+- `specs/**/*.yaml` — updated spec files (ONLY specs, never implementation code)
+- `ddd-project.json` — if domains added/removed
+- `.ddd/change-history.yaml` — appends `pending_implement` entries for each modified spec
+
 ## Instructions
 
 1. **Find the DDD project**: Look for `ddd-project.json` in the current directory or parent directories.

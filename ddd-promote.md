@@ -19,6 +19,33 @@ Parse `$ARGUMENTS` to determine scope:
 | `--infra` | Infrastructure annotations | `/ddd-promote --infra` |
 | *(empty)* | Interactive — same as `--review` | `/ddd-promote` |
 
+**Files read:**
+- `ddd-project.json` — domain list
+- `.ddd/mapping.yaml` — implementation tracking (flows and pages sections)
+- `.ddd/annotations/` — all annotation files (recursively, including `ui/`, `schemas/`)
+- `specs/architecture.yaml` — current `cross_cutting_patterns`
+- `specs/domains/*/flows/*.yaml` — flow specs (promotion targets)
+- `specs/schemas/*.yaml` — schema specs (promotion targets)
+- `specs/infrastructure.yaml` — infrastructure spec (promotion target)
+- `specs/shared/errors.yaml` — current error codes
+- `specs/shared/types.yaml` — current shared types
+- `specs/ui/pages.yaml` — page registry
+- `specs/ui/{page-id}.yaml` — per-page specs (promotion targets)
+- DDD Usage Guide (fetched via `gh api`) — if promoting cross-cutting patterns or enriching node specs
+
+**Files written:**
+- `specs/architecture.yaml` — add/update `cross_cutting_patterns`
+- `specs/domains/{domain}/flows/{flow}.yaml` — enriched node specs
+- `specs/ui/pages.yaml` — updated `shared_components`
+- `specs/ui/{page-id}.yaml` — enriched sections
+- `specs/schemas/{model}.yaml` — added indexes, constraints, seed, transitions
+- `specs/infrastructure.yaml` — enriched services
+- `specs/shared/errors.yaml` — added error codes
+- `specs/shared/types.yaml` — added shared types
+- `.ddd/annotations/**/*.yaml` — updated status to `promoted` or `dismissed`
+- `.ddd/mapping.yaml` — recomputed specHash, updated annotationCount and syncState
+- `.ddd/change-history.yaml` — appends `pending_implement` entries for modified specs
+
 ## Instructions
 
 1. **Find the DDD project**: Look for `ddd-project.json` in the current directory or parent directories.
