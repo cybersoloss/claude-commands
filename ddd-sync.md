@@ -223,7 +223,7 @@ Parse `$ARGUMENTS` to determine scope (scope arguments are separate from flags l
    | `conforms` | S✓ C✓ | Spec describes it, code implements it | None needed |
    | `missing_in_code` | S✓ C✗ | Spec describes it, code doesn't implement it | `/ddd-implement {scope}` |
    | `missing_in_spec` | S✗ C✓ | Code has it, spec doesn't describe it | `/ddd-reflect {scope}` → `/ddd-promote` |
-   | `diverged` | S✓ C≠ | Both exist, behavior differs | Manual review |
+   | `diverged` | S✓ C≠ | Both exist, behavior differs | `/ddd-reflect {scope}` → `/ddd-promote --review` |
    | `partial` | S✓ C~ | Spec describes it, code partially implements it | Context-dependent |
 
    **Per-pillar checkpoints + gates:** After each pillar, output: "{Pillar} conformance: {N}/{N} items verified". If any planned item was skipped, STOP and check it now.
