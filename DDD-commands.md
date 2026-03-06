@@ -27,7 +27,7 @@ Meta-level: /ddd-evolve
 | 4 Reflect | `/ddd-promote` | `--all`, `--review`, `--ui`, `--schema`, `--infra`, `domain`, `domain/flow` | Move approved annotations into permanent specs |
 | Any | `/ddd-status` | `--json` | Quick read-only project overview |
 | Any | `/ddd-update` | `--add-flow`, `--add-domain`, `--add-page`, `--ui`, `--schema`, `--infra`, `domain/flow` | Natural language → updated specs |
-| Any | `/ddd-sync` | `--discover`, `--fix-drift`, `--full`, `--verify` | Keep specs and code aligned |
+| Any | `/ddd-sync` | `--all`, `--ui`, `--schema`, `--infra`, `--discover`, `--fix-drift`, `--full`, `--verify`, `domain`, `domain/flow` | Keep specs and code aligned |
 | Meta | `/ddd-evolve` | `--dir`, `--review`, `--apply` | Analyze shortfall reports → review → apply approved changes |
 
 ### Transitions (P = Product intent, S = Spec, C = Code)

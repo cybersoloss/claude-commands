@@ -32,6 +32,24 @@ Synchronize the DDD project specs with the current implementation state across a
 - `specs/infrastructure.yaml` — updated service definitions (with `--discover`)
 - `specs/architecture.yaml` — updated cross-cutting patterns (with `--discover`)
 
+## Scope Resolution
+
+Parse `$ARGUMENTS` to determine scope (scope arguments are separate from flags like `--discover`, `--fix-drift`, `--full`, `--verify` which combine with any scope):
+
+| Argument | Scope | Example |
+|----------|-------|---------|
+| *(empty)* | Whole project — all domains, flows, pages, schemas, infrastructure | `/ddd-sync` |
+| `--all` | Same as empty — explicit "sync everything" | `/ddd-sync --all` |
+| `{domain}` | All flows in a domain + related schemas/pages | `/ddd-sync orchestrator` |
+| `{domain}/{flow}` | Single flow | `/ddd-sync orchestrator/run-action-cycle` |
+| `--ui` | All UI pages only | `/ddd-sync --ui` |
+| `--ui {page-id}` | Single UI page | `/ddd-sync --ui dashboard` |
+| `--schema` | All schemas only | `/ddd-sync --schema` |
+| `--schema {model}` | Single schema model | `/ddd-sync --schema user` |
+| `--infra` | Infrastructure only | `/ddd-sync --infra` |
+
+**Note:** `--discover` with a domain or pillar scope limits discovery to files within that domain's directory structure or pillar. Cross-cutting untracked code may be missed — use unscoped `--discover` for full project discovery.
+
 ## Instructions
 
 1. **Find the DDD project**: Look for `ddd-project.json` in the current directory or parent directories.
@@ -52,9 +70,20 @@ Synchronize the DDD project specs with the current implementation state across a
    - For each mapped page, check if the page component files still exist
    - Look for any new source files that aren't mapped yet (backend routes, page components)
 
-3. **Fetch the DDD Usage Guide** (if `--fix-drift` or `--discover` is active): Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` — the reference for all YAML formats, node types, spec fields, connection patterns, UI spec format, infrastructure spec format, and conventions. Needed when creating new specs or re-implementing code.
+3. **Resolve scope** from `$ARGUMENTS` using the Scope Resolution table:
 
-4. **Create sync plan:** List all items to check per pillar:
+   - **No scope argument (or `--all`):** Include everything — all domains, flows, pages, schemas, infrastructure. This is the current default behavior.
+   - **`{domain}`:** Include all flows in that domain, plus any schemas referenced by those flows, any pages that bind to those flows' data, and infrastructure items specific to that domain.
+   - **`{domain}/{flow}`:** Include only that single flow.
+   - **`--ui` / `--ui {page-id}`:** Include only UI pages (all or one).
+   - **`--schema` / `--schema {model}`:** Include only schemas (all or one).
+   - **`--infra`:** Include only infrastructure items.
+
+   Scope arguments are independent of flags (`--discover`, `--fix-drift`, `--full`, `--verify`). All flags combine with any scope.
+
+4. **Fetch the DDD Usage Guide** (if `--fix-drift` or `--discover` is active): Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` — the reference for all YAML formats, node types, spec fields, connection patterns, UI spec format, infrastructure spec format, and conventions. Needed when creating new specs or re-implementing code.
+
+5. **Create sync plan:** List all items to check per pillar:
 
    | Pillar | Items to Check | Count |
    |--------|---------------|-------|
@@ -63,7 +92,9 @@ Synchronize the DDD project specs with the current implementation state across a
    | Infrastructure | {services from spec} | {N} |
    | Logic | {list of flows from mapping + specs} | {N} |
 
-   This plan is your commitment — every item must be checked for drift.
+   **If a scope argument was provided in step 3, filter this table to only include items matching the resolved scope.** For unscoped runs, include everything (current behavior).
+
+   This plan is your commitment — every item listed must be checked for drift.
 
    **Processing order:** Check lighter pillars first: Data → Interface → Infrastructure → Logic. Logic has the most items and goes last.
 
@@ -71,7 +102,7 @@ Synchronize the DDD project specs with the current implementation state across a
 
    **Interface is the most commonly skipped pillar.** If the plan includes ANY pages, all must be checked. Data and Infrastructure are also frequently omitted from sync — check them explicitly.
 
-5. **Bidirectional drift analysis** (CRITICAL — do NOT skip):
+6. **Bidirectional drift analysis** (CRITICAL — do NOT skip):
 
    Perform this analysis for ALL four pillars. Follow the processing order from the sync plan: Data → Interface → Infrastructure → Logic.
 
@@ -121,7 +152,7 @@ Synchronize the DDD project specs with the current implementation state across a
 
    **GATE:** Compare checked count to plan. If any planned item was skipped, STOP and check it now.
 
-5b. **Behavioral conformance analysis** (only if `--verify` flag is active):
+6b. **Behavioral conformance analysis** (only if `--verify` flag is active):
 
    **Purpose:** Hash-based drift (Step 5) answers "has the file changed?" — this step answers "does the code actually do what the spec describes?" A flow can show `in_sync` while missing node implementations or containing undocumented behavior.
 
@@ -203,7 +234,7 @@ Synchronize the DDD project specs with the current implementation state across a
 
    **Metadata updates:** When modifying any spec file, update `metadata.modified` to the current ISO timestamp.
 
-6. **Update mapping.yaml** (only for verified-in-sync entries):
+7. **Update mapping.yaml** (only for verified-in-sync entries):
    - For flows that are genuinely in sync (metadata-only or spec-enriched with code coverage), compute and update the `specHash`
    - Update the `files` list with all source files that are part of the implementation
    - Recompute and update `fileHashes` — SHA-256 of each implementation file, keyed by file path. This enables future code drift detection.
@@ -213,7 +244,7 @@ Synchronize the DDD project specs with the current implementation state across a
    - Set `mode` to `update` if the entry was previously implemented, `new` if first implementation
    - Set `annotationCount` if annotations exist for the entry
 
-7. **Detect new patterns** (if `--discover` or `--full` flag):
+8. **Detect new patterns** (if `--discover` or `--full` flag):
 
    This is a three-phase operation: **Analyze → Approve → Apply**
 
@@ -246,7 +277,7 @@ Synchronize the DDD project specs with the current implementation state across a
    - Update architecture.yaml with approved cross-cutting patterns
    - Update mapping.yaml hashes for all changes
 
-8. **Fix drift** (if `--fix-drift` or `--full` flag):
+9. **Fix drift** (if `--fix-drift` or `--full` flag):
 
    **WARNING:** `--fix-drift` re-implements code from specs, overwriting existing files. If you have manual edits you want to keep, commit them first or use `/ddd-reflect` to capture changes as annotations before re-implementing.
 
@@ -264,8 +295,9 @@ Synchronize the DDD project specs with the current implementation state across a
 
    **Validate written specs**: After all drift fixes are applied, verify each modified spec and implementation file is structurally valid (proper YAML, correct node types, no broken references). Fix any issues before reporting.
 
-9. **Report**:
-    - Show a summary of what was synced across all pillars:
+10. **Report**:
+    - Show the scope at the top of the report: `Scope: {scope}` (e.g., `Scope: orchestrator`, `Scope: --ui dashboard`, `Scope: all`)
+    - Show a summary of what was synced across all pillars (or the scoped pillar):
 
       **Logic (flows):**
       - Flows verified in sync (hash updated)
@@ -367,7 +399,7 @@ Synchronize the DDD project specs with the current implementation state across a
     - Save the full report to `.ddd/reconciliations/{timestamp}.yaml` for historical tracking
     - (with `--verify`) Also save conformance report to `.ddd/reconciliations/{timestamp}-conformance.yaml`
 
-10. **Next steps**: Based on findings, suggest the appropriate next commands:
+11. **Next steps**: Based on findings, suggest the appropriate next commands. **When scope was provided, echo the scope in follow-up command suggestions** (e.g., if user ran `/ddd-sync orchestrator --verify`, suggest `/ddd-reflect orchestrator` not `/ddd-reflect --all`):
     - Flows with code ahead of spec: "Run `/ddd-reflect {domain/flow}` to capture implementation wisdom, then `/ddd-promote --review`" — reflect is appropriate here because code-ahead means someone *manually* edited code after implementation; those edits are the wisdom to capture. This differs from suggesting reflect right after `/ddd-implement`, where code was just generated from specs and has no new wisdom.
     - Flows with new spec logic: "Entries added to `.ddd/change-history.yaml` — run `/ddd-implement` (no flags) to implement all pending changes"
     - Pages with code ahead of spec: "Run `/ddd-reflect --ui {page-id}` to capture UI wisdom"
@@ -437,11 +469,29 @@ Synchronize the DDD project specs with the current implementation state across a
 ## Usage
 
 The user will say something like:
-- `/ddd-sync` — bidirectional sync analysis, update hashes for verified flows only
-- `/ddd-sync --discover` — also discover untracked code and propose new specs (analyze-approve-apply)
-- `/ddd-sync --fix-drift` — resolve all drift using the decision tree (metadata→hash, code-ahead→reverse, new-logic→implement)
-- `/ddd-sync --full` — do all of the above: sync, discover, and fix drift
-- `/ddd-sync --verify` — behavioral conformance: verify code implements spec intent node-by-node (read-only diagnostic)
+
+**Scope examples:**
+- `/ddd-sync` — sync all (bidirectional hash analysis)
+- `/ddd-sync {domain}` — sync one domain
+- `/ddd-sync {domain/flow}` — sync one flow
+- `/ddd-sync --ui` — sync all UI pages
+- `/ddd-sync --ui {page-id}` — sync single page
+- `/ddd-sync --schema` — sync all schemas
+- `/ddd-sync --schema {model}` — sync single schema
+- `/ddd-sync --infra` — sync infrastructure
+
+**Flag examples (combine with any scope):**
+- `/ddd-sync --discover` — also discover untracked code and propose new specs
+- `/ddd-sync --fix-drift` — resolve drift using decision tree (metadata→hash, code-ahead→reverse, new-logic→implement)
+- `/ddd-sync --full` — sync + discover + fix drift
+- `/ddd-sync --verify` — behavioral conformance: verify code implements spec intent node-by-node
 - `/ddd-sync --full --verify` — full sync + behavioral verification
+
+**Scope + flag combinations:**
+- `/ddd-sync {domain} --verify` — behavioral verify one domain
+- `/ddd-sync {domain/flow} --verify` — behavioral verify one flow
+- `/ddd-sync --ui {page-id} --fix-drift` — fix drift for one page
+- `/ddd-sync --schema {model} --verify` — behavioral verify one schema
+- `/ddd-sync {domain} --full --verify` — scoped full sync + behavioral verification
 
 $ARGUMENTS
