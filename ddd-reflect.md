@@ -363,8 +363,13 @@ Parse `$ARGUMENTS` to determine scope:
    Next steps:
      - Review annotations in .ddd/annotations/
      - Run /ddd-promote --review to approve/dismiss findings
-     - Approved patterns will be written to architecture.yaml, flow specs, page specs, schema specs, or infrastructure specs
+       (MANDATORY before /ddd-implement — human review is the gate)
+     - Approved annotations → specs enriched, pending_implement
+     - Dismissed annotations → flagged for re-implementation
+     - Then: /ddd-implement → /ddd-test → /ddd-sync
    ```
+
+   **IMPORTANT:** Do NOT suggest running `/ddd-implement` directly after `/ddd-reflect`. The mandatory sequence is: **reflect → promote --review → implement**. The human review in `/ddd-promote --review` is where the user decides per annotation whether the code or spec is correct. Skipping promote would bypass this decision gate and risk overwriting correct code.
 
 ## Pattern Detection Guidance
 

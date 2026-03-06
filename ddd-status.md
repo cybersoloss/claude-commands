@@ -183,4 +183,23 @@ Show a quick read-only overview of the DDD project's implementation state across
 
    **NEVER suggest `/ddd-implement` as the default action for drifted flows.** Always classify the drift first and recommend the least destructive action.
 
+   **When multiple drift types coexist** (e.g., some flows code-ahead, some new-logic, some not-implemented), output a phase-ordered remediation sequence instead of independent per-type suggestions:
+
+   ```
+   Remediation workflow (phase-ordered):
+
+   ── Reflect Phase (complete first) ──────────────────────────────────
+   1. /ddd-reflect {scope} — capture ALL code-ahead and code-edited flows
+   2. /ddd-promote --review — approve or dismiss each annotation
+
+   ── Build Phase (after Reflect completes) ───────────────────────────
+   3. /ddd-update — only for pure structural gaps (if any)
+   4. /ddd-implement {scope} — for new-logic, not-implemented, stale,
+      and dismissed annotations from step 2
+   5. /ddd-test {scope}
+   6. /ddd-sync — update hashes for metadata/spec-enriched drift
+   ```
+
+   If all drift is a single type (e.g., only metadata drift), a single per-type suggestion is fine.
+
 $ARGUMENTS

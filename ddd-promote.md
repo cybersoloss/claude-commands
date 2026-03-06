@@ -342,10 +342,13 @@ Parse `$ARGUMENTS` to determine scope:
    - The architecture.yaml is still valid YAML
    - No duplicate pattern IDs in cross_cutting_patterns
 
-6. **Next steps**: After promotion, suggest:
-   - "Run `/ddd-sync` to verify project-wide alignment"
-   - "Run `/ddd-implement {scope}` if promoted patterns require code changes"
-   - "Run `/ddd-status` to verify the project state"
-   - If remaining candidates exist: "Run `/ddd-promote --review` to review remaining candidates"
+6. **Next steps**: After promotion, suggest in this order:
+   - If remaining candidates exist: "Run `/ddd-promote --review` to review remaining candidates" (finish Reflect phase first)
+   - If pure structural gaps exist (neither spec nor code has the behavior): "Run `/ddd-update` to add missing spec elements"
+   - "Run `/ddd-implement {scope}` for pending_implement entries from change-history" (approved annotations enriched specs → code needs regeneration; dismissed annotations → code needs correction)
+   - "Run `/ddd-test {scope}` to verify implementations"
+   - "Run `/ddd-sync` (plain, no flags) to update hashes"
+
+   **Phase ordering rule:** Reflect phase (`/ddd-promote --review`) must fully complete before Build phase (`/ddd-update` → `/ddd-implement` → `/ddd-test`) begins. Do NOT suggest `/ddd-implement` while promote candidates remain unreviewed.
 
 $ARGUMENTS

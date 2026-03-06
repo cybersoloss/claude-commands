@@ -158,8 +158,30 @@ Parse the argument to determine scope:
 10. **Next steps**: Based on results, suggest:
     - If all tests pass: **The core Build loop is complete.** Tell the user: "All tests pass — this flow is done. Continue with your next change or feature."
     - **Do NOT suggest `/ddd-reflect`, `/ddd-promote`, or `/ddd-sync` as next steps after passing tests.** Reflect captures wisdom from *manual* code changes, not freshly generated code. Sync detects drift, but code is by definition in sync right after implement+test. These are periodic Reflect phase commands the user runs intentionally across multiple flows at the end of a development session.
-    - If tests fail due to spec drift: "Run `/ddd-implement {scope}` to regenerate from updated specs, then re-run `/ddd-test {scope}`"
-    - If tests fail due to manual code changes: "Review the failing test and fix the code, or run `/ddd-implement {scope}` to regenerate"
     - If tests fail due to environment issues: "Fix the environment issue (missing env var, database not running) and re-run `/ddd-test {scope}`"
+    - If tests fail due to spec drift only: "Run `/ddd-implement {scope}` to regenerate from updated specs, then re-run `/ddd-test {scope}`"
+    - If tests fail due to manual code changes only: "Review the failing test and fix the code, or run `/ddd-implement {scope}` to regenerate"
+
+    **When BOTH spec drift AND manual code change failures coexist** (mixed failures), output a dependency-ordered fix sequence:
+
+    ```
+    Mixed failure remediation (dependency-ordered):
+
+    1. /ddd-reflect {flows with manual changes}
+       Capture manual code improvements as annotations BEFORE they
+       get overwritten. This is critical — /ddd-implement will
+       regenerate code and destroy manual changes.
+
+    2. /ddd-promote --review
+       Approve annotations to enrich specs, or dismiss if the
+       manual changes were wrong.
+
+    3. /ddd-implement {flows with spec drift + dismissed annotations}
+       Now safe to regenerate — manual wisdom is preserved in specs.
+
+    4. /ddd-test {scope}
+    ```
+
+    **WARNING:** Do NOT suggest `/ddd-implement` for flows with manual code changes without first warning that it will overwrite those changes. Always recommend `/ddd-reflect` first to capture manual wisdom.
 
 $ARGUMENTS
