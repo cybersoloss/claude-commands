@@ -40,6 +40,10 @@ Analyze DDD shortfall reports across all four pillars (Logic, Data, Interface, I
 - `~/.claude/commands/ddd-*.md` — command definition updates (`--apply` only)
 - `~/dev/ddd-tool/src/` — DDD Tool source changes (`--apply` only, if `affects.tool: true`)
 
+**Files written:**
+- `ddd-evolution-plan.yaml` — prioritized evolution plan (default mode)
+- DDD command files and templates — modified by `--apply` mode (Usage Guide, command-template.md, command-checklist.md, slash commands)
+
 ## Instructions
 
 ### Default mode: Analyze shortfalls
