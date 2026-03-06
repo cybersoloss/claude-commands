@@ -581,7 +581,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Resort to `custom_fields` to express something that should be a first-class field
      - Cannot express a cross-cutting concern (auth, logging, rate limiting, monitoring) structurally
 
-14. **Node ID convention**: Use `{type}-{8-char-random}` format (e.g., `input-xK9mR2vL`, `process-aPq3nW8j`).
+14. **Node ID convention**: Use `{type}-{6char-hash}` format (e.g., `input-a1b2c3`, `process-d4e5f6`).
 
 15. **Quality checks**: Before finishing, verify:
 

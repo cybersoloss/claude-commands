@@ -298,9 +298,9 @@ When creating new nodes, use the DDD Usage Guide as your reference. It defines a
 
 ## Node ID Convention
 
-When creating new nodes, use the format `{type}-{8-char-random}` (8-character random alphanumeric string). Examples:
-- `process-xK9mR2vL`
-- `decision-aPq3nW8j`
-- `data_store-bY7cT4hK`
+When creating new nodes, use the format `{type}-{6char-hash}` (6-character hex hash). Examples:
+- `process-a1b2c3`
+- `decision-d4e5f6`
+- `data_store-f7a8b9`
 
 $ARGUMENTS
