@@ -377,15 +377,62 @@ Synchronize the DDD project specs with the current implementation state across a
     - Infrastructure drift (code ahead): "Run `/ddd-reflect --infra` to capture infrastructure wisdom, then `/ddd-promote --review`"
     - Infrastructure drift (spec ahead): "Run `/ddd-implement --infra` to update configs"
     - Untracked code discovered: "Run `/ddd-reverse` to generate specs from existing code"
-    - (with `--verify`) `missing_in_code` (S✓ C✗) findings: Direct action — "Run `/ddd-implement {scope}` to add missing implementations"
-    - (with `--verify`) `missing_in_spec` (S✗ C✓) findings: Direct action — "Run `/ddd-reflect {scope}` to capture undocumented behavior, then `/ddd-promote --review`"
-    - (with `--verify`) `diverged` (S✓ C≠) findings: **Present choices using AskUserQuestion** for each diverged finding. The user cannot be expected to open files and investigate — give them the context and let them choose:
-      - **A) Spec is correct** → queue `/ddd-implement {scope}` to fix code
-      - **B) Code is correct** → queue `/ddd-update {scope}` to fix spec
-      - **C) Skip** → leave for later
-      After all choices are collected, execute the queued commands (implement first, then update).
-    - (with `--verify`) `partial` (S✓ C~) findings: Show what's implemented vs missing, then present same A/B/C choices per missing aspect
-    - All in sync (and all conform with `--verify`): "Specs and code are in full behavioral agreement — no action needed"
+    - All in sync (no `--verify`): "Specs and code hashes are aligned — no action needed"
+    - All in sync (with `--verify`): "Specs and code are in full behavioral agreement — no action needed"
+
+    **Post-Verify Remediation Workflow** (with `--verify`):
+
+    When `--verify` produces mixed findings (ANY combination of `missing_in_spec`, `diverged`, or `partial` TOGETHER WITH `missing_in_code`), output the complete orchestrated remediation sequence below — do NOT output per-status command suggestions that fragment the workflow into independent tracks.
+
+    If all findings are a single status (e.g., only `missing_in_code`), a single per-status suggestion is fine.
+
+    **Finding-to-phase mapping:**
+
+    | Finding | Phase | Command | Why |
+    |---------|-------|---------|-----|
+    | `conforms` | — | None | Already aligned |
+    | `missing_in_spec` (S✗ C✓) | Reflect | `/ddd-reflect` (step 1) | Code has behavior to capture |
+    | `diverged` (S✓ C≠) | Reflect | `/ddd-reflect` (step 1) | Both exist, reflect captures difference |
+    | `partial` (S✓ C~) | Reflect | `/ddd-reflect` (step 1) | Reflect captures what's done vs not |
+    | `missing_in_code` (S✓ C✗) | Build | `/ddd-implement` (step 4) | Spec exists, code needs it |
+
+    **Complete remediation sequence** (output this as the Next Steps):
+
+    ```
+    Remediation workflow (6 steps, phase-ordered):
+
+    ── Reflect Phase ──────────────────────────────────────────────────
+    1. /ddd-reflect {scope}
+       Captures ALL non-conforming findings (missing_in_spec + diverged
+       + partial) as candidate annotations in one pass.
+       → {N} findings across {N} flows
+
+    2. /ddd-promote --review
+       Human decides per annotation: approve (enrich spec from code)
+       or dismiss (spec was correct, flag for re-implementation).
+
+    ── Build Phase ────────────────────────────────────────────────────
+    3. /ddd-update (only if needed)
+       For pure structural gaps where NEITHER spec NOR code has the
+       behavior. Skip if all gaps were covered by reflect+promote.
+       → {N} structural gaps (if any)
+
+    4. /ddd-implement {scope}
+       Implements: dismissed annotations from step 2 + missing_in_code
+       findings from --verify.
+       → {N} items to implement
+
+    5. /ddd-test {scope}
+
+    6. /ddd-sync (plain, no flags)
+       Updates hashes after all behavioral issues are resolved.
+    ```
+
+    **Common mistakes to avoid:**
+    - Do NOT recommend `/ddd-update` or `/ddd-implement` for `diverged` findings — `/ddd-reflect` captures the difference first, then `/ddd-promote --review` is where the human decides direction
+    - Do NOT scope `/ddd-reflect` to only `missing_in_spec` findings — it handles ALL non-conforming statuses (`missing_in_spec` + `diverged` + `partial`) in one pass
+    - Do NOT use `--fix-drift` as a hash cleanup step — `--fix-drift` re-implements code (destructive). Plain `/ddd-sync` updates hashes safely
+    - Do NOT fragment mixed findings into independent remediation paths — Reflect phase must complete before Build phase begins
 
 ## Usage
 
