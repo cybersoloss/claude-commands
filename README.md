@@ -1,184 +1,236 @@
-# Claude Code Commands
+# Design Driven Development — Claude Code Commands
 
-A curated collection of slash commands for AI-native software development with Claude Code.
+[![Alpha](https://img.shields.io/badge/status-alpha-orange.svg)]() [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**DDD commands** (Design Driven Development) are original work — the methodology, spec format, and all 11 commands. See the [DDD repo](https://github.com/cybersoloss/DDD) for documentation.
+Slash commands for the [Design Driven Development](https://github.com/cybersoloss/DDD) workflow in Claude Code.
 
-![DDD Lifecycle Demo](assets/ddd-lifecycle-demo.gif)
+![DDD Workflow Demo](https://raw.githubusercontent.com/cybersoloss/DDD/main/assets/ddd-demo.gif)
 
 **Full Feature Preview** — 9 domains, 53 flows, 28 node types (Vantage supply chain project):
 
 ![Feature Preview](https://raw.githubusercontent.com/cybersoloss/ddd-tool/main/demo/demo-feature-preview.gif)
 
-**All other commands** (code verification, workflow, team & process, utility) are curated from third-party sources and distributed here for healthy code practices. Built on insights from McKinsey research, Jellyfish, Sonar, and Cursor.
+> **Note:** The abbreviation "DDD" is used in command names for brevity. This is not related to Eric Evans' Domain-Driven Design, which is an entirely separate methodology.
+
+## Prerequisites
+
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed
+- [GitHub CLI](https://cli.github.com/) (`gh`) — authenticated with `gh auth login`
+- `jq` — install via `brew install jq` (macOS) or `apt install jq` (Linux)
+
+Commands fetch the DDD Usage Guide from GitHub at runtime via `gh api`, so network access and `gh` auth are required.
 
 ## Installation
 
 ```bash
-git clone https://github.com/cybersoloss/claude-commands.git ~/.claude/commands
-~/.claude/commands/install.sh
+git clone https://github.com/cybersoloss/claude-commands.git
+cd claude-commands && ./install.sh
 ```
 
-This installs all commands (general dev + Design Driven Development) into `~/.claude/commands/`. Restart Claude Code to load them.
+Or manually:
 
-**Update commands:**
 ```bash
-cd /path/to/claude-commands && ./update.sh
+git clone https://github.com/cybersoloss/claude-commands.git
+mkdir -p ~/.claude/commands
+cp claude-commands/ddd-*.md claude-commands/DDD-commands.md ~/.claude/commands/
 ```
 
-Only changed files are copied. Output shows which commands were updated and the new version. Changes take effect immediately in all Claude Code sessions — no restart needed.
+This copies the 11 DDD command files into `~/.claude/commands/`. Safe to run if you already have other commands there — it won't overwrite non-DDD files.
+
+Restart Claude Code to load the commands.
+
+**Update:** Run `update.sh` to pull and apply only changed commands:
+```bash
+cd claude-commands && ./update.sh
+```
+
+Only changed files are copied. Output shows which commands were updated and the new version. Changes take effect immediately — no restart needed.
+
+**Uninstall:**
+```bash
+rm ~/.claude/commands/ddd-*.md ~/.claude/commands/DDD-commands.md
+```
 
 ## Commands
 
-### Quick Reference
+### Phase 1: Create
 
-Run `/helpmecode` for the complete guide.
+**`/ddd-create <description> [--from <path-or-url>] [--shortfalls]`**
 
-### Workflow Commands (Multi-Step)
+Generate a complete spec structure from a project description. Covers all four pillars — **Logic** (flows), **Data** (schemas), **Interface** (UI pages), **Infrastructure** (services). Includes a pillar coverage check that detects input bias (e.g., backend-heavy with no frontend detail) and proactively asks for missing context.
 
-| Command | Description |
-|---------|-------------|
-| `/verify-quick` | Fast critical checks for daily work |
-| `/verify-full` | Complete verification for releases |
-| `/pre-deploy` | Gate-based deployment checklist |
-| `/pr-review` | AI code review (Bugbot-style) |
-| `/fix-all` | Find and auto-fix issues |
-| `/org-assess` | Full team/process assessment |
-
-### Code Verification Commands
-
-| Command | Description |
-|---------|-------------|
-| `/code-health` | Holistic health assessment |
-| `/code-review` | Comprehensive quality review |
-| `/ai-code-audit` | Audit AI-generated code |
-| `/trust-verify` | Production readiness check |
-| `/security-scan` | Security vulnerabilities |
-| `/test-coverage` | Test gaps and generation |
-| `/perf-review` | Performance bottlenecks |
-| `/spec-verify` | Specification alignment |
-| `/code-enhance` | Apply improvements |
-| `/analyze-io-timing-log-and-fix` | I/O diagnostic cycle (see [I/O Diagnostics](#io-diagnostics) below) |
-
-### Team & Process Commands
-
-| Command | Description |
-|---------|-------------|
-| `/team-assessment` | Team AI-readiness |
-| `/pdlc-audit` | Pipeline integration audit |
-| `/impact-measure` | Outcome metrics analysis |
-| `/dev-metrics` | Metrics framework |
-| `/ai-dev-guide` | Best practices reference |
-
-### Utility Commands
-
-| Command | Description |
-|---------|-------------|
-| `/notes-today` | Apple Notes modified today |
-| `/notes-week` | Apple Notes since Monday |
-| `/notes-search` | Search Apple Notes by keyword |
-| `/helpmecode` | This command guide |
-
-## Design Driven Development Commands (Original)
-
-11 [Design Driven Development](https://github.com/cybersoloss/DDD) commands are included in this repo. These are original commands for the Design Driven Development methodology. See the [Design Driven Development repo](https://github.com/cybersoloss/DDD) for documentation.
-
-All DDD commands now generate specs across four foundational pillars — **Logic** (backend flows), **Data** (schemas), **Interface** (UI pages), and **Infrastructure** (services). `/ddd-create` includes a pillar coverage check that detects when input skews toward one pillar (e.g., backend-heavy descriptions with no frontend detail) and proactively asks for the missing context. `/ddd-implement` and `/ddd-promote` accept `--schema` and `--infra` scope flags for pillar-targeted operations.
-
-## Usage
+| Option | Purpose |
+|--------|---------|
+| `--from <path-or-url>` | Use a design file as input — images (PNG, JPG), PDFs, markdown, YAML, or URLs (Figma, Miro, web pages) |
+| `--shortfalls` | Generate `specs/shortfalls.yaml` documenting framework gaps encountered during design |
 
 ```bash
-# Daily development
-/verify-quick src/myfile.ts
-
-# Before PR
-/pr-review
-
-# Before deployment
-/pre-deploy
-
-# Code cleanup
-/fix-all src/
-
-# Team assessment
-/org-assess
+/ddd-create A SaaS platform for restaurant orders. Node.js, Express, PostgreSQL.
+/ddd-create --from ~/designs/wireframes.png E-commerce platform
+/ddd-create --from https://figma.com/file/abc123 Social media dashboard --shortfalls
 ```
 
-## I/O Diagnostics
+### Phase 3: Build
 
-`/analyze-io-timing-log-and-fix` is a five-mode diagnostic cycle: instrument → run → analyze → fix → revert.
+**`/ddd-scaffold`**
 
-| Mode | What it does |
+Set up project skeleton and shared infrastructure from specs. No arguments — reads `system.yaml`, `architecture.yaml`, schemas, and generates package config, directory structure, database models, error classes, config loader, test setup.
+
+**`/ddd-implement [scope]`**
+
+Generate working code and tests from specs.
+
+| Scope | Example |
+|-------|---------|
+| `--all` | `/ddd-implement --all` — all domains, all flows |
+| `<domain>` | `/ddd-implement users` — all flows in a domain |
+| `<domain/flow>` | `/ddd-implement users/user-register` — single flow |
+| `--schema` | `/ddd-implement --schema` — regenerate data layer from schemas |
+| `--infra` | `/ddd-implement --infra` — regenerate infrastructure from specs |
+| *(empty)* | Interactive — shows flows and asks |
+
+**`/ddd-test [scope] [--coverage]`**
+
+Run tests for implemented flows.
+
+| Scope | Example |
+|-------|---------|
+| `--all` | `/ddd-test --all` |
+| `<domain>` | `/ddd-test users` |
+| `<domain/flow>` | `/ddd-test users/user-register` |
+| `--ui` | `/ddd-test --ui` — test all UI pages |
+| `--ui <page-id>` | `/ddd-test --ui dashboard` — test single page |
+| `--schema` | `/ddd-test --schema` — run schema tests |
+| `--infra` | `/ddd-test --infra` — run infrastructure tests |
+| `--coverage` | `/ddd-test --all --coverage` — include coverage report |
+
+### Phase 1: Create (Existing Codebases)
+
+**`/ddd-reverse <project-path> [flags]`**
+
+Reverse-engineer existing code into specs. Auto-selects strategy by codebase size.
+
+| Flag | Purpose | Default |
+|------|---------|---------|
+| `--output <path>` | Where to write specs | Same as project path |
+| `--domains <d1,d2>` | Only reverse specific domains | All |
+| `--merge` | Merge with existing specs instead of overwriting | Overwrite |
+| `--strategy <name>` | Override strategy: `baseline` (<30 files), `index` (30–80), `swap` (80–150), `bottom-up` (150–300), `compiler` (300–500), `codex` (500+) | Auto by file count |
+
+### Phase 4: Reflect
+
+**`/ddd-reflect [scope]`**
+
+Capture implementation wisdom — patterns code has that specs don't describe. Writes annotations to `.ddd/annotations/`.
+
+| Scope | Example |
+|-------|---------|
+| `--all` | `/ddd-reflect --all` |
+| `<domain>` | `/ddd-reflect monitoring` |
+| `<domain/flow>` | `/ddd-reflect monitoring/check-social-sources` |
+| `--ui` | `/ddd-reflect --ui` — capture UI implementation patterns |
+| `--ui <page-id>` | `/ddd-reflect --ui dashboard` — single page patterns |
+| `--schema` | `/ddd-reflect --schema` — capture schema patterns |
+| `--infra` | `/ddd-reflect --infra` — capture infrastructure patterns |
+
+**`/ddd-promote [scope]`**
+
+Move approved annotations into permanent specs.
+
+| Scope | Example |
+|-------|---------|
+| `--review` | `/ddd-promote --review` — interactive review of each candidate |
+| `--all` | `/ddd-promote --all` — promote all approved annotations |
+| `--schema` | `/ddd-promote --schema` — promote schema-related annotations |
+| `--infra` | `/ddd-promote --infra` — promote infrastructure-related annotations |
+| `<domain/flow>` | `/ddd-promote monitoring/check-social-sources` |
+
+### Cross-cutting (Any Phase)
+
+**`/ddd-update [scope] <change description>`**
+
+Update specs from natural language.
+
+| Scope | Example |
+|-------|---------|
+| `<domain/flow>` | `/ddd-update users/user-register add rate limiting` |
+| `<domain>` | `/ddd-update users add email verification flow` |
+| `--add-flow <domain>` | `/ddd-update --add-flow orders add refund-order flow` |
+| `--add-domain` | `/ddd-update --add-domain add notifications domain with email and push flows` |
+| `--ui <page-id>` | `/ddd-update --ui dashboard add a filter bar` |
+| `--add-page` | `/ddd-update --add-page add an analytics page` |
+| `--schema <model>` | `/ddd-update --schema User add avatar_url field` |
+| `--infra` | `/ddd-update --infra add Redis service` |
+
+**`/ddd-sync [flags]`**
+
+Keep specs and implementation aligned.
+
+| Flag | What it does |
 |------|-------------|
-| `--log` | Explore project I/O → output implementation prompt for timing logger |
-| `--fix [log]` | Parse timing log → detect feedback loops, main-thread blocks, slow ops → fix |
-| `--show` | Coverage + gap analysis from live codebase (default when no flag) |
-| `--revert [--all]` | Undo previously applied --fix changes using saved markers |
-| `--status` | Full diagnostic history and health trend |
+| *(none)* | Sync `.ddd/mapping.yaml` with current implementation state |
+| `--discover` | Scan for untracked code, suggest new flow specs |
+| `--fix-drift` | Re-implement drifted flows from updated specs |
+| `--full` | All of the above |
+| `--verify` | Behavioral conformance — node-by-node check that code implements spec intent (read-only). Not included in `--full`. |
 
-### Multi-Layer Apps (Full-Stack, SSR, Monorepo)
+**`/ddd-status [--json]`**
 
-The command auto-detects project architecture — no scope flags needed:
+Read-only overview showing each flow's status (up to date, drifted, stale, not implemented). Use `--json` for machine-readable output.
 
-| Architecture | Detection | Layers |
-|-------------|-----------|--------|
-| Single-process | One entry point, no API routes | `app` |
-| Full-stack | API routes + frontend components | `server` + `client` |
-| SSR/hybrid | Next.js, Nuxt, SvelteKit | `server` + `client` + `ssr` |
+### Meta
 
-Each layer gets its own logger with a layer prefix (`[IO:server:...]`, `[IO:client:...]`). Route paths serve as the natural correlation key between layers — `--fix` matches server and client log entries by route to build end-to-end chains and detect cross-boundary patterns (fetch waterfalls, N+1 via API, overfetching, redundant calls, SSR/client re-fetch).
+**`/ddd-evolve`**
 
-### Log Collection
+Analyze shortfall reports and produce prioritized evolution plans.
 
-| Layer | How to collect |
-|-------|---------------|
-| Server | `IO_DEBUG=1 npm run dev 2>&1 \| tee .io-diag/server.log` |
-| Client | `localStorage.setItem('IO_DEBUG', '1')` then `window.__exportIOLog()` → downloads `.log` file |
+| Mode | Usage |
+|------|-------|
+| Analyze | `/ddd-evolve specs/shortfalls.yaml` or `/ddd-evolve --dir ~/code/proj-a --dir ~/code/proj-b` |
+| Review | `/ddd-evolve --review ddd-evolution-plan.yaml` — interactive approve/defer/reject |
+| Apply | `/ddd-evolve --apply ddd-evolution-plan.yaml` — execute approved changes |
 
-This is a dev/staging tool. Production environments should use APM tools (Datadog, New Relic).
+## Full Reference
 
-### DDD Project Integration (Hybrid Flow)
+See [DDD-commands.md](DDD-commands.md) for detailed documentation including what each command does step-by-step, output formats, and extended examples.
 
-In DDD projects (`ddd-project.json` detected), `--fix` splits fixes into two categories:
+## Typical Workflows
 
-**Architectural fixes** (background threading, debounce, self-write guards) — output as `/ddd-update` commands instead of editing code directly. Specs get updated first, then `/ddd-implement` generates the code. No drift.
+```bash
+# New project from scratch
+/ddd-create A task management app with users, projects, and tasks
+# Review in Design Driven Development Tool, adjust flows
+/ddd-scaffold
+/ddd-implement --all
+/ddd-test --all
 
-**Instrumentation fixes** (`timed()` wrappers, rate warnings, FS snapshots) — applied directly with `IO-FIX` markers. These are temporary diagnostic tooling, revertible with `--revert`.
+# Existing codebase, no specs
+/ddd-reverse ~/code/my-existing-app
+/ddd-sync                # link specs to existing files — do NOT /ddd-implement
+/ddd-reflect --all       # capture what reverse missed
 
+# Add a feature
+/ddd-update users/user-register "add email verification step"
+/ddd-implement users/user-register
+
+# Capture implementation wisdom
+/ddd-reflect --all
+/ddd-promote --review
 ```
-1. /analyze-io-timing-log-and-fix --log        → outputs /ddd-update command
-2. Run the /ddd-update → /ddd-implement         → logger added through specs
-3. Enable logger, use app, collect logs
-4. /analyze-io-timing-log-and-fix --fix log.txt → splits: /ddd-update commands + direct instrumentation
-5. Run /ddd-update commands → /ddd-implement     → architectural fixes through specs
-6. /analyze-io-timing-log-and-fix --show        → verify coverage
-7. /analyze-io-timing-log-and-fix --revert      → remove instrumentation when done
-```
 
-In non-DDD projects, all fixes are applied directly (no change from standard behavior).
+## Related Repos
 
-## Key Concepts
+| Repo | What |
+|------|------|
+| [Design Driven Development](https://github.com/cybersoloss/DDD) | Methodology, Usage Guide, spec format reference, templates |
+| [Design Driven Development Tool](https://github.com/cybersoloss/ddd-tool) | Desktop app for visual flow design |
 
-### "Vibe and Verify" Framework
-- **Vibe**: Generate code quickly with AI
-- **Verify**: Always verify before deployment
+## Contributing
 
-### Four Trust Pillars
-1. Explainability
-2. Transparency
-3. Repeatability
-4. Evidence
-
-## Sources & Attribution
-
-The non-DDD commands are curated from third-party insights:
-- McKinsey research on AI in software development
-- Andrew Lau, CEO of Jellyfish
-- Tariq Shaukat, CEO of Sonar
-- Cursor workflow patterns
-
-We do not claim authorship of these commands — they are distributed here for the sake of healthy code practices.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-MIT
+[MIT](LICENSE) — Copyright (c) 2025 Murat Hüseyin Candan
+
+Significant portions of these commands were developed with [Claude](https://claude.ai) (Anthropic).
