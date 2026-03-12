@@ -64,36 +64,15 @@ Evolve DDD:       /ddd-create --shortfalls → /ddd-evolve → /ddd-evolve --rev
 
 #### Post-Verify Remediation (mixed `--verify` findings)
 
-When `/ddd-sync --verify` produces mixed conformance results (some `missing_in_spec`, some `diverged`, some `missing_in_code`), use this phase-ordered sequence — do NOT treat each finding type independently:
+When `/ddd-sync --verify` produces mixed conformance results, use the phase-ordered remediation sequence (Reflect phase completes before Build phase). **Key rule:** `diverged` and `missing_in_spec` go through Reflect, not Build. Only `missing_in_code` goes directly to `/ddd-implement`.
 
-```
-── Reflect Phase (complete first) ─────────────────────────────────────────────
-1. /ddd-reflect {scope}         — captures ALL non-conforming findings
-                                  (missing_in_spec + diverged + partial)
-2. /ddd-promote --review        — human approves or dismisses per annotation
-
-── Build Phase (after Reflect) ────────────────────────────────────────────────
-3. /ddd-update                  — only for pure structural gaps (neither spec
-                                  nor code has the behavior). Skip if none.
-4. /ddd-implement {scope}       — dismissed annotations + missing_in_code
-5. /ddd-test {scope}
-6. /ddd-sync                    — update hashes (plain, no flags)
-```
-
-**Key rule:** `diverged` and `missing_in_spec` findings both go through Reflect, not Build. Only `missing_in_code` goes directly to `/ddd-implement`.
+→ Full workflow with finding-to-phase table: see `ddd-sync.md` → "Post-Verify Remediation Workflow" section (inside step 11, Next steps)
 
 #### Mixed Test Failure Remediation
 
-When `/ddd-test` shows both spec-drift failures AND manual-code-change failures, fix in dependency order:
+When `/ddd-test` shows both spec-drift failures AND manual-code-change failures, fix in dependency order: reflect manual changes first, then implement spec drift. **Key rule:** Never `/ddd-implement` a flow with manual code changes without `/ddd-reflect` first.
 
-```
-1. /ddd-reflect {manual changes} — capture manual wisdom BEFORE it's overwritten
-2. /ddd-promote --review         — approve/dismiss annotations
-3. /ddd-implement {spec drift}   — now safe to regenerate
-4. /ddd-test {scope}             — verify fixes
-```
-
-**Key rule:** Never `/ddd-implement` a flow with manual code changes without `/ddd-reflect` first — implement overwrites those changes.
+→ Full workflow: see `ddd-test.md` → "When BOTH spec drift AND manual code change failures coexist" section (inside step 10, Next steps)
 
 ---
 
