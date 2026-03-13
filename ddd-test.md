@@ -40,7 +40,7 @@ Parse the argument to determine scope:
 
 3. **Resolve scope from the argument**:
 
-   **If no argument**: Check `.ddd/change-history.yaml` for entries with `status: implemented` and `implemented_at` within the current session (last 2 hours). Skip entries with `status: pending_implement` — those haven't been implemented yet and have no code to test. If recent implemented entries exist, collect their `code_files` and scope tests to those files only — show: "Testing {N} recently implemented items from change-history." If no recent entries, list all implemented flows and pages with their test status and ask the user what to test.
+   **If no argument**: Check `.ddd/change-history.yaml` for entries with `status: implemented` and `implemented_at` within the current session (use your judgment based on conversation history — typically the entries from the most recent `/ddd-implement` run). Skip entries with `status: pending_implement` — those haven't been implemented yet and have no code to test. If recent implemented entries exist, collect their `code_files` and scope tests to those files only — show: "Testing {N} recently implemented items from change-history." If no recent entries, list all implemented flows and pages with their test status and ask the user what to test.
 
    **If `--all`**: Collect test files for all implemented flows AND all implemented pages.
 
@@ -76,6 +76,12 @@ Parse the argument to determine scope:
    - `@testing-library/react` in dependencies → React Testing Library (component tests)
    - `playwright.config.*` → Playwright (E2E tests)
    - `cypress.config.*` → Cypress (E2E tests)
+
+   **Fallback for Interface pillar with no test framework:** If no frontend test framework is detected and the scope includes UI pages (vanilla JS SPA, static HTML, etc.), use structural validation as a fallback:
+   - **Syntax check:** `node --check` for JS files, CSS lint if available
+   - **Element presence:** Verify that HTML elements/selectors referenced in page specs exist in the generated markup
+   - **CSS class verification:** Verify that CSS classes used in templates are defined in stylesheets
+   - Report these as "structural validation" results, not unit/integration test results.
 
 5. **Run the tests**:
    - If scope is a single flow: run only that flow's test file(s) from mapping.yaml

@@ -49,6 +49,8 @@ Parse the argument to determine scope:
 
 1. **Find the DDD project**: Look for `ddd-project.json` in the current directory or parent directories. This file lists all domains and project configuration (tech stack, etc.).
 
+   **Session continuation check:** If you are resuming an implementation from a prior session (e.g., context was compacted, or the user says "continue"), verify that code changes from the previous session are actually present before updating mapping hashes and change-history. Read the target files to confirm the implementation is complete — do not blindly update tracking files based on prior session state.
+
 2. **Resolve the scope from the argument**:
 
    **If no argument**: First check `.ddd/change-history.yaml` for entries with `status: pending_implement`. If pending entries exist, use those as the scope — implement only those without asking. Show a brief summary: "Found {N} pending changes from change-history — implementing those."

@@ -112,6 +112,7 @@ Parse `$ARGUMENTS` to determine scope (scope arguments are separate from flags l
 
    **Spec drift** (specHash mismatch): The spec YAML changed since the last implementation.
    **Code drift** (fileHashes mismatch): One or more implementation files changed since the last implementation. Recompute SHA-256 of each file in the mapping's `files` array and compare against stored `fileHashes`. A mismatch means a developer (or another tool) modified the code.
+   **Prompt file drift** (for flows with `llm_call` nodes that have `prompt_files`): Hash each referenced prompt file and compare against stored hashes. Prompt file changes affect LLM behavior even when spec YAML and code are unchanged — treat as code drift (flag for review).
 
    For entries with spec drift (specHash doesn't match):
 

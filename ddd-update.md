@@ -40,9 +40,15 @@ Parse the argument to determine what to update:
 
 ## Instructions
 
-1. **Find the DDD project**: Look for `ddd-project.json` in the current directory or parent directories.
+1. **Intent check**: Before doing anything, evaluate `$ARGUMENTS`. If the user's message is a **question or investigation** rather than a spec change request (e.g., starts with "why", "how", "what", contains "?", describes a runtime error, asks about existing behavior), respond directly:
 
-2. **Read the current specs**: Load the relevant YAML files to understand the current state:
+   > "This looks like a question, not a spec change. I'll investigate without the full `/ddd-update` pipeline — ask me directly next time to save overhead."
+
+   Then answer the question using code, logs, or specs as needed — do NOT proceed with the spec-editing steps below.
+
+2. **Find the DDD project**: Look for `ddd-project.json` in the current directory or parent directories.
+
+3. **Read the current specs**: Load the relevant YAML files to understand the current state:
    - `ddd-project.json` — project config, domain list
    - `.ddd/mapping.yaml` — implementation tracking with `specHash`, `syncState`, `files`, `fileHashes`, `implementedAt`, `annotationCount`, and `mode` per entry (for awareness that spec changes will make `specHash` stale — `/ddd-sync` should be run after update)
    - `specs/domains/{domain}/domain.yaml` — domain config, flow list, events
@@ -55,9 +61,9 @@ Parse the argument to determine what to update:
    - `specs/ui/{page-id}.yaml` — per-page specs (if updating a specific page)
    - `specs/infrastructure.yaml` — services, ports, deployment (if updating infrastructure)
 
-3. **Fetch the DDD Usage Guide** (if adding or modifying nodes): Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all YAML formats, node types, spec fields, connection patterns, UI spec format, infrastructure spec format, and conventions. Use it as your reference when adding or modifying nodes.
+4. **Fetch the DDD Usage Guide** (if adding or modifying nodes): Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all YAML formats, node types, spec fields, connection patterns, UI spec format, infrastructure spec format, and conventions. Use it as your reference when adding or modifying nodes.
 
-4. **Understand the user's request**: The user will describe what they want to change in natural language. Examples:
+5. **Understand the user's request**: The user will describe what they want to change in natural language. Examples:
 
    **Logic (flows):**
    - "Add a rate limiting step before the process node"
@@ -89,7 +95,7 @@ Parse the argument to determine what to update:
    - "Add a worker service for background jobs"
    - "Switch deployment strategy to kubernetes"
 
-5. **Resolve the scope from the argument**:
+6. **Resolve the scope from the argument**:
 
    **If no argument**: Show the current project structure (domains, flows, pages, infrastructure) and ask the user what they want to update.
 
@@ -163,7 +169,7 @@ Parse the argument to determine what to update:
    - Update startup order
    - Change deployment strategy
 
-6. **Apply the changes to the YAML specs** (**SPEC FILES ONLY — never edit implementation code**):
+7. **Apply the changes to the YAML specs** (**SPEC FILES ONLY — never edit implementation code**):
 
    > **HARD RULE:** `/ddd-update` modifies YAML spec files ONLY (`specs/**/*.yaml`, `ddd-project.json`). It NEVER touches implementation files (`src/`, `*.ts`, `*.js`, `*.py`, `prisma/`, etc.). If the user's request involves fixing a bug or changing runtime behavior, update the spec to reflect the intended behavior — then the change-history entry ensures `/ddd-implement` regenerates the code. Editing implementation files directly in `/ddd-update` creates an inconsistency: change-history says `pending_implement` but code already exists, confusing the next steps.
 
@@ -186,7 +192,7 @@ Parse the argument to determine what to update:
 
    When **adding a domain**, create all required files and update `ddd-project.json`.
 
-7. **Write change-history entries**: After applying changes (step 6), append an entry to `.ddd/change-history.yaml` for each spec file that was modified or created. Use `source: ddd-update`, current ISO timestamp, current file checksum, and `status: pending_implement`. Follow the same format as ddd-tool entries:
+8. **Write change-history entries**: After applying changes (step 6), append an entry to `.ddd/change-history.yaml` for each spec file that was modified or created. Use `source: ddd-update`, current ISO timestamp, current file checksum, and `status: pending_implement`. Follow the same format as ddd-tool entries:
    ```yaml
    - id: "chg-{next 4-digit id}"
      timestamp: "{ISO 8601}"
@@ -204,7 +210,7 @@ Parse the argument to determine what to update:
    ```
    Do not create duplicate entries — if a pending entry already exists for the same spec_file with the same checksum, skip it.
 
-8. **Maintain spec integrity**: After making changes, verify:
+9. **Maintain spec integrity**: After making changes, verify:
    - Every flow still has exactly one trigger
    - All paths from trigger reach a terminal (no dead ends)
    - No orphaned nodes (all reachable from trigger)
@@ -226,20 +232,20 @@ Parse the argument to determine what to update:
    - Event wiring is consistent (published events match consumed events across domains)
    - Agent flows have at least one agent_loop with `model`, tools, and a terminal tool
 
-9. **Preserve existing data**: When updating a flow:
+10. **Preserve existing data**: When updating a flow:
    - Keep all nodes that aren't being changed — don't regenerate the entire flow
    - Preserve node IDs — changing IDs would break `.ddd/mapping.yaml` references
    - Preserve positions of unchanged nodes
    - Preserve `metadata.created`, update `metadata.modified` to current ISO timestamp
    - Preserve `observability` and `security` configs on unchanged nodes
 
-10. **Handle cross-domain impacts**: If the change affects event wiring:
+11. **Handle cross-domain impacts**: If the change affects event wiring:
     - If adding a new event publication, check if any domain consumes it
     - If removing an event, warn about domains that consume it
     - If renaming an event, update all references across domains
     - List all affected files after making cross-domain changes
 
-11. **Maintain UI spec integrity** (when updating Interface pillar): After making changes, verify:
+12. **Maintain UI spec integrity** (when updating Interface pillar): After making changes, verify:
     - All `data_source` values reference valid `domain/flow-id` that exist in flow specs
     - All form field `type` values are valid (text, number, select, multi-select, search-select, date, datetime, date-range, textarea, toggle, tag-input, file, color, slider, markdown, repeating_group)
     - All `options_source` references point to valid spec paths (e.g., `shared/types.yaml#status`)
@@ -250,7 +256,7 @@ Parse the argument to determine what to update:
     - Navigation items reference valid page IDs
     - Shared component IDs referenced by sections exist in `pages.yaml` → `shared_components`
 
-12. **Report what changed**: After updating, show a clear summary:
+13. **Report what changed**: After updating, show a clear summary:
     ```
     Updated specs:
       specs/domains/users/flows/user-register.yaml
@@ -284,7 +290,7 @@ Parse the argument to determine what to update:
       - Run /ddd-test to verify after implementation
     ```
 
-13. **Suggest next steps**: After updating specs, tell the user:
+14. **Suggest next steps**: After updating specs, tell the user:
     - "Reload the DDD Tool to see the updated flow graph (Cmd+R)"
     - "Run `/ddd-implement` to implement all pending changes (change-history entries written)"
     - For infrastructure changes: "Run `/ddd-implement --infra` to update infrastructure configs"
