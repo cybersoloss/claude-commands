@@ -8,10 +8,24 @@ Parse `$ARGUMENTS` for:
 - **Project path** (required) — path to the source code to reverse-engineer
 - `--output <path>` — where to write specs (default: same project directory)
 - `--domains <d1,d2>` — only reverse-engineer specific domains (partial mode)
+- `--flows <domain/flow,domain/flow>` — only reverse-engineer specific flows. Reads implementation files from `.ddd/mapping.yaml`. Implies `--merge` (never overwrites unrelated specs). Can be combined with `--connections-only`.
+- `--connections-only` — only reconstruct `connections` arrays on existing nodes. Preserves all node definitions, specs, labels, and positions. Requires `--flows` (not valid for project-wide or domain-wide runs). Use when nodes are correct but wiring is missing or broken.
 - `--merge` — merge with existing specs instead of overwriting
 - `--strategy <name>` — override auto-selected strategy (see below)
 
 If no project path is provided, ask the user for it.
+
+**Examples:**
+```
+/ddd-reverse ~/dev/my-app                                    # Full project reverse
+/ddd-reverse ~/dev/my-app --domains users,orders              # Specific domains
+/ddd-reverse ~/dev/my-app --flows orchestrator/run-action-cycle --connections-only --merge
+  # Surgical: read code, reconstruct wiring only, preserve node specs
+/ddd-reverse ~/dev/my-app --flows orchestrator/run-action-cycle
+  # Full reverse of one flow — regenerates nodes + connections from code
+/ddd-reverse ~/dev/my-app --flows orchestrator/run-action-cycle,orchestrator/run-strategy-review --connections-only --merge
+  # Fix wiring for multiple flows at once
+```
 
 **Files read:**
 - Project config files — `package.json`, `tsconfig.json`, `Cargo.toml`, `go.mod`, `pyproject.toml`, etc. (tech stack detection)
@@ -20,6 +34,7 @@ If no project path is provided, ask the user for it.
 - Source code — route handlers, services, models, page components, middleware (spec generation)
 - DDD Usage Guide (fetched via `gh api`) — YAML formats, node types, spec fields reference
 - Existing specs (if `--merge` mode) — `ddd-project.json`, `specs/domains/*/domain.yaml`, `specs/domains/*/flows/*.yaml`, `specs/schemas/*.yaml`, `specs/ui/pages.yaml`, `specs/ui/*.yaml`, `specs/infrastructure.yaml`
+- `.ddd/mapping.yaml` (if `--flows` mode) — implementation file paths for scoped flows
 
 **Files written:**
 - `ddd-project.json` — project config with domain list
@@ -82,7 +97,37 @@ The user can override with `--strategy <name>`. If overriding, use the specified
    Auto-selected strategy: Bottom-Up (override with --strategy <name>)
    ```
 
-5. **Handle existing specs** (if output directory already has DDD files):
+5. **Handle `--flows` scope** (if `--flows` flag is present):
+
+   This is a surgical mode — skip project-wide scanning (steps 2-4) and strategy selection. Instead:
+
+   a. **Read `.ddd/mapping.yaml`** to find implementation files for each specified flow. For each `domain/flow` in the comma-separated list, look up `flows.{domain}/{flow}.files` to get the source file paths.
+
+   b. **Read the existing flow spec** (`specs/domains/{domain}/flows/{flow}.yaml`) for each specified flow. **Connection format normalization:** If the flow has a top-level `connections:` section, convert to per-node format first.
+
+   c. **Read the implementation files** from step (a).
+
+   d. **If `--connections-only`**: Keep all existing nodes exactly as they are (id, type, position, spec, label, observability, security — everything). Only rebuild the `connections` array on each node by tracing the code's control flow:
+      - Start at the trigger. What does the code call first?
+      - For each node, follow the code to find the next node(s). Match code paths to existing node IDs by comparing the node's `spec` (operation, model, condition, flow_ref, etc.) against what the code does.
+      - Use the sourceHandle reference from Usage Guide Section 8 for branching nodes.
+      - **Self-check:** Every node must appear as source or target (except trigger = source only, terminal = target only). Count connections — N nodes needs at least N-1 connections.
+
+   e. **If without `--connections-only`**: Full reverse-engineer but scoped to that single flow — regenerate nodes and connections from the code. With `--merge`, preserve existing node IDs where the code matches existing spec nodes.
+
+   f. Write the updated flow spec(s). Update `.ddd/mapping.yaml` specHash. Skip all other phases (no schema extraction, no infrastructure, no page discovery).
+
+   g. **Report per flow:**
+      ```
+      orchestrator/run-action-cycle:
+        Nodes: 42 (preserved)
+        Connections reconstructed: 58
+        Coverage: 42/42 nodes wired
+      ```
+
+   **After `--flows` processing, exit.** Do not continue to Phase 0.5 or any strategy phases.
+
+6. **Handle existing specs** (if output directory already has DDD files):
    - Without `--merge`: warn the user that specs will be overwritten, ask for confirmation
    - With `--merge`:
      - **Read project context**: Load `ddd-project.json` for domain list, `specs/domains/*/domain.yaml` for existing flows and events, `specs/domains/*/flows/*.yaml` for existing flow specs, `specs/schemas/*.yaml` for existing data models, `specs/ui/pages.yaml` for existing page registry, `specs/ui/*.yaml` for per-page specs, `specs/infrastructure.yaml` for existing services
