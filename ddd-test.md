@@ -42,6 +42,8 @@ Parse the argument to determine scope:
 
    **If no argument**: Check `.ddd/change-history.yaml` for entries with `status: implemented` and `implemented_at` within the current session (use your judgment based on conversation history — typically the entries from the most recent `/ddd-implement` run). Skip entries with `status: pending_implement` — those haven't been implemented yet and have no code to test. If recent implemented entries exist, collect their `code_files` and scope tests to those files only — show: "Testing {N} recently implemented items from change-history." If no recent entries, list all implemented flows and pages with their test status and ask the user what to test.
 
+   **Interface is the most commonly skipped pillar.** If the scope includes UI pages (via `--all` or `--ui`), all page tests MUST be collected and run. Do not silently skip page tests.
+
    **If `--all`**: Collect test files for all implemented flows AND all implemented pages.
 
    **If `domain-name`**: Collect test files for all implemented flows in that domain.

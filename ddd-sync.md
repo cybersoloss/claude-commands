@@ -72,7 +72,7 @@ Parse `$ARGUMENTS` to determine scope (scope arguments are separate from flags l
 
 3. **Resolve scope** from `$ARGUMENTS` using the Scope Resolution table:
 
-   - **No scope argument (or `--all`):** Include everything — all domains, flows, pages, schemas, infrastructure. This is the current default behavior.
+   - **No scope argument (or `--all`):** Include everything — all domains, flows, pages, schemas, infrastructure. Sync defaults to "all" because it's a read-mostly operation (hash comparison) — unlike `/ddd-reflect` and `/ddd-promote` which default to interactive because they write annotations/specs.
    - **`{domain}`:** Include all flows in that domain, plus any schemas referenced by those flows, any pages that bind to those flows' data, and infrastructure items specific to that domain.
    - **`{domain}/{flow}`:** Include only that single flow.
    - **`--ui` / `--ui {page-id}`:** Include only UI pages (all or one).

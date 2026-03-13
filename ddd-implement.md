@@ -64,7 +64,7 @@ Parse the argument to determine scope:
    | `interface` | `--ui` logic | Read page spec → generate page component + tests |
    | `infrastructure` | `--infra` logic | Read infrastructure spec → regenerate configs/scripts |
 
-   Group pending entries by pillar and process in order: Data → Infrastructure → Logic → Interface (schemas and infra first, since flows and pages may depend on them).
+   Group pending entries by pillar and process in order: Data → Interface → Infrastructure → Logic (lighter pillars first; schemas before pages, infrastructure before flows).
 
    If no pending entries (or `--ignore-history` flag), list all domains and their flows with implementation status (check `.ddd/mapping.yaml`), list UI pages with implementation status, show which are implemented (with date), which have drift, and which are new. Ask the user what to implement.
 
@@ -132,9 +132,9 @@ Parse the argument to determine scope:
    | Pillar | Items | Count |
    |--------|-------|-------|
    | Data | (list all schema specs to implement) | N |
+   | Interface | (list all UI page specs to implement) | N |
    | Infrastructure | (list all infrastructure configs to implement) | N |
    | Logic | (list all backend flows to implement) | N |
-   | Interface | (list all UI page specs to implement) | N |
 
    This plan is your commitment — every item listed must be implemented.
 

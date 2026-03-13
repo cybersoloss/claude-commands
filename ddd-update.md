@@ -192,7 +192,7 @@ Parse the argument to determine what to update:
 
    When **adding a domain**, create all required files and update `ddd-project.json`.
 
-8. **Write change-history entries**: After applying changes (step 6), append an entry to `.ddd/change-history.yaml` for each spec file that was modified or created. Use `source: ddd-update`, current ISO timestamp, current file checksum, and `status: pending_implement`. Follow the same format as ddd-tool entries:
+8. **Write change-history entries**: After applying changes (step 7), append an entry to `.ddd/change-history.yaml` for each spec file that was modified or created. Use `source: ddd-update`, current ISO timestamp, current file checksum, and `status: pending_implement`. Follow the same format as ddd-tool entries:
    ```yaml
    - id: "chg-{next 4-digit id}"
      timestamp: "{ISO 8601}"
@@ -304,9 +304,9 @@ When creating new nodes, use the DDD Usage Guide as your reference. It defines a
 
 ## Node ID Convention
 
-When creating new nodes, use the format `{type}-{6char-hash}` (6-character hex hash). Examples:
-- `process-a1b2c3`
-- `decision-d4e5f6`
-- `data_store-f7a8b9`
+When creating new nodes, use the format `{type}-{nanoid(8)}` (8-character alphanumeric, matching the DDD Tool). Examples:
+- `process-aR9tK3wN`
+- `decision-sN4xY7eQ`
+- `data_store-gT5yK8nR`
 
 $ARGUMENTS

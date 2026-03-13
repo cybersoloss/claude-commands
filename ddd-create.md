@@ -116,6 +116,10 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - **Infrastructure** is assumed present for any multi-service project or any project with a database.
    **Do not silently skip any pillar.** When in doubt, generate specs — it's easier to remove unwanted specs than to discover missing ones during implementation.
 
+   **Interface is the most commonly skipped pillar.** If the project is user-facing, UI page specs MUST be generated. Zero tolerance for missing page specs in user-facing projects.
+
+   **Concept disambiguation:** When a concept appears in multiple pillars (e.g., "Dashboard" as both a backend domain and a frontend page), both representations MUST be generated as separate specs. Do not assume one covers the other.
+
 3.5. **Frontend Design Pass** (MANDATORY for user-facing projects — do NOT skip):
 
    This step designs the frontend independently of the backend. The goal is to think like a frontend developer: "What does the user need to see and do?" — not "What backend flows exist?"
@@ -581,7 +585,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Resort to `custom_fields` to express something that should be a first-class field
      - Cannot express a cross-cutting concern (auth, logging, rate limiting, monitoring) structurally
 
-14. **Node ID convention**: Use `{type}-{6char-hash}` format (e.g., `input-a1b2c3`, `process-d4e5f6`).
+14. **Node ID convention**: Use `{type}-{nanoid(8)}` format — 8-character alphanumeric, matching the DDD Tool (e.g., `input-aR9tK3wN`, `process-sN4xY7eQ`).
 
 15. **Quality checks**: Before finishing, verify:
 
