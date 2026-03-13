@@ -219,7 +219,7 @@ Parse `$ARGUMENTS` to determine scope:
 
    **Flow-specific details** (patterns unique to one flow):
 
-   Read the flow spec YAML. Enrich the appropriate node(s):
+   Read the flow spec YAML. **Connection format normalization:** If the flow has a top-level `connections:` section with `from`/`to` entries, convert to per-node `connections` arrays before enriching — otherwise the rewrite will drop all wiring. Enrich the appropriate node(s):
    - If the detail is about security (encryption, auth, rate limiting) → add/update the `security` section on the node
    - If the detail is about observability (logging, metrics, tracing) → add/update the `observability` section on the node
    - If the detail is about implementation behavior → add detail to the node's `spec.description` or add a `spec.implementation` field

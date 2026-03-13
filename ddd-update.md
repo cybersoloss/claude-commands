@@ -179,6 +179,11 @@ Parse the argument to determine what to update:
 
    > **HARD RULE:** `/ddd-update` modifies YAML spec files ONLY (`specs/**/*.yaml`, `ddd-project.json`). It NEVER touches implementation files (`src/`, `*.ts`, `*.js`, `*.py`, `prisma/`, etc.). If the user's request involves fixing a bug or changing runtime behavior, update the spec to reflect the intended behavior — then the change-history entry ensures `/ddd-implement` regenerates the code. Editing implementation files directly in `/ddd-update` creates an inconsistency: change-history says `pending_implement` but code already exists, confusing the next steps.
 
+   **Connection format normalization (CRITICAL — do NOT skip):** Before modifying any flow, check if the YAML has a top-level `connections:` section with `from`/`to` entries (the "external" format used by some generators). If so, convert it to per-node `connections` arrays before making any changes:
+   - For each entry `{ from, to, sourceHandle?, targetHandle?, label?, data?, behavior? }` in the top-level `connections:` section, add `{ targetNodeId: to, sourceHandle?, targetHandle?, label?, data?, behavior? }` to the `connections` array of the node whose `id` matches `from`
+   - Delete the top-level `connections:` section after migration
+   - This is the same normalization that the DDD Tool performs internally. **Skipping this step will silently destroy all wiring** — the rewritten YAML will have `connections: []` on every node.
+
    When **modifying an existing flow**, read the current flow YAML and update it:
    - **Adding a node**: Create a new node entry with proper `id`, `type`, `position`, `spec`, `label`, and `connections`. Update the upstream node's connections to include the new node. Position it logically on the canvas (below the node it follows, with ~130px vertical spacing).
    - **Removing a node**: Remove the node entry, rewire upstream connections to skip it (connect to the removed node's targets instead).

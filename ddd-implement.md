@@ -108,6 +108,7 @@ Parse the argument to determine scope:
    - `trigger:` — what starts the flow (event, HTTP, scheduled, manual)
    - `nodes:` — ordered list of processing steps (see Usage Guide for all node types and their spec fields)
    - Each node has `connections:` listing target nodes with `sourceHandle` for branching nodes
+   - **Alternative format:** Some flows may have a top-level `connections:` section with `{ from, to, sourceHandle }` entries instead of per-node arrays. If you encounter this, treat each `from` as the source node ID and `to` as the `targetNodeId` — follow the graph the same way.
    - Each node has `spec:` with type-specific configuration fields
    - Each node may have `observability:` (logging, metrics, tracing) and `security:` (auth, rate limiting, encryption, audit) configs
    - Each node may have `log:` for structured business event logging (`level`, `fields`, `condition`)

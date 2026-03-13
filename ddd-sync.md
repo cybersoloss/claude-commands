@@ -104,6 +104,8 @@ Parse `$ARGUMENTS` to determine scope (scope arguments are separate from flags l
 
 6. **Bidirectional drift analysis** (CRITICAL — do NOT skip):
 
+   **Connection format normalization:** When reading any flow YAML, check if it has a top-level `connections:` section with `from`/`to` entries (the "external" format). If so, mentally map each `{ from, to, sourceHandle }` to the equivalent per-node connection `{ targetNodeId: to, sourceHandle }` on the `from` node. If `--fix-drift` will rewrite the flow, convert the top-level format to per-node format first — otherwise the rewrite will silently drop all wiring.
+
    Perform this analysis for ALL four pillars. Follow the processing order from the sync plan: Data → Interface → Infrastructure → Logic.
 
    For each entry, check TWO dimensions of drift:

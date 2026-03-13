@@ -180,7 +180,7 @@ Parse `$ARGUMENTS` to determine scope:
 
 8. **For each flow in scope**, perform Logic wisdom capture:
 
-   a. **Read the flow spec YAML** from the spec path in mapping.yaml
+   a. **Read the flow spec YAML** from the spec path in mapping.yaml. If the flow has a top-level `connections:` section with `from`/`to` entries (external format), treat each `from` as the source node and `to` as the target — map connections to nodes accordingly when comparing against code.
 
    b. **Read the implementation files** listed in mapping.yaml for this flow
 
