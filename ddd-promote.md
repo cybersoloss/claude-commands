@@ -73,12 +73,17 @@ Parse `$ARGUMENTS` to determine scope:
 4. **Determine mode from arguments**:
 
    **If `--review` or no argument**: Interactive review mode.
-   - Present each `candidate` annotation to the user with:
+
+   **HARD RULE — MANDATORY HUMAN GATE:** You MUST wait for the user's explicit decision on EACH annotation before proceeding. Do NOT auto-decide. Do NOT batch-decide. Do NOT say "I'll approve this" and continue. Present ONE annotation at a time, then STOP and wait for the user to respond. The entire purpose of `--review` is that the HUMAN decides — your role is to present the evidence and your recommendation, not to make the decision.
+
+   For each `candidate` annotation, present:
      - Pattern type and description
      - Which nodes it applies to
      - Code evidence (file, lines, snippet)
      - What the current spec says vs what the code does
-   - Ask the user to **approve** or **dismiss** each candidate
+     - Your recommendation (approve or dismiss) with reasoning
+   - Then ask: **"Approve or dismiss?"** and STOP. Wait for the user's response.
+   - Do NOT present the next annotation until the user has decided on the current one.
    - For approved candidates, ask the user to confirm the promotion target:
      - **Cross-cutting pattern** → will be added to `architecture.yaml` `cross_cutting_patterns`
      - **Flow-specific detail** → will be added to the flow spec YAML (node spec enrichment, observability, or security section)
@@ -88,7 +93,7 @@ Parse `$ARGUMENTS` to determine scope:
      - **Infrastructure detail** → will be added to `specs/infrastructure.yaml` (new service config, health check, startup detail)
      - **Shared type/error** → will be added to `shared/types.yaml` or `shared/errors.yaml`
    - Update annotation status to `approved` or `dismissed`
-   - After review, proceed to promotion of approved items
+   - After ALL annotations have been individually reviewed by the user, proceed to promotion of approved items
 
    **If `--all`**: Promote all `approved` annotations without interactive review.
    - Skip `candidate` annotations (they need review first)
