@@ -46,6 +46,12 @@ Parse the argument to determine what to update:
 
    Then answer the question using code, logs, or specs as needed — do NOT proceed with the spec-editing steps below.
 
+   **Transition back:** If your investigation reveals an issue that requires spec changes (e.g., broken wiring, missing nodes, incorrect connections), tell the user what you found and offer to fix it:
+
+   > "I found {issue}. Want me to update the spec to fix this?"
+
+   If the user confirms, proceed to step 2 and continue through the full spec-editing pipeline with the specific fix as the change request.
+
 2. **Find the DDD project**: Look for `ddd-project.json` in the current directory or parent directories.
 
 3. **Read the current specs**: Load the relevant YAML files to understand the current state:
