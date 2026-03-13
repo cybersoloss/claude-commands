@@ -284,6 +284,11 @@ Parse `$ARGUMENTS` to determine scope (scope arguments are separate from flags l
 
    **WARNING:** `--fix-drift` re-implements code from specs, overwriting existing files. If you have manual edits you want to keep, commit them first or use `/ddd-reflect` to capture changes as annotations before re-implementing.
 
+   **Connection format normalization (CRITICAL — do NOT skip):** Before modifying any flow, check if the YAML has a top-level `connections:` section with `from`/`to` entries (the "external" format used by some generators). If so, convert it to per-node `connections` arrays before making any changes:
+   - For each entry `{ from, to, sourceHandle?, targetHandle?, label?, data?, behavior? }` in the top-level `connections:` section, add `{ targetNodeId: to, sourceHandle?, targetHandle?, label?, data?, behavior? }` to the `connections` array of the node whose `id` matches `from`
+   - Delete the top-level `connections:` section after migration
+   - This is the same normalization that the DDD Tool performs internally. **Skipping this step will silently destroy all wiring** — the rewritten YAML will have `connections: []` on every node.
+
    **IMPORTANT:** `--fix-drift` does NOT blindly re-implement. It follows this decision tree:
 
    For each drifted flow:

@@ -219,7 +219,14 @@ Parse `$ARGUMENTS` to determine scope:
 
    **Flow-specific details** (patterns unique to one flow):
 
-   Read the flow spec YAML. **Connection format normalization:** If the flow has a top-level `connections:` section with `from`/`to` entries, convert to per-node `connections` arrays before enriching — otherwise the rewrite will drop all wiring. Enrich the appropriate node(s):
+   Read the flow spec YAML.
+
+   **Connection format normalization (CRITICAL — do NOT skip):** Before modifying any flow, check if the YAML has a top-level `connections:` section with `from`/`to` entries (the "external" format used by some generators). If so, convert it to per-node `connections` arrays before making any changes:
+   - For each entry `{ from, to, sourceHandle?, targetHandle?, label?, data?, behavior? }` in the top-level `connections:` section, add `{ targetNodeId: to, sourceHandle?, targetHandle?, label?, data?, behavior? }` to the `connections` array of the node whose `id` matches `from`
+   - Delete the top-level `connections:` section after migration
+   - This is the same normalization that the DDD Tool performs internally. **Skipping this step will silently destroy all wiring** — the rewritten YAML will have `connections: []` on every node.
+
+   Enrich the appropriate node(s):
    - If the detail is about security (encryption, auth, rate limiting) → add/update the `security` section on the node
    - If the detail is about observability (logging, metrics, tracing) → add/update the `observability` section on the node
    - If the detail is about implementation behavior → add detail to the node's `spec.description` or add a `spec.implementation` field
