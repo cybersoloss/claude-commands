@@ -6,7 +6,7 @@ Slash commands for the [Design Driven Development](https://github.com/cybersolos
 
 ![DDD Workflow Demo](https://raw.githubusercontent.com/cybersoloss/DDD/main/assets/ddd-demo.gif)
 
-**Full Feature Preview** — 9 domains, 53 flows, 28 node types (Vantage supply chain project):
+**Full Feature Preview** — 9 domains, 53 flows, 28 of 30 node types (Vantage supply chain project):
 
 ![Feature Preview](https://raw.githubusercontent.com/cybersoloss/ddd-tool/main/demo/demo-feature-preview.gif)
 
@@ -116,8 +116,22 @@ Reverse-engineer existing code into specs. Auto-selects strategy by codebase siz
 | `--domains <d1,d2>` | Only reverse specific domains | All |
 | `--merge` | Merge with existing specs instead of overwriting | Overwrite |
 | `--strategy <name>` | Override strategy: `baseline` (<30 files), `index` (30–80), `swap` (80–150), `bottom-up` (150–300), `compiler` (300–500), `codex` (500+) | Auto by file count |
+| `--flows` | Only reverse flow specs (skip schemas, UI, infrastructure) | All pillars |
+| `--connections-only` | Only generate connections (nodes already exist) | Full flow generation |
 
 ### Phase 4: Reflect
+
+**`/ddd-sync [flags]`**
+
+Keep specs and implementation aligned.
+
+| Flag | What it does |
+|------|-------------|
+| *(none)* | Sync `.ddd/mapping.yaml` with current implementation state |
+| `--discover` | Scan for untracked code, suggest new flow specs |
+| `--fix-drift` | Re-implement drifted flows from updated specs |
+| `--full` | All of the above |
+| `--verify` | Behavioral conformance — node-by-node check that code implements spec intent (read-only). Not included in `--full`. |
 
 **`/ddd-reflect [scope]`**
 
@@ -161,18 +175,6 @@ Update specs from natural language.
 | `--add-page` | `/ddd-update --add-page add an analytics page` |
 | `--schema <model>` | `/ddd-update --schema User add avatar_url field` |
 | `--infra` | `/ddd-update --infra add Redis service` |
-
-**`/ddd-sync [flags]`**
-
-Keep specs and implementation aligned.
-
-| Flag | What it does |
-|------|-------------|
-| *(none)* | Sync `.ddd/mapping.yaml` with current implementation state |
-| `--discover` | Scan for untracked code, suggest new flow specs |
-| `--fix-drift` | Re-implement drifted flows from updated specs |
-| `--full` | All of the above |
-| `--verify` | Behavioral conformance — node-by-node check that code implements spec intent (read-only). Not included in `--full`. |
 
 **`/ddd-status [--json]`**
 

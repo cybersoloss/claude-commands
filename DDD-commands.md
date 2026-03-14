@@ -6,11 +6,11 @@ Eleven Claude Code slash commands for the [Design Driven Development](https://gi
 Phase 1: CREATE        Phase 2: DESIGN         Phase 3: BUILD          Phase 4: REFLECT
 Human intent → Specs   Human reviews in Tool   Specs → Code            Code wisdom → Specs
 
-/ddd-create            (DDD Tool)              /ddd-scaffold           /ddd-reflect
-/ddd-reverse                                   /ddd-implement          /ddd-promote
-                                               /ddd-test
+/ddd-create            (DDD Tool)              /ddd-scaffold           /ddd-sync
+/ddd-reverse                                   /ddd-implement          /ddd-reflect
+                                               /ddd-test               /ddd-promote
 
-Cross-cutting (any phase): /ddd-status, /ddd-update, /ddd-sync
+Cross-cutting (any phase): /ddd-status, /ddd-update
 Meta-level: /ddd-evolve
 ```
 
@@ -19,15 +19,15 @@ Meta-level: /ddd-evolve
 | Phase | Command | Options | Description |
 |-------|---------|---------|-------------|
 | 1 Create | `/ddd-create` | `--from`, `--shortfalls` | Design a new project → YAML specs across all four pillars (logic, data, interface, infrastructure) |
-| 1 Create | `/ddd-reverse` | `--output`, `--domains`, `--merge`, `--strategy` | Reverse-engineer existing code → YAML specs |
+| 1 Create | `/ddd-reverse` | `--output`, `--domains`, `--merge`, `--strategy`, `--flows`, `--connections-only` | Reverse-engineer existing code → YAML specs |
 | 3 Build | `/ddd-scaffold` | — | Set up project skeleton — backend, frontend, data, infrastructure — from specs |
 | 3 Build | `/ddd-implement` | `--all`, `--ui`, `--schema`, `--infra`, `--ignore-history`, `domain`, `domain/flow` | Read specs → generate backend flow code, frontend pages, and tests |
 | 3 Build | `/ddd-test` | `--all`, `--coverage`, `--ui`, `--schema`, `--infra`, `domain`, `domain/flow` | Run tests for implemented flows |
 | 4 Reflect | `/ddd-reflect` | `--all`, `--ui`, `--schema`, `--infra`, `domain`, `domain/flow` | Capture implementation wisdom as annotations |
 | 4 Reflect | `/ddd-promote` | `--all`, `--review`, `--ui`, `--schema`, `--infra`, `domain`, `domain/flow` | Move approved annotations into permanent specs |
+| 4 Reflect | `/ddd-sync` | `--all`, `--ui`, `--schema`, `--infra`, `--discover`, `--fix-drift`, `--full`, `--verify`, `domain`, `domain/flow` | Keep specs and code aligned |
 | Any | `/ddd-status` | `--json` | Quick read-only project overview |
 | Any | `/ddd-update` | `--add-flow`, `--add-domain`, `--add-page`, `--ui`, `--schema`, `--infra`, `domain/flow` | Natural language → updated specs |
-| Any | `/ddd-sync` | `--all`, `--ui`, `--schema`, `--infra`, `--discover`, `--fix-drift`, `--full`, `--verify`, `domain`, `domain/flow` | Keep specs and code aligned |
 | Meta | `/ddd-evolve` | `--dir`, `--review`, `--apply` | Analyze shortfall reports → review → apply approved changes |
 
 ### Transitions (P = Product intent, S = Spec, C = Code)
@@ -155,6 +155,8 @@ Reverse-engineer an existing codebase into DDD specs.
 | `--domains <d1,d2>` | Only reverse specific domains | All domains |
 | `--merge` | Merge with existing specs (don't overwrite) | Overwrite |
 | `--strategy <name>` | Override auto-selected strategy | Auto by file count |
+| `--flows` | Only reverse flow specs (skip schemas, UI, infrastructure) | All pillars |
+| `--connections-only` | Only generate connections (nodes already exist) | Full flow generation |
 
 ### Strategies
 
