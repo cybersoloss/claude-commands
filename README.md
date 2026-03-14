@@ -116,8 +116,8 @@ Reverse-engineer existing code into specs. Auto-selects strategy by codebase siz
 | `--domains <d1,d2>` | Only reverse specific domains | All |
 | `--merge` | Merge with existing specs instead of overwriting | Overwrite |
 | `--strategy <name>` | Override strategy: `baseline` (<30 files), `index` (30–80), `swap` (80–150), `bottom-up` (150–300), `compiler` (300–500), `codex` (500+) | Auto by file count |
-| `--flows` | Only reverse flow specs (skip schemas, UI, infrastructure) | All pillars |
-| `--connections-only` | Only generate connections (nodes already exist) | Full flow generation |
+| `--flows` | Only reverse specific flows by scope (e.g., `--flows users/login,users/register`). Implies `--merge`. | All pillars |
+| `--connections-only` | Only reconstruct `connections` arrays — preserve all node definitions. Requires `--flows`. | Full flow generation |
 
 ### Phase 4: Reflect
 

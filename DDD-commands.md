@@ -155,8 +155,8 @@ Reverse-engineer an existing codebase into DDD specs.
 | `--domains <d1,d2>` | Only reverse specific domains | All domains |
 | `--merge` | Merge with existing specs (don't overwrite) | Overwrite |
 | `--strategy <name>` | Override auto-selected strategy | Auto by file count |
-| `--flows` | Only reverse flow specs (skip schemas, UI, infrastructure) | All pillars |
-| `--connections-only` | Only generate connections (nodes already exist) | Full flow generation |
+| `--flows` | Only reverse specific flows by scope (e.g., `--flows users/login,users/register`). Implies `--merge`. | All pillars |
+| `--connections-only` | Only reconstruct `connections` arrays — preserve all node definitions. Requires `--flows`. | Full flow generation |
 
 ### Strategies
 
