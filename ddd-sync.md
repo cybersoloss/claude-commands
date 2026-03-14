@@ -113,7 +113,7 @@ Parse `$ARGUMENTS` to determine scope (scope arguments are separate from flags l
    **Change-history check**: Before running the full drift analysis, read `.ddd/change-history.yaml` (if it exists). Any entry with `status: pending_implement` where the `spec_checksum` no longer matches the current file hash indicates a spec was changed after the last ddd-tool save or command run. These files are already tracked — use their existing entries rather than creating duplicates.
 
    **Spec drift** (specHash mismatch): The spec YAML changed since the last implementation.
-   **Code drift** (fileHashes mismatch): One or more implementation files changed since the last implementation. Recompute SHA-256 of each file in the mapping's `files` array and compare against stored `fileHashes`. A mismatch means a developer (or another tool) modified the code.
+   **Code drift** (fileHashes mismatch): One or more implementation files changed since the last implementation. Recompute SHA-256 of each file in the mapping's `files` array and compare against stored `fileHashes`. A mismatch means a developer (or another tool) modified the code. **Hash format consistency:** When comparing hashes, match the format already used in mapping.yaml (compare at the shorter length if formats differ). When writing new hashes, use the same format as existing entries in the same mapping file to avoid mixed-format false drift.
    **Prompt file drift** (for flows with `llm_call` nodes that have `prompt_files`): Hash each referenced prompt file and compare against stored hashes. Prompt file changes affect LLM behavior even when spec YAML and code are unchanged — treat as code drift (flag for review).
 
    For entries with spec drift (specHash doesn't match):
@@ -211,7 +211,7 @@ Parse `$ARGUMENTS` to determine scope (scope arguments are separate from flags l
    | `loop` | Iteration over collection. on_error, accumulate if specified. |
    | `parallel` | Concurrent execution matching branches. failure_policy, merge_strategy if specified. |
    | `terminal` | Response matching status code and body shape. |
-   | All 29 types | Type-specific check per the node's spec fields. |
+   | All 30 types | Type-specific check per the node's spec fields. |
 
    **Connection graph check:** Code control flow matches spec's connection order and sourceHandle branching.
 
@@ -293,7 +293,7 @@ Parse `$ARGUMENTS` to determine scope (scope arguments are separate from flags l
 
    For each drifted flow:
    - **Metadata-only drift** → Update hash (no code change)
-   - **Code ahead of spec** → Run `/ddd-reflect` logic to enrich the spec first, then update hash
+   - **Code ahead of spec** → Run `/ddd-reflect` logic to enrich the spec first, then update hash. **Present each enrichment to the user for review before writing** — code-ahead enrichment modifies specs based on code, which may include unintentional changes. Do NOT auto-enrich without user confirmation.
    - **New spec logic** → Re-implement:
      - Read the updated flow spec
      - Read the existing implementation files from mapping
@@ -401,7 +401,7 @@ Parse `$ARGUMENTS` to determine scope (scope arguments are separate from flags l
 
       **Pillar balance summary:**
       ```
-      Pillar balance: Logic {N} flows, Interface {N} pages, Data {N} schemas, Infrastructure {N} services
+      Pillar balance: Data {N} schemas, Interface {N} pages, Infrastructure {N} services, Logic {N} flows
       Status: in_sync {N}, spec_ahead {N}, code_ahead {N}, diverged {N}, untracked {N}
       ```
 

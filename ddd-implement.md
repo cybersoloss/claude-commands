@@ -179,6 +179,10 @@ Parse the argument to determine scope:
    - For sections with `empty_state`: render the empty message, icon, and optional CTA when data array is empty
    - For sections with `visible_when`: wrap in a conditional render
 
+   **Specialized components** from `sections`:
+   - For `kanban-board` components: generate a drag-and-drop board with columns from `columns[]` (each with status_value), card rendering from `item_template`, and call `on_move_flow` when cards are dragged between columns with `{ item_id, from_column, to_column }` payload.
+   - For `calendar-view` components: generate a date-based grid (month/week/day from `view`), placing items by `date_field`, with `on_date_click_flow` and `on_item_move_flow` for interactions.
+
    **Forms** from `forms`:
    - Generate form components with all specified fields:
      - `text`, `number`, `textarea` → standard input elements
@@ -259,20 +263,26 @@ Parse the argument to determine scope:
    - `ws {path}` → WebSocket endpoint (bidirectional connection handler). Check for `connection_config` (auth, heartbeat, reconnect).
    - `pattern:{EventName}` → event pattern trigger (aggregated/correlated events with `group_by`, `threshold`, `window`)
 
+   When an HTTP trigger has `cors_config: { origins, methods?, headers?, credentials? }`, generate per-endpoint CORS middleware using these values.
+
+   **Domain-level policies** (from `domain.yaml`):
+   - When `domain.yaml` has `rate_limit_policy`, apply it as the default rate limit config for all HTTP triggers in that domain. Trigger-level `rate_limit` overrides the domain default.
+   - When `domain.yaml` has `audit: true` (or a flow entry has `audit: true`), automatically wrap every `data_store` create/update/delete node with an audit event emission using standard payload: `{ user_id, action, model, record_id, before?, after?, timestamp }`.
+
    **Follow the node graph** from trigger through all paths to terminal nodes. Each node becomes real code:
    - `process` → service function call. Check `category` (security/transform/integration/business_logic/infrastructure), `inputs`, and `outputs` fields for explicit I/O declarations.
    - `decision` → if/else or switch using the `condition` field
    - `data_store` → database CRUD operations (`create`, `read`, `update`, `delete`, `upsert`, `create_many`, `update_many`, `delete_many`, `aggregate`). Also supports memory store operations (`get`, `set`, `merge`, `reset`, `subscribe`, `update_where`) via `store_type: memory`. For `upsert`, use `upsert_key` field for conflict resolution. For `include` field, implement eager-loading of related records (supports `via` for join tables and `as` for aliasing). For `returning` field on bulk ops, return the affected records. For `filters` array, apply optional filters conditionally (`required: false` entries only applied when their value is non-null). Check `safety` field — if `strict`, generate null-safe code with explicit checks.
    - `service_call` → HTTP client call (method, url, headers, body, timeout, retry). If `system.yaml` has an `integrations:` section and the service_call URL matches an integration's `base_url`, use the integration's auth, retry, and rate limit config. Check for `capture_headers` to extract response headers for downstream use. Check for `fallback` to provide a default value on failure (graceful degradation). Check for `oauth1a_config` for OAuth 1.0a authentication. Check for `request_config` to configure HTTP client behavior (user_agent, delay, cookie_jar, proxy, tls_fingerprint).
-   - `event` → event emission (emit) or subscription handler (consume). Check for `dedup_key`, `target_queue`, `priority`, `delay_ms`, and `payload_source` fields.
-   - `loop` → for/forEach over `collection` with `iterator` variable, optional `break_condition`. Check `on_error` (`continue`/`break`/`fail`) for per-iteration error handling. Check `accumulate` for result collection across iterations (`field`, `strategy: push|merge|concat|sum|count`, `output`). Use `body_start` for nested loop layout.
+   - `event` → event emission (emit) or subscription handler (consume). Check for `dedup_key`, `target_queue`, `priority`, `delay_ms`, and `payload_source` fields. When `schema_ref` is present, generate payload validation against the referenced schema (from `specs/schemas/`) before emitting the event.
+   - `loop` → for/forEach over `collection` with `iterator` variable, optional `break_condition`. Check `on_error` (`continue`/`break`/`fail`) for per-iteration error handling. Check `accumulate` for result collection across iterations (`field`, `strategy: append|merge|sum|last`, `output`). Use `body_start` for nested loop layout.
    - `parallel` → Promise.all / concurrent execution of branches. Check `failure_policy` (`all_required`/`any_required`/`best_effort`) and `merge_strategy` (`keyed_by_output_key`/`collect_success`/`collect_all`/`first_success`). `branches` can be `string[]`, `number`, or objects with `{ id, label, condition, output_key }` for conditional branches.
    - `sub_flow` → call to the referenced flow's entry function. If the target flow has a `contract` section, validate that `input_mapping` keys match contract inputs and `output_mapping` keys match contract outputs.
-   - `llm_call` → LLM API call with model, prompt, temperature, structured output. Check `context_sources` for formal variable bindings with transforms (`truncate`, `join`, `lowercase`, `uppercase`, `first`, `last`, `json_stringify`, `strip_html`, `summarize`). Check `structured_output.ref` for enum resolution from `shared/types.yaml`.
+   - `llm_call` → LLM API call with model, prompt_template, temperature, structured output. Check `context_sources` for formal variable bindings with transforms (`truncate`, `join`, `lowercase`, `uppercase`, `first`, `last`, `json_stringify`, `strip_html`, `summarize`). Check `structured_output.ref` for enum resolution from `shared/types.yaml`. When `model_fallback` is present, generate a try/catch chain: try the primary `model` first, then on listed errors (`rate_limited` → 429, `overloaded` → 503, `timeout`, `any`), retry with each fallback model in order before routing to the error terminal.
    - `agent_loop` → agent loop with tool dispatch, memory management, stop conditions (`answer_provided`, `task_complete`, `requires_human`, `max_confidence_reached`, `tool_result_terminal`). Check tool definitions for `requires_confirmation: true` (human approval before execution). Check `memory_stores` for agent memory configuration (type, eviction_strategy, embedding_model, similarity_threshold).
    - `guardrail` → validation middleware (inline, sequential — input guard before agent, output guard after). Check `checks` array for types and `action` values (`block`/`warn`/`log`).
    - `human_gate` → async approval workflow (pause, notify, wait for human decision). Check `approval_options` for `requires_input: true` (free-text input required with approval).
-   - `orchestrator` → multi-agent coordination per `strategy` (supervisor, round_robin, broadcast, consensus). Check `result_merge_strategy` (`last_wins`/`best_of`/`combine`/`supervisor_picks`).
+   - `orchestrator` → multi-agent coordination per `strategy` (supervisor, round_robin, broadcast, consensus). Check `result_merge_strategy` (`last_wins`/`best_of`/`combine`/`supervisor_picks`). When an agent in `agents[]` has `model_override`, pass it as a runtime parameter to the sub-flow executor. The sub-flow's llm_call nodes should use this model instead of their spec-defined model.
    - `smart_router` → routing logic from `rules` and/or `llm_routing` (check `confidence_threshold` for LLM-based routing)
    - `handoff` → agent transfer with context passing per `mode`: `transfer` (fire-and-forget), `consult` (return result), `collaborate` (ongoing back-and-forth)
    - `agent_group` → agent team coordination with shared memory. Check `selection_strategy` (`round_robin`/`broadcast`/`sequential`/`random`/`priority`).
@@ -282,10 +292,11 @@ Parse the argument to determine scope:
    - `transform` → structured data mapping between formats using `input_schema`/`output_schema`/`field_mappings`
    - `collection` → collection operation (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten, first, last, join) on input. For `join`, check `join_type` (`inner`/`left`/`anti`) for join semantics.
    - `parse` → structured extraction from raw format (rss, atom, html, xml, json, csv, markdown)
-   - `crypto` → cryptographic operation (encrypt, decrypt, hash, sign, verify, generate_key)
+   - `crypto` → cryptographic operation (encrypt, decrypt, hash, sign, verify, jwt_sign, jwt_verify, generate_key, generate_token). For `jwt_sign`: encode payload claims with algorithm and key_source, set expires_in. For `jwt_verify`: decode and validate JWT from input_fields. For `generate_token`: generate opaque random string with length and encoding (hex/base64url/uuid).
    - `batch` → execute operation template (or `sub_flow_ref`) against each item in input collection with concurrency control
    - `transaction` → atomic multi-step database operation with rollback on error
    - `websocket_broadcast` → push message to WebSocket clients (`channel`, `event_name`, `payload`, `include_sender`)
+   - `text_split` → text chunking utility that splits `spec.input` into chunks of `spec.max_length` characters using `spec.split_strategy` (word/sentence/paragraph/character boundary splitting). Apply `spec.prefix_template` and `spec.suffix_template` to each chunk (replace `{{index}}` with 0-based index, `{{total}}` with total chunks). Output the chunk array to `spec.output`. Single output handle: `chunks`.
 
    > **Advanced node fields:** The fetched DDD Usage Guide Section 6 defines the full specification for each node type. Always check the spec for type-specific fields and implement them when present. Key fields to watch for: trigger `filter` (event payload filtering — eliminates unnecessary decision nodes), trigger `debounce_ms`, terminal `response_type` (json/stream/sse/empty) and `headers`, data_store `pagination` and `sort` fields.
 
@@ -308,7 +319,9 @@ Parse the argument to determine scope:
    - `parse` → `"success"` path / `"error"` path
    - `crypto` → `"success"` path / `"error"` path
    - `batch` → `"done"` path / `"error"` path
+   - `text_split` → `"chunks"` path
    - `transaction` → `"committed"` path / `"rolled_back"` path
+   - `websocket_broadcast` → `"done"` path (single output)
    - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
    - `human_gate` → dynamic option IDs (from `approval_options[].id`)
 
@@ -317,11 +330,12 @@ Parse the argument to determine scope:
    - `data` — data shape annotation (e.g., `"userId, email, role"`) describing what flows between nodes; use for type annotations
    - `condition` — conditional connection; only follow this edge when the condition evaluates to true
    - `targetHandle` — target port on the receiving node (used for complex node layouts)
+   - `async` — when `true`, wrap the target node invocation in `setImmediate()` or `Promise.resolve().then()` — fire-and-forget, the source flow continues without awaiting the target
 
    **Connection error behavior:** When a connection has a `behavior` field, implement accordingly:
    - `continue` — catch errors and proceed to the next node (log the error)
    - `stop` — re-throw the error to halt the flow
-   - `retry` — wrap in retry logic with exponential backoff (default: 3 attempts, 1000ms base delay)
+   - `retry` — wrap in retry logic with exponential backoff (default: 3 attempts, 1000ms base delay). When `retry_config: { max_attempts, initial_delay_ms, backoff_factor, jitter }` is present, use these parameters instead of defaults. If the node already has its own `retry` field (service_call, llm_call), the node-level config takes precedence.
    - `circuit_break` — implement circuit breaker pattern (fail-fast after consecutive failures, with cooldown period)
    If no `behavior` is specified, default to `stop` (propagate errors).
 

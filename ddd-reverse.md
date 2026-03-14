@@ -187,13 +187,14 @@ Build the node list:
 - Sub-routine calls → `sub_flow` node
 - Collection transforms (filter, sort, deduplicate, merge) → `collection` node
 - Parsing raw formats (JSON, XML, HTML, CSV, RSS) → `parse` node
-- Encryption/hashing/signing → `crypto` node
+- Encryption/hashing/signing/JWT operations/token generation → `crypto` node
 - Bulk/batch operations over collections → `batch` node
 - Multi-step atomic DB operations → `transaction` node
 - Local IPC / native bridge calls (Tauri, Electron) → `ipc_call` node
 - Cache lookups / cache-before-fetch patterns → `cache` node
 - Deliberate waits, rate limiting, sleep → `delay` node
 - Pure data reshaping / field mapping → `transform` node
+- Text chunking functions (splitting strings into arrays by length/word/sentence) → `text_split` node
 - LLM agent loops with tool dispatch → `agent_loop` node
 - Input/output validation guards → `guardrail` node
 - Human approval workflows → `human_gate` node
@@ -623,7 +624,7 @@ Before writing final spec files, verify across all four pillars:
   | `parallel` | `branches` array |
   | `cache` | `operation` (get/set/invalidate), `key` |
   | `parse` | `format` (json/xml/html/csv/rss) |
-  | `crypto` | `operation` (hash/encrypt/sign/generate_token) |
+  | `crypto` | `operation` (encrypt/decrypt/hash/sign/verify/jwt_sign/jwt_verify/generate_key/generate_token) |
   | `batch` | `collection`, `operation` |
   | `transaction` | `steps` or description of atomic operations |
   | `ipc_call` | `command` |
@@ -846,6 +847,8 @@ Wire with proper `sourceHandle` values:
 - `cache` → `"hit"` / `"miss"`
 - `smart_router` → dynamic route IDs (from `rules[].id`)
 - `human_gate` → dynamic option IDs (from `approval_options[].id`)
+- `text_split` → `"chunks"`
+- `websocket_broadcast` → `"done"`
 - All other nodes → single output connection
 
 ### Summary report

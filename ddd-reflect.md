@@ -316,7 +316,7 @@ Parse `$ARGUMENTS` to determine scope:
 11. **Report summary**:
    ```
    Reflected on: {N} flows, {P} pages, {S} schemas, {I} infrastructure specs
-   Pillar balance: Logic {N} flows, Interface {P} pages, Data {S} schemas, Infrastructure {I} infra specs
+   Pillar balance: Data {S} schemas, Interface {P} pages, Infrastructure {I} infra specs, Logic {N} flows
 
    Data (schemas):
      {model}:

@@ -361,7 +361,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
    **Per-page specs** (`specs/ui/{page-id}.yaml`) — for each page:
    - `sections` — visual sections with:
-     - `component` type (stat-card, item-list, card-grid, detail-card, button-group, page-header, status-bar, chart, filter-bar, map-view, timeline, chat-interface, markdown-viewer, tree-view, or shared component ID)
+     - `component` type (stat-card, item-list, card-grid, detail-card, button-group, page-header, status-bar, chart, filter-bar, map-view, timeline, chat-interface, markdown-viewer, tree-view, kanban-board, calendar-view, or shared component ID)
      - `data_source` referencing a backend flow in `domain/flow-id` format
      - `fields` mapping data using `$.field` syntax
      - `item_template` for list/grid items
@@ -372,8 +372,8 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `fields` — each with `name`, `type` (text, number, select, multi-select, search-select, date, datetime, date-range, textarea, toggle, tag-input, file, color, slider, markdown, repeating_group), `label`, `placeholder`, `required`, `default`, `options`/`options_source`, `validation`, `visible_when`. For `type: markdown`, optionally add `markdown_config: { mode: toggle|split, toolbar: true, min_height: 300 }`. For `type: repeating_group`, add `repeating_group: { columns: [{name, type, label, required?}], min_rows?, max_rows?, add_label?, remove_label? }` — renders an editable sub-table (purchase order lines, invoice rows, schedule entries). For dynamic cross-field filtering, add `options_depends_on: { field, transform: filter|set_default|set_options, source_field }` to any select/multi-select field.
      - `submit` — backend flow to call (`flow`), button label, `loading_label`, `success` ({message, redirect, action}), `error` ({message, retry}), optional `args`
      - `auto_save` — optional; replaces `submit` for document/settings forms: `{ debounce_ms, flow, key_field? }`. No submit button rendered; generates debounced save with Saving/Saved/Error status indicator.
-     - `wizard` — optional; renders the form as a multi-step wizard: `{ steps: [{id, title, description?, fields: string[], visible_when?: { field: string, values: string[] }}], show_progress?: boolean, allow_skip?: boolean }`. Use for multi-stage forms (supplier onboarding, project setup, checkout). Each step lists field names from the `fields` array. Steps support `visible_when` — when the condition is false, the step is skipped in wizard progression.
-   - `state` — client-side store reference, initial API calls on page load, realtime subscription. Optional: `collaborative: { presence_flow, lock_flow?, session_key }` for real-time presence indicators on multi-user pages (shows who else is viewing/editing).
+     - `wizard` — optional; renders the form as a multi-step wizard: `{ steps: [{id, title, description?, fields: string[], visible_when?: { field, values }}], show_progress?: boolean, allow_skip?: boolean }`. Use for multi-stage forms (supplier onboarding, project setup, checkout). Each step lists field names from the `fields` array. Steps support `visible_when: { field, values }` — when false, the step is skipped in wizard progression.
+   - `state` — client-side store reference, initial API calls on page load, realtime subscription. Pages with multi-user editing can include `collaborative: { presence_flow, lock_flow?, session_key }` in page state for real-time presence indicators.
    - `loading` — loading state style (skeleton, spinner, blur)
    - `error` — error state style (retry-banner, error-page, toast)
    - `refresh` — data refresh strategy (pull-to-refresh, auto-30s, manual, none)
@@ -381,7 +381,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
    **Per-component-type field specs** — when designing sections, use the correct component type and its required fields:
    - `stat-card` — `value` ($.field), `subtitle`, `urgency` (with `field`, `rules` array of `{threshold, level, color}`), `actions` (e.g., `click: {navigate: /path}`), optional `trend` (`{ value: "$.prev_count", direction: auto|up|down, format: delta|percent|raw }`)
-   - `item-list` — `data_source`, `item_template` with `title`/`subtitle`/`badge`/`timestamp` (or optional `sections: [{ name, fields: [...] }]` for rich multi-row cards), `item_actions`, `empty_state`, optional `pagination` or `virtual_scroll`, optional `interactions` (array of `{pattern, update_flow}` — supported patterns: `reorder`, `bulk-select`, `inline-edit`), optional `group_by` (`{ field: "$.category", label_field?: "$.label", show_count?: true, collapsible?: false }` — renders sticky section headers between groups)
+   - `item-list` — `data_source`, `item_template` with `title`/`subtitle`/`badge`/`timestamp`, `item_actions`, `empty_state`, optional `pagination` or `virtual_scroll`, optional `interactions` (array of `{pattern, update_flow}` — supported patterns: `reorder`, `bulk-select`, `inline-edit`), optional `group_by` (`{ field: "$.category", label_field?: "$.label", show_count?: true, collapsible?: false }` — renders sticky section headers between groups). `item_template` supports optional `sections: [{ name, fields: [...] }]` for rich multi-row list cards when flat title/subtitle/badge fields are insufficient.
    - `card-grid` — `data_source`, `columns` (responsive: desktop/tablet/mobile), `item_template` with `image`/`title`/`description`/`footer`, `item_actions`, `empty_state`, optional `interactions` (same as item-list)
    - `detail-card` — `data_source`, `fields` mapping with `$.field` syntax (fields can have `editable: true` + `update_flow` for inline editing), `actions` (edit, delete, archive), optional `tabs` for multi-section details
    - `button-group` — `buttons` array with `label`, `flow` (backend flow reference), optional `args`, `variant` (primary/secondary/danger), `icon`, `visible_when`, `confirm`/`confirm_message`
@@ -390,12 +390,12 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `filter-bar` — `fields` array of filter inputs (each with `key`, `type`: select|date-range|search|toggle, `source`?, `label`), `apply_flow` (flow to call when filters change), optional `reset_label`. Use for table/list filtering controls.
    - `map-view` — `data_source`, `center_lat`/`center_lng` (initial center), `zoom`, `markers` ({lat_field, lng_field, label_field?, color_field?, click_action?}), `routes` ({points_field, color?, width?}), `realtime` (boolean). Use for shipment tracking, delivery maps, field service. **Do NOT use `chart` with `chart_type: map` for geographic data — use `map-view` instead.**
    - `timeline` — `data_source`, `timestamp_field`, `title_field`, `status_field`, `icon_field?`, `color_when` conditions, `direction` (vertical|horizontal). Use for shipment history, activity logs, audit trails.
-   - `chart` — `data_source`, `fields` (series/labels/values), `chart_type` (line/bar/pie/area/donut). For geographic data, use `map-view` instead. Supports multi-series via optional `series: [{ data_source?, field, color?, y_axis?: left|right, label? }]` for overlapping time-series with dual Y-axis.
+   - `chart` — `data_source`, `fields` (series/labels/values), `chart_type` (line/bar/pie/area/donut). For geographic data, use `map-view` instead. Supports multi-series via `series: [{ data_source?, field, color?, y_axis?: left|right, label? }]` for overlapping time-series with optional dual Y-axis.
    - `chat-interface` — `data_source`, `message_roles` ({user, assistant}), `streaming_source` (flow ref for SSE stream), `input_config` ({placeholder?, submit_flow, submit_key?}), `typing_indicator` (boolean), `message_template` ({content_field, role_field, timestamp_field?}). Use for AI agent conversations, chatbots, conversational UIs. Pair with `streaming_behavior` on the section.
    - `markdown-viewer` — `data_source`, `fields.content` ($.field for markdown string), optional `collapsible`, `copy_button`, `syntax_highlight`. Use for documentation, AI-generated content, knowledge base entries.
    - `tree-view` — `data_source`, `fields.children` ($.field for child nodes), `fields.label` ($.field for node label), optional `fields.icon`, `collapsible` (default true), `default_expanded_depth`, `item_actions`. Use for hierarchical data (org trees, category trees, file trees).
-   - `kanban-board` — `data_source`, `columns` ([{id, label, status_value, max_items?, color?}]), `item_template` (title/subtitle/badge/assignee/priority/date), `item_actions`, `on_move_flow` (flow ref called when card moves columns), `empty_state`. Use for workflow stage boards (editorial queues, task boards, support tickets).
-   - `calendar-view` — `data_source`, `date_field` (which field determines item placement), `view` (month|week|day), `item_template` (title, status badge), `on_date_click_flow`, `on_item_move_flow` (drag to reschedule), `empty_state`. Use for date-based scheduling and content calendars.
+   - `kanban-board` — `data_source`, `columns` (status-based), `item_template`, `on_move_flow`. Use for workflow stages (editorial queues, task boards). Requires: data_source, columns, item_template, on_move_flow.
+   - `calendar-view` — `data_source`, `date_field`, `view` (month|week|day), `item_template`. Use for date-based scheduling. Requires: data_source, date_field, view, item_template.
    - Shared component ID — reference a component from `pages.yaml` → `shared_components` by its ID
 
    **Page inference rules** — derive UI structure from backend flows:
@@ -430,7 +430,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
    - **UI shortfall tracking** (if `--shortfalls` flag is present): As you design each page, mentally track every time you:
      - Use a generic section description because no built-in component type fits the layout
-     - Need a component type that doesn't exist (calendar view, kanban board, timeline, tree view, map, chart)
+     - Need a component type that doesn't exist in the built-in set
      - Hit a limitation in a section's or form field's configuration options
      - Cannot express a UI interaction pattern (drag-drop reordering, inline editing, bulk selection, multi-step wizard)
      - Cannot express responsive behavior beyond simple column stacking
@@ -471,9 +471,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `name`, `description`
    - `depends_on` — cross-domain data dependencies (array of `{domain, reason, flows_affected}`) — add when a domain reads data from another domain beyond event wiring
    - `owns_schemas` — list of schema names this domain owns (e.g., ["User", "Session"])
-   - `flows` array — each entry: `id`, `name`, `description`, `type` (traditional or agent). **Set `type: agent` ONLY when the flow contains at least one `agent_loop`, `agent_group`, or `orchestrator` node — never for traditional flows.** Optional fields: `tags` (e.g., ["cron", "internal", "public-api"]), `criticality` (critical/high/normal/low), `throughput` (e.g., "~500 items/day"), `audit` (boolean — when true, /ddd-implement auto-generates audit events for data_store write operations in this flow)
-   - `rate_limit_policy` — optional domain-level rate limiting default applied to all HTTP triggers in this domain: `{ window_ms, max_requests, key_by, tiers?: [{ name, max_requests, key_by? }] }`. Trigger-level `rate_limit` overrides. Also supported at `system.yaml` level as global default (system → domain → trigger inheritance).
-   - `audit` — optional boolean. When `true`, /ddd-implement automatically wraps every `data_store` create/update/delete node in this domain with an audit event emission using standard payload (user_id, action, model, record_id, before, after). Individual flows can override via `flows[].audit`.
+   - `flows` array — each entry: `id`, `name`, `description`, `type` (traditional or agent). **Set `type: agent` ONLY when the flow contains at least one `agent_loop`, `agent_group`, or `orchestrator` node — never for traditional flows.** Optional fields: `tags` (e.g., ["cron", "internal", "public-api"]), `criticality` (critical/high/normal/low), `throughput` (e.g., "~500 items/day")
    - `groups` — visual grouping of flows at L2 (array of `{id, name, flows}`) — optional, for organizing large domains
    - `stores` array (optional) — declare in-memory state stores with `name`, `shape`, `initial_state`, `selectors`, `access_pattern` (e.g., Zustand/Redux stores). Referenced by `data_store` nodes with `store_type: memory`.
    - `on_error` (optional) — domain-level error hook with `emit_event` name. `/ddd-implement` adds this to all error terminals.
@@ -481,6 +479,8 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `event_groups` (optional) — named collections of events for use in multi-event triggers. Define `name`, `description`, `events` array, and optional `correlation_key` (expression for matching events across a session, e.g. `"$.order_id"` — ensures only events sharing the same key satisfy the group). Referenced as `event_group:{name}` in trigger `event` fields.
    - `sla_config` (optional) — domain-level SLA monitoring: `{ max_latency_ms, max_error_rate, alert_channel }`
    - `memory_stores` (optional) — AI/agent memory stores available across flows in the domain: array of `{ name, type: key_value|list|counter, description }`. Distinct from `stores` (which are UI-layer in-memory state stores).
+   - `rate_limit_policy` (optional) — domain-wide rate limiting default: `{ window_ms, max_requests, key_by, tiers? }`. All HTTP triggers in the domain inherit this policy. Trigger-level `rate_limit` overrides.
+   - `audit` (optional) — set `audit: true` for automatic audit event emission on all data_store create/update/delete operations in the domain. `/ddd-implement` auto-generates audit events with standard payload (user_id, action, model, record_id, before, after).
    - `layout` with flow positions (space flows vertically with ~200px gaps)
 
    **Domain YAML format** — use **flat top-level fields** (NOT nested under a `domain:` key):
@@ -526,7 +526,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `ws {path}` for WebSocket endpoints (e.g., `ws /api/live`)
      - `pattern:{EventName}` for event pattern triggers that aggregate multiple events
      - The label can match the event value or be more descriptive
-     - Optional advanced fields: `filter` (Record — event payload filter, supports dot notation and operators, e.g., `{platform: twitter}` or `{"payload.amount": {gte: 100}}`), `debounce_ms` (debounce rapid-fire triggers), `rate_limit` (`{ window_ms, max_requests, key_by?, on_exceeded? }` — per-endpoint rate limiting), `signature` (`{ algorithm, key_source: { env }, header }` — webhook HMAC signature validation), `tier_limits` (HTTP triggers only — per-role rate limit overrides: `[{ role, max_requests, window_ms }]`), `cors_config` (HTTP triggers only — `{ origins: string[], methods?, headers?, credentials? }` for self-describing CORS policy), `connection_config` (ws triggers only — `{ auth_required, auth_strategy?: jwt|api_key|none, heartbeat_ms?, max_connections_per_client?, reconnect? }`)
+     - Optional advanced fields: `filter` (Record — event payload filter, supports dot notation and operators, e.g., `{platform: twitter}` or `{"payload.amount": {gte: 100}}`), `debounce_ms` (debounce rapid-fire triggers), `rate_limit` (`{ window_ms, max_requests, key_by?, on_exceeded? }` — per-endpoint rate limiting), `signature` (`{ algorithm, key_source: { env }, header }` — webhook HMAC signature validation), `tier_limits` (HTTP triggers only — per-role rate limit overrides: `[{ role, max_requests, window_ms }]`), `connection_config` (ws triggers only — `{ auth_required, auth_strategy?: jwt|api_key|none, heartbeat_ms?, max_connections_per_client?, reconnect? }`), `cors_config` (HTTP triggers only — `{ origins, methods?, headers?, credentials? }` for self-describing CORS policy)
    - For flows called as sub-flows, add a `contract` section to the flow metadata with `inputs` and `outputs`
    - `nodes` array — design the complete node graph:
      - Always start with `input` node after trigger for API flows (validate incoming data)
@@ -534,7 +534,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Use `data_store` for data storage operations. Set `store_type` to `'database'` (default), `'filesystem'`, or `'memory'`. For database: set `operation` (create/read/update/delete/upsert/create_many/update_many/delete_many/aggregate), `model`, `data`/`query`. Optional: `include` (join related models), `upsert_key` (conflict key for upsert), `returning` (return affected records — valid for all operation types, not just bulk), `safety: 'strict'` (null-safe reads), `pagination_response: { data_field, cursor_field, has_more_field }` (for read operations with pagination — auto-formats the cursor pagination response envelope instead of needing a separate transform node), `aggregate_fields` (for `aggregate` operation: array of `{function, field, alias}`), `group_by` (for `aggregate`: list of field names). For filesystem: set `path`, `content`, `create_parents`. For memory: **REQUIRED `store` and `selector`** — set `store` (store name from domain.yaml `stores`), `selector` (path within the store), and prefer memory operations (`get`/`set`/`merge`/`reset`/`subscribe`/`update_where`). Use `update_where` with `predicate` + `patch` for array item updates. **Every `model:` referenced in a `data_store` node must match a schema in `specs/schemas/` AND appear in the domain's `owns_schemas` list.**
      - Use `service_call` for external API calls (**REQUIRED: `method` and `url` — or `method` and `integration` when using a named integration from system.yaml**; set `error_mapping`). Optional: `integration` (reference to `system.yaml` integration ID), `request_config` (headers, timeout, auth override), `oauth_config` (automatic OAuth2 token refresh: `{token_store, refresh_url, client_id_env, client_secret_env}` — omit when `integration` already defines `auth.type: oauth2`), `fallback: { value, log? }` (for non-critical enrichment calls — uses fallback value instead of routing to error handle when the call fails)
      - Use `ipc_call` for local IPC or native function calls — Tauri commands, Electron IPC, React Native bridge (set `command`, `args`, `return_type`, optionally `bridge`, `timeout_ms`, and `result_condition` for conditional success/error routing)
-     - Use `event` nodes to publish/consume domain events (set `direction` to `'emit'` or `'consume'`, `event_name`, and `payload`). Optional: `schema_ref` (schema name the payload must conform to, e.g., `'ContentItem'` — enables runtime validation), `payload_source` (expression for dynamic payload), `target_queue`, `priority`, `delay_ms` (delayed emit), `dedup_key`, `correlation_id` (expression for distributed tracing — e.g., `"$.order_id"` — auto-propagated in event headers). **Job Queue Enqueue:** when the intent is to enqueue a BullMQ/Redis Queue job (not emit a domain event), use `event + target_queue` — set `target_queue` to the worker queue name, `async: true`, and populate `priority`/`delay_ms`/`dedup_key` as needed. Do NOT use a `process` node with `category: infrastructure` for job enqueue operations.
+     - Use `event` nodes to publish/consume domain events (set `direction` to `'emit'` or `'consume'`, `event_name`, and `payload`). Optional advanced fields: `payload_source` (expression for dynamic payload), `target_queue`, `priority`, `delay_ms` (delayed emit), `dedup_key`, `correlation_id` (expression for distributed tracing — e.g., `"$.order_id"` — auto-propagated in event headers). Event nodes with `direction: emit` can include `schema_ref: 'SchemaName'` for node-level payload schema enforcement. **Job Queue Enqueue:** when the intent is to enqueue a BullMQ/Redis Queue job (not emit a domain event), use `event + target_queue` — set `target_queue` to the worker queue name, `async: true`, and populate `priority`/`delay_ms`/`dedup_key` as needed. Do NOT use a `process` node with `category: infrastructure` for job enqueue operations.
      - Use `loop` for iteration (set `collection`, `iterator`; optional: `accumulate` for collecting results, `body_start` to specify first node in loop body, `on_error` for per-iteration error handling), `parallel` for concurrent operations (**REQUIRED: `branches` array with at minimum 2 entries** — a parallel node with fewer than 2 branches is invalid; optional: conditional `branches` with `condition` per branch, `output_key` per branch for explicit result namespacing, `failure_policy: 'best_effort'` for dashboard-style flows where individual branch failures should not block the done handle)
      - Use `collection` for in-memory data transformations (filter, sort, deduplicate, merge, group_by, aggregate, reduce, flatten, first, last, join). **REQUIRED: `input` (the array to operate on) and `output` (result variable name).** Use `first`/`last` with optional `count` to extract elements from sorted collections. Use `join` to cross-reference two arrays (set `input` as left array, `right` as right array, `on` as join predicate, `join_type` as `inner|left|anti`)
      - Use `parse` for structured extraction from raw formats (rss, atom, html, xml, json, csv, markdown)
@@ -544,17 +544,17 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Use `cache` for cache operations (set `operation`: `'check'` for read-through hit/miss pattern, `'set'` for explicit write-through with `value`, `'invalidate'` for key deletion; plus `key`, `store`, `ttl_ms`)
      - Use `delay` for rate limiting or wait/throttle between steps (set `min_ms`)
      - Use `transform` for data mapping (set `input_schema`, `output_schema`, `field_mappings` for schema-to-schema; or set `mode: 'expression'` with computed `field_mappings` for response shaping without schema refs)
+     - Use `text_split` for splitting text into variable-length chunk arrays — specify `input`, `max_length`, `split_strategy` (word|sentence|paragraph|character), optional `prefix_template`, `suffix_template`, and `output`. Single output handle: `"chunks"`.
      - Use `sub_flow` to call reusable flows from other domains (set `flow_ref` as `domain/flow-id`)
-     - Use `llm_call` for single LLM invocations — specify `model`, `prompt`, `temperature`, `max_tokens`, and optionally `structured_output` for typed responses (properties support `{ type: string, ref: my_enum }` to resolve enum values from `shared/types.yaml` without duplication), `context_sources` (array of data references to inject into prompt context), `prompt_files` (array of relative paths to external prompt template files — changes to these files are tracked by `/ddd-sync` for drift detection). For multi-model resilience, add `model_fallback: [{ model, on_error: [rate_limited, overloaded, timeout, any] }]` — ordered fallback models tried when the primary is unavailable
+     - Use `llm_call` for single LLM invocations — specify `model`, `prompt_template`, `temperature`, `max_tokens`, and optionally `structured_output` for typed responses (properties support `{ type: string, ref: my_enum }` to resolve enum values from `shared/types.yaml` without duplication), `context_sources` (array of data references to inject into prompt context), `prompt_files` (array of relative paths to external prompt template files — changes to these files are tracked by `/ddd-sync` for drift detection), `model_fallback` (`[{ model, on_error: [rate_limited, overloaded] }]` for multi-model resilience — automatically retries with fallback models on specified errors)
      - Use `agent_loop` for autonomous agent iterations — specify `tools` (array with at least one `is_terminal: true`), `max_iterations`, `model`. For `vector_store` memory types, also set `embedding_model`, `similarity_threshold`, `max_results`, and optionally `namespace`. For real-time streaming UIs, add `streaming: { enabled: true, format: sse|websocket }` to stream tokens progressively instead of blocking.
      - Use `guardrail` for inline validation in agent or traditional flows — specify `checks` array (types: `content_policy`, `prompt_injection`, `file_type`, `file_size`, `required_fields`, `business_rule`), inline and sequential. In traditional flows, use instead of process nodes for structured rule-based validation.
      - Use `human_gate` for async human approval in agent flows — specify `notification_channels`, `approval_options` (array of `{id, label, description?, requires_input?}`), `timeout` ({duration?, action?: escalate/auto_approve/auto_reject}), `context_for_human`
-     - Use `orchestrator` for multi-step agent task decomposition — specify `strategy`, `model`, `agents`. Each agent in `agents[]` can have `model_override: string` to run the sub-flow with a different LLM model (enables multi-model consensus patterns)
+     - Use `orchestrator` for multi-step agent task decomposition — specify `strategy`, `model`, `agents`. Each agent in `agents[]` can have an optional `model_override: string` to run the sub-flow with a different LLM model — enables multi-model consensus patterns.
      - Use `smart_router` for intelligent 3+ way routing (works in both traditional and agent flows) — specify `rules` array with `id`, `condition`, `route`, optional `priority`; optional `llm_routing`, `fallback_chain`, `policies`
-     - Use `handoff` for agent-to-agent control transfer — specify `mode` (transfer/consult/collaborate), `target` ({flow?, domain?}), `context_transfer` ({include_types?, max_context_tokens?}), `on_complete`, `on_failure` ({action?, timeout?, flow?} — `flow` routes failures to a specific flow as an alternative to `action`), `notify_customer`. **REQUIRED: `target.flow` must be set for `transfer` and `consult` modes** — a handoff without a target flow is incomplete and unexecutable.
+     - Use `handoff` for agent-to-agent control transfer — specify `mode` (transfer/consult/collaborate), `target` ({flow?, domain?}), `context_transfer` ({include_types?, max_context_tokens?}), `on_complete`, `on_failure`, `notify_customer`. `on_failure` can reference a flow (`flow: 'domain/flow-id'`) for cross-flow error routing, as an alternative to the `action` field. **REQUIRED: `target.flow` must be set for `transfer` and `consult` modes** — a handoff without a target flow is incomplete and unexecutable.
      - Use `agent_group` for multi-agent collaboration — specify `name`, `description`, `members` (array of `{flow, domain?}`), `shared_memory`, `coordination` ({communication?, max_active_agents?, selection_strategy?, sticky_session?})
      - Use `websocket_broadcast` for server-push fan-out to connected WebSocket clients — specify `channel` (Socket.io room name, can interpolate e.g., `"shipment-$.shipment_id"`), `event_name` (WS event sent to clients), `payload` (variable ref or object template), `include_sender?` (default false). Single output: `"done"`. Use in flows triggered by events, cron, or other server-side triggers — NOT triggered by the WS client itself.
-     - Use `text_split` for splitting text into variable-length chunk arrays — specify `input` (field reference), `max_length` (max chars per chunk), `split_strategy` (word|sentence|paragraph|character), optional `prefix_template`/`suffix_template` (supports `{{index}}` and `{{total}}`), `output` (result array variable). Single output handle: `"chunks"`. Use for tweet threading, LLM context window management, paragraph extraction.
      - Use `process` nodes for custom logic steps — set `category` (security/transform/integration/business_logic/infrastructure) to classify, `inputs`/`outputs` arrays to document data shape
      > **Note:** For exhaustive node spec field documentation, refer to the fetched DDD Usage Guide Section 6. The fields listed above cover the most commonly needed options.
      - End every path with a `terminal` node (set `outcome`, `status`, `body`; optional: `response_type` for streaming/SSE/file responses, `headers` for custom HTTP response headers)
@@ -563,9 +563,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Top-level `connections:` array with `source:`/`target:` keys
      - `handle:` field on a connection object (use `sourceHandle:` instead)
 
-     The ONLY valid format is per-node: `connections: [{ targetNodeId: "...", sourceHandle: "..." }]`. Any other key on a connection object besides `targetNodeId`, `sourceHandle`, `label`, `behavior`, `data`, `condition`, `async`, `retry_config`, and `circuit_break_config` is invalid.
-   - **Connection async:** Add `async: true` to a connection for fire-and-forget — target node executes in background, source flow continues immediately without waiting. Use instead of event+queue for simple async side-effects (e.g., analytics logging).
-   - **Connection retry_config:** When using `behavior: retry`, add `retry_config: { max_attempts, initial_delay_ms, backoff_factor, jitter }` for configurable backoff. Node-level retry (on service_call/llm_call) takes precedence when present.
+     The ONLY valid format is per-node: `connections: [{ targetNodeId: "...", sourceHandle: "..." }]`. Any other key on a connection object besides `targetNodeId`, `sourceHandle`, `label`, `behavior`, `data`, and `condition` is invalid.
    - **CRITICAL — Wire every handle:** A branching node with a disconnected output handle causes a DDD Tool validation error. Every handle listed below MUST be wired before the spec is complete. Wire all connections with proper `sourceHandle` values:
      - `input` → `"valid"` / `"invalid"`
      - `decision` → `"true"` / `"false"`
@@ -583,10 +581,10 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `batch` → `"done"` / `"error"`
      - `transaction` → `"committed"` / `"rolled_back"`
      - `cache` → `"hit"` / `"miss"` (for `'check'` operation; `'set'` and `'invalidate'` use single unnamed output)
+     - `text_split` → `"chunks"` (single output)
      - `smart_router` → dynamic route IDs (from `rules[].id`)
      - `human_gate` → dynamic option IDs (from `approval_options[].id`)
      - `websocket_broadcast` → `"done"` (single output — no error branching)
-     - `text_split` → `"chunks"` (single output — the chunk array)
      - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
 
    **Required fields at a glance** — scan this table before moving on from each node:
@@ -602,11 +600,12 @@ Create a complete DDD (Design Driven Development) project from a software projec
    | `service_call` (oauth1a) | `spec.oauth1a_config` with all 4: `api_key_field`, `api_key_secret_field`, `access_token_field`, `access_token_secret_field` |
    | `data_store` (memory) | `spec.store` (store name from domain.yaml), `spec.selector` (path in store) |
    | `parallel` | `spec.branches` array with ≥ 2 entries |
-   | `text_split` | `spec.input` (text field ref), `spec.max_length` (max chars per chunk) |
    | `transaction` | `spec.steps` array with ≥ 2 entries (each with `action` and `rollback`) |
    | `agent_loop` | `spec.tools` (≥ 1 entry with `is_terminal: true`), `spec.model`, `spec.max_iterations` |
+   | `text_split` | `spec.input`, `spec.max_length`, `spec.split_strategy`, `spec.output` |
+   | `llm_call` | `spec.model`, `spec.prompt_template`; optional: `spec.model_fallback` |
 
-   - Connections support optional fields: `behavior` for error handling (`continue`/`stop`/`retry`/`circuit_break`), `data` for annotating what data flows between nodes (e.g., `data: "userId, email"`), `label` for human-readable edge labels on the canvas, and `condition` for single-step optional processing (e.g., `condition: "$.changed_fields.length > 0"` — when false at runtime, this edge is skipped; use this instead of a decision node when the guard only leads to one optional step). When `behavior: circuit_break`, add `circuit_break_config: { failure_threshold, recovery_timeout_ms, half_open_max_calls? }` — `/ddd-implement` generates an opossum-style circuit breaker from these values.
+   - Connections support optional fields: `behavior` for error handling (`continue`/`stop`/`retry`/`circuit_break`), `data` for annotating what data flows between nodes (e.g., `data: "userId, email"`), `label` for human-readable edge labels on the canvas, and `condition` for single-step optional processing (e.g., `condition: "$.changed_fields.length > 0"` — when false at runtime, this edge is skipped; use this instead of a decision node when the guard only leads to one optional step). When `behavior: circuit_break`, add `circuit_break_config: { failure_threshold, recovery_timeout_ms, half_open_max_calls? }` — `/ddd-implement` generates an opossum-style circuit breaker from these values. When `behavior: retry`, add `retry_config: { max_attempts, initial_delay_ms, backoff_factor, jitter }` for configurable backoff. Connections can include `async: true` for fire-and-forget — target node executes in background, source flow continues immediately. Use instead of event+queue for simple async side-effects.
    - Position nodes vertically with ~130px spacing, branch error terminals to the right
    - `metadata` with created and modified timestamps (current ISO). **For existing projects:** when modifying any existing spec file (schema, UI page, infrastructure, domain), also update its `metadata.modified` to the current ISO timestamp.
    - **Shortfall tracking** (if `--shortfalls` flag is present): As you design each flow, mentally track every time you:
@@ -734,6 +733,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    | `type: data_store` | Check both `success`/`error` handles |
    | `type: guardrail` | Check both `pass`/`block` handles |
    | `type: parse` | Check both `success`/`error` handles |
+   | `type: text_split` | Check `spec.input`, `spec.max_length`, `spec.split_strategy`, `spec.output` |
    | `update_where` | Check `store_type` is memory, not database |
    | `type: agent` (in flow metadata) | **COMMON MISS:** Verify at least one `agent_loop`, `agent_group`, or `orchestrator` node exists — downgrade to `type: traditional` if not. Flows that only use `llm_call`, `sub_flow`, `decision`, or `parallel` are NOT agent flows. |
 
@@ -783,14 +783,14 @@ Create a complete DDD (Design Driven Development) project from a software projec
     ── DDD Feature Usage Matrix ───────────────────────────────────────────────
     Category                        Available  Used  Unused
     ─────────────────────────────── ────────── ───── ──────────────────────────
-    Node Types (29)                 29         {N}   {list unused}
+    Node Types (30)                 30         {N}   {list unused}
     Trigger Types (13)              13         {N}   {list unused}
     Collection Operations (11)      11         {N}   {list unused}
-    Crypto Operations (6)           6          {N}   {list unused}
+    Crypto Operations (9)           9          {N}   {list unused}
     Parse Formats (7)               7          {N}   {list unused}
     Data Store Types (3)            3          {N}   {list unused}
     Connection Behaviors (4)        4          {N}   {list unused}
-    UI Component Types (11)         11         {N}   {list unused}
+    UI Component Types (16)         16         {N}   {list unused}
     Form Field Types (16)           16         {N}   {list unused}
     Schema Index Types (4)          4          {N}   {list unused}
     Schema Seed Strategies (3)      3          {N}   {list unused}
@@ -1006,7 +1006,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
     **Feature catalog cross-reference (MANDATORY):**
     - Include the Feature Usage Matrix from Step A in the `summary` section as `feature_coverage`
     - Every `process` node in every generated flow MUST be checked: could a structured node type (`collection`, `transform`, `parse`, `crypto`, `cache`, `batch`, `smart_router`, `transaction`, etc.) replace it? If yes → `workarounds` entry
-    - Every UI section using a generic description where a built-in component type (`stat-card`, `item-list`, `card-grid`, `detail-card`, `button-group`, `page-header`, `status-bar`, `chart`, `filter-bar`, `map-view`, `timeline`, `chat-interface`, `markdown-viewer`, `tree-view`) would fit → `ui_shortfalls.inadequate_components` or `ui_shortfalls.missing_component_types` entry
+    - Every UI section using a generic description where a built-in component type (`stat-card`, `item-list`, `card-grid`, `detail-card`, `button-group`, `page-header`, `status-bar`, `chart`, `filter-bar`, `map-view`, `timeline`, `chat-interface`, `markdown-viewer`, `tree-view`, `kanban-board`, `calendar-view`) would fit → `ui_shortfalls.inadequate_components` or `ui_shortfalls.missing_component_types` entry
 
     **Content rules:**
     - Only include sections that have entries — omit empty sections entirely

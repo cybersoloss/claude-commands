@@ -281,7 +281,7 @@ Parse `$ARGUMENTS` to determine scope:
 
 13. **Report what was promoted**:
    ```
-   Promoted: {N} patterns — Logic: {L}, Interface: {P}, Data: {S}, Infrastructure: {I}
+   Promoted: {N} patterns — Data: {S}, Interface: {P}, Infrastructure: {I}, Logic: {L}
 
    Data (schemas):
      {model}:
@@ -332,7 +332,7 @@ Parse `$ARGUMENTS` to determine scope:
      infrastructure: annotationCount: 0
      monitoring/check-social-sources: specHash updated, annotationCount: 0
 
-   Pillar balance: Logic {L}, Interface {P}, Data {S}, Infrastructure {I}
+   Pillar balance: Data {S}, Interface {P}, Infrastructure {I}, Logic {L}
 
    Summary:
      Promoted: {N} patterns (cross-cutting: {C}, flow-specific: {F}, page-specific: {P}, shared UI: {U}, schema: {S}, infrastructure: {I})

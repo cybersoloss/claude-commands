@@ -221,7 +221,7 @@ Parse the argument to determine what to update:
    ```
    Do not create duplicate entries — if a pending entry already exists for the same spec_file with the same checksum, skip it.
 
-9. **Maintain spec integrity**: After making changes, verify:
+9. **Maintain spec integrity** (**CRITICAL — run this check after EVERY edit, including parallel agent edits**): After making changes, verify:
    - Every flow still has exactly one trigger
    - All paths from trigger reach a terminal (no dead ends)
    - No orphaned nodes (all reachable from trigger)
@@ -241,7 +241,8 @@ Parse the argument to determine what to update:
      - Smart Router: connections for each `rules[].id` value
      - Human Gate: connections for each `approval_options[].id` value
    - Event wiring is consistent (published events match consumed events across domains)
-   - Agent flows have at least one agent_loop with `model`, tools, and a terminal tool
+   - Agent flows have at least one agent_loop with `model`, tools, and a terminal tool (`is_terminal: true`)
+   - **Connection field names**: verify all connections use `targetNodeId` (not `target`/`targetId`) and `sourceHandle` (not `handle`/`label` as handle). When using parallel agents to fix connections, each agent MUST use the canonical field names — `label` is NOT a handle alias.
 
 10. **Preserve existing data**: When updating a flow:
    - Keep all nodes that aren't being changed — don't regenerate the entire flow
