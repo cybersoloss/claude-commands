@@ -746,6 +746,22 @@ Create a complete DDD (Design Driven Development) project from a software projec
    2. For each unique model, verify `specs/schemas/{model}.yaml` exists and that the model appears in one domain's `owns_schemas` list
    3. For any model failing either check: create the missing schema file and add to the appropriate domain's `owns_schemas`
 
+   **Phase 4 — UI reference audit (Grep-based):**
+
+   UI specs reference backend flows by `domain/flow-id`. Under cognitive load these references can point to flows that were never created.
+
+   1. Grep all `specs/ui/*.yaml` files for `data_source:`, `initial_fetch:`, `submit:` (under forms), and `action:` (under `item_actions`/buttons) — extract every `domain/flow-id` value
+   2. For each extracted reference, verify `specs/domains/{domain}/flows/{flow-id}.yaml` exists
+   3. For any missing flow: create a minimal stub flow (trigger → terminal) in the correct domain and register it in `domain.yaml`, OR update the UI spec to reference the nearest existing flow if the intent is clearly a naming mismatch
+
+   **Phase 5 — Event wiring audit (Grep-based):**
+
+   Events published without consumers are dead code. This cross-domain check cannot be done per-file — it requires a global view.
+
+   1. Grep all `specs/domains/*/domain.yaml` files for `publishes_events` — collect every event name and its publishing domain
+   2. Grep all `specs/domains/*/domain.yaml` files for `consumes_events` — collect every event name and its consuming domain
+   3. For each published event with no consumer anywhere: either add a `consumes_events` entry to an appropriate domain (identify the domain that should react to this event), or remove the publish if no domain logically needs it
+
 17. **Shortfall report** (only if `--shortfalls` flag is present in `$ARGUMENTS`):
 
     **Step A — Build the DDD Feature Usage Matrix:**
