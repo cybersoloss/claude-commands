@@ -299,7 +299,8 @@ Parse `$ARGUMENTS` to determine scope (scope arguments are separate from flags l
      - Read the existing implementation files from mapping
      - Update the implementation to match the new spec while PRESERVING existing implementation patterns (stealth HTTP, encryption, error handling, etc.)
      - Run tests and fix until passing
-     - Update mapping.yaml with new specHash and timestamp
+
+   **After resolving drift for ANY case** (metadata-only, code-ahead, or new-logic), recompute and update BOTH `specHash` and `fileHashes` in mapping.yaml — same fields as step 7. The spec may have changed (code-ahead enrichment, new-logic re-implementation) and the code files may have changed (new-logic re-implementation). Updating only one hash causes the other to go stale, triggering false drift on the next `/ddd-sync`.
 
    **Validate written specs**: After all drift fixes are applied, verify each modified spec and implementation file is structurally valid (proper YAML, correct node types, no broken references). Fix any issues before reporting.
 

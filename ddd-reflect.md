@@ -106,7 +106,7 @@ Parse `$ARGUMENTS` to determine scope:
       | `query_optimization` | Views, computed columns, denormalization |
       | `custom` | Project-specific data patterns |
 
-   e. **Check for duplicates**: Read existing `.ddd/annotations/schemas/{model}.yaml` if it exists. Skip findings that match existing annotations (same type + same applies_to context).
+   e. **Check for duplicates**: Read existing `.ddd/annotations/schemas/{model}.yaml` if it exists. Skip findings that match existing annotations with status `candidate` or `promoted` (same type + same applies_to context). **Do NOT skip matches against `dismissed` annotations** — dismissed findings should be re-detectable if the code has changed since dismissal.
 
    f. **Check for already-specified patterns**: If the finding is already described in the schema spec (e.g., the spec already lists an index or constraint), skip it — it's not "wisdom" if the spec already knows.
 
@@ -206,7 +206,7 @@ Parse `$ARGUMENTS` to determine scope:
 
       Use `architecture.yaml` → `cross_cutting_patterns` as reference — if a pattern is already documented there, note the match but still check if the code's implementation has details the pattern description doesn't capture.
 
-   e. **Check for duplicates**: Read existing `.ddd/annotations/{domain}/{flow}.yaml` if it exists. Skip findings that match existing annotations (same type + same applies_to_nodes).
+   e. **Check for duplicates**: Read existing `.ddd/annotations/{domain}/{flow}.yaml` if it exists. Skip findings that match existing annotations with status `candidate` or `promoted` (same type + same applies_to_nodes). **Do NOT skip matches against `dismissed` annotations** — dismissed findings should be re-detectable if the code has changed since dismissal.
 
    f. **Check for already-specified patterns**: If the finding is already described in the flow spec (e.g., the spec already mentions encryption in a crypto node), skip it — it's not "wisdom" if the spec already knows.
 

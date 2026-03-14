@@ -273,7 +273,9 @@ Parse `$ARGUMENTS` to determine scope:
      code_files: []
    ```
    - Promotions enrich existing specs, never add or remove them
-   - `status: pending_implement` — promoted patterns may require code regeneration (e.g., a new cross-cutting pattern needs to be applied in implementation)
+   - **Status depends on what was promoted:**
+     - `status: pending_implement` — when the enrichment adds behavioral fields that require code changes (e.g., new cross-cutting pattern convention, new security/observability config, new node spec fields that affect implementation)
+     - `status: implemented` — when the enrichment is documentation-only and the code already matches (e.g., adding `description`, `notes`, `pattern_governed`, or enriching a spec to describe what code already does). Set `implemented_at` to current timestamp.
    - Skip if a `pending_implement` entry already exists for the same `spec_file` with the same checksum
    - This allows `/ddd-implement` (no flags) to automatically pick up spec enrichments from promotion
 
