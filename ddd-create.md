@@ -726,7 +726,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    | `type: guardrail` | Check both `pass`/`block` handles |
    | `type: parse` | Check both `success`/`error` handles |
    | `update_where` | Check `store_type` is memory, not database |
-   | `type: agent` (in flow metadata) | Verify at least one `agent_loop`, `agent_group`, or `orchestrator` node |
+   | `type: agent` (in flow metadata) | **COMMON MISS:** Verify at least one `agent_loop`, `agent_group`, or `orchestrator` node exists — downgrade to `type: traditional` if not. Flows that only use `llm_call`, `sub_flow`, `decision`, or `parallel` are NOT agent flows. |
 
    Collect the **union of unique file paths** across all Grep results. For a typical 80-flow project, this will be 30–50 files rather than all 80 — flows with no branching or structured nodes are skipped.
 
@@ -737,7 +737,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    1. **Required fields** — check against the required-fields table in step 13. Add any missing field using the best value from context.
    2. **Handle completeness** — for every branching node type, verify all output handles (`success`/`error`, `result`/`empty`, `done`/`error`, etc.) have at least one outgoing connection. Add a connection to an error terminal if missing.
    3. **Connection format** — if a top-level `connections:` key exists with `from`/`to`, `source`/`target`, or `handle:` fields, convert to per-node `connections: [{ targetNodeId, sourceHandle }]` format.
-   4. **Agent type** — if `type: agent` but no `agent_loop`, `agent_group`, or `orchestrator` node present, set `type: traditional`.
+   4. **Agent type (COMMON MISS)** — if `type: agent` but no `agent_loop`, `agent_group`, or `orchestrator` node present, change to `type: traditional`. Also update the corresponding entry in `domain.yaml` → `flows[]` to match. This is the most frequently missed check — flows using `sub_flow`, `parallel`, or `llm_call` are often incorrectly tagged as agent flows.
    5. **update_where mismatch** — if `operation: update_where` with `store_type: database`, change to `operation: update` with `query.where`.
 
    Edit the file once after checking all nodes. Do not make a separate edit per issue.
