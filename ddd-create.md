@@ -256,7 +256,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    5. **Logic** (Steps 12-13) → domain.yaml files, flow specs
       → Checkpoint: "✓ Logic: {N} domains, {M} flows created"
 
-   Logic (flows) is last because it's the most detail-heavy pillar and can consume disproportionate effort. By generating Data, Interface, and Infrastructure first, you ensure no pillar gets starved of attention. The Interface gate at step 3 ensures UI specs actually exist before proceeding.
+   Logic (flows) is last because it's the most detail-heavy pillar and can consume disproportionate effort. By generating Data, Interface, and Infrastructure first, you ensure no pillar gets starved of attention. The Interface gate in the generation order (step 5, item 3) ensures UI specs actually exist before proceeding.
 
 6. **Create the project directory structure**:
 
@@ -284,7 +284,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
              {flow-id}.yaml (one per flow)
    ```
 
-7. **Create `ddd-project.json`**: List all domains with name, description, and optional `role` (entity/process/interface — used by DDD Tool for visual differentiation at L1).
+7. **Create `ddd-project.json`**: List all domains with name, description, and optional `role` (entity/process/interface/orchestration — used by DDD Tool for visual differentiation at L1).
 
 8. **Create system and shared spec files**:
    - `specs/system.yaml` — project identity, tech stack, environments. If the project has external API integrations, add an `integrations:` section with base_url, auth, rate_limits, retry, and timeout_ms per integration.
@@ -993,7 +993,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
     - If the product definition describes pages/screens that have no corresponding `specs/ui/{page-id}.yaml`, that's automatically a `pillar_balance` → `pages_without_specs` entry with severity `high`
     - If logic flows outnumber UI pages by more than 5:1 for a user-facing project, add an `imbalance_warnings` entry
 
-17. **Write change-history entries**: After all spec files are created, append one entry per generated spec file to `.ddd/change-history.yaml` (create the file if it doesn't exist). Each entry must include all fields:
+18. **Write change-history entries**: After all spec files are created, append one entry per generated spec file to `.ddd/change-history.yaml` (create the file if it doesn't exist). Each entry must include all fields:
     ```yaml
     - id: "chg-{next 4-digit id}"
       timestamp: "{ISO 8601}"
@@ -1012,7 +1012,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
     ```
     Determine `level`, `domain`, `flow`, and `pillar` from the file path (same rules as ddd-tool). This enables `/ddd-implement` (no flags) to implement everything in one targeted pass without needing `--all`.
 
-18. **Summary**: After creating all files, show:
+19. **Summary**: After creating all files, show:
     ```
     Created DDD Project: {project-name}
 

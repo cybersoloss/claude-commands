@@ -455,7 +455,7 @@ Parse the argument to determine scope:
     docker-compose               done      4
     package.json scripts         done      6
 
-    Pillar balance: Logic {N} flows, Interface {N} pages, Data {N} schemas, Infrastructure {N} configs
+    Pillar balance: Data {N} schemas, Interface {N} pages, Infrastructure {N} configs, Logic {N} flows
     ```
 
 17. **Next steps**: After implementation, suggest **scoped** commands — never `--all` unless the scope was already `--all`:

@@ -109,12 +109,11 @@ Parse the argument to determine scope:
    ```
    DDD Test Results
 
-   ── Logic (Flows) ──────────────────────────────────────────────────────
-   Domain          Flow                    Tests   Pass   Fail   Skip
-   ─────────────── ─────────────────────── ─────── ────── ────── ──────
-   users           user-register           12      12     0      0      OK
-   users           user-login              8       7      1      0      FAIL
-   orders          create-order            6       6      0      0      OK
+   ── Data (Schemas) ──────────────────────────────────────────────────────
+   Check                                   Status
+   ─────────────────────────────────────── ──────
+   ORM schema validation                   OK
+   Migration consistency                   OK
 
    ── Interface (Pages) ───────────────────────────────────────────────────
    Page            Route                   Tests   Pass   Fail   Skip
@@ -122,20 +121,21 @@ Parse the argument to determine scope:
    dashboard       /                       5       5      0      0      OK
    inbox           /inbox                  8       7      1      0      FAIL
 
-   ── Data (Schemas) ──────────────────────────────────────────────────────
-   Check                                   Status
-   ─────────────────────────────────────── ──────
-   ORM schema validation                   OK
-   Migration consistency                   OK
-
    ── Infrastructure ──────────────────────────────────────────────────────
    Service         Health                  Status
    ─────────────── ─────────────────────── ──────
    PostgreSQL      pg_isready              OK
    Redis           redis-cli ping          OK
 
+   ── Logic (Flows) ──────────────────────────────────────────────────────
+   Domain          Flow                    Tests   Pass   Fail   Skip
+   ─────────────── ─────────────────────── ─────── ────── ────── ──────
+   users           user-register           12      12     0      0      OK
+   users           user-login              8       7      1      0      FAIL
+   orders          create-order            6       6      0      0      OK
+
    Summary: 39 tests, 37 passed, 2 failed
-   Pillars: Logic 3 flows, Interface 2 pages, Data 2 checks, Infrastructure 2 services
+   Pillars: Data 2 checks, Interface 2 pages, Infrastructure 2 services, Logic 3 flows
 
    Failures:
      users/user-login — test/user-login.test.ts

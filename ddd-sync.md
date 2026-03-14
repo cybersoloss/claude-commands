@@ -237,7 +237,7 @@ Parse `$ARGUMENTS` to determine scope (scope arguments are separate from flags l
 
    **Metadata updates:** When modifying any spec file, update `metadata.modified` to the current ISO timestamp.
 
-7. **Update mapping.yaml** (only for verified-in-sync entries):
+7. **Update mapping.yaml** (for metadata-only and in-sync entries; code-ahead and new-logic entries are handled in Step 9 after fixes):
    - For flows that are genuinely in sync (metadata-only or spec-enriched with code coverage), compute and update the `specHash`
    - Update the `files` list with all source files that are part of the implementation
    - Recompute and update `fileHashes` — SHA-256 of each implementation file, keyed by file path. This enables future code drift detection.

@@ -821,7 +821,7 @@ Derive flow IDs from the **trigger source**, not the handler function name. Prio
 This ensures flow IDs are stable and meaningful — a renamed function won't change the flow ID.
 
 ### Node ID convention
-Use `{type}-{6char-hash}` format (e.g., `input-a1b2c3`, `process-d4e5f6`).
+Use `{type}-{nanoid(8)}` format — 8-character alphanumeric, matching the DDD Tool (e.g., `input-aR9tK3wN`, `process-sN4xY7eQ`).
 
 ### Node positioning
 Place nodes vertically with ~130px spacing. Branch error/invalid terminals to the right (x + 250). Start trigger at y=0.

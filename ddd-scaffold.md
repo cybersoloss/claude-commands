@@ -237,7 +237,7 @@ Generate project skeleton files (package.json, config, middleware, ORM schemas, 
       docker-compose.yaml       (4 services)
       package.json scripts      (dev, dev:all, db:setup)
 
-    Pillar balance: Logic {N} files, Interface {N} files, Data {N} models + {N} seeds, Infrastructure {N} services
+    Pillar balance: Data {N} models + {N} seeds, Interface {N} files, Infrastructure {N} services, Logic {N} files
 
     Error codes: 8 defined
     Integrations: stripe, sendgrid (2 clients)
