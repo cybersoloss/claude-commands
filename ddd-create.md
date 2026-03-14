@@ -704,29 +704,29 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
 16. **Completeness Sweep (BLOCKER — Grep-first, targeted reads only)**
 
-   The step 15 quality checklist is a mental check. This step is a tool-enforced check. It runs after all files are written and catches anything that slipped through generation. It uses Grep to locate files at risk first, then reads only those files — not every file.
+   The step 15 quality checklist is a mental check. This step is a tool-enforced check. It runs after all files are written and catches anything that slipped through generation. Grep cannot detect whether a required field is missing within a node block (YAML structure spans multiple lines with variable depth), so Grep is used to locate which files contain each node type — then only those files are read and verified. Files with none of the relevant node types are skipped entirely.
 
    **Phase 1 — Parallel Grep scan across all generated flow files:**
 
-   Run these Grep searches simultaneously across `specs/domains/*/flows/*.yaml` (use `files_with_matches` output mode):
+   Run these Grep searches simultaneously across `specs/domains/*/flows/*.yaml` (use `files_with_matches` output mode). Each search returns only the file paths that contain that node type — not whether the fields are correct. The read in Phase 2 makes that determination.
 
-   | Pattern | What it flags |
-   |---------|--------------|
-   | `type: collection` | Files with collection nodes — check `spec.input`, `spec.output`, and both `result`/`empty` handles wired |
-   | `type: batch` | Files with batch nodes — check `spec.input`, `spec.operation_template` or `spec.sub_flow_ref`, both `done`/`error` handles |
-   | `type: cache` | Files with cache nodes — check `spec.store` |
-   | `type: crypto` | Files with crypto nodes — check `spec.key_source` (for encrypt/decrypt/sign) and both `success`/`error` handles |
-   | `type: service_call` | Files with service_call nodes — check `spec.url` or `spec.integration`, and both `success`/`error` handles |
-   | `store_type: memory` | Files with memory data_store — check `spec.selector` |
-   | `type: parallel` | Files with parallel nodes — check ≥2 branches and `done` handle wired |
-   | `type: transaction` | Files with transaction nodes — check ≥2 steps |
-   | `type: data_store` | Files with data_store nodes — check both `success`/`error` handles |
-   | `type: guardrail` | Files with guardrail nodes — check both `pass`/`block` handles |
-   | `type: parse` | Files with parse nodes — check both `success`/`error` handles |
-   | `update_where` | Files using update_where — check `store_type` is memory, not database |
-   | `type: agent` (in flow metadata) | Flows declaring `type: agent` — verify at least one `agent_loop`, `agent_group`, or `orchestrator` node |
+   | Pattern | Files to read and verify |
+   |---------|--------------------------|
+   | `type: collection` | Check `spec.input`, `spec.output`, and both `result`/`empty` handles wired |
+   | `type: batch` | Check `spec.input`, `spec.operation_template` or `spec.sub_flow_ref`, both `done`/`error` handles |
+   | `type: cache` | Check `spec.store` |
+   | `type: crypto` | Check `spec.key_source` (for encrypt/decrypt/sign) and both `success`/`error` handles |
+   | `type: service_call` | Check `spec.url` or `spec.integration`, and both `success`/`error` handles |
+   | `store_type: memory` | Check `spec.selector` |
+   | `type: parallel` | Check ≥2 branches and `done` handle wired |
+   | `type: transaction` | Check ≥2 steps |
+   | `type: data_store` | Check both `success`/`error` handles |
+   | `type: guardrail` | Check both `pass`/`block` handles |
+   | `type: parse` | Check both `success`/`error` handles |
+   | `update_where` | Check `store_type` is memory, not database |
+   | `type: agent` (in flow metadata) | Verify at least one `agent_loop`, `agent_group`, or `orchestrator` node |
 
-   Collect the **union of unique file paths** across all Grep results. For a typical 80-flow project, this will be 30–50 files rather than all 80.
+   Collect the **union of unique file paths** across all Grep results. For a typical 80-flow project, this will be 30–50 files rather than all 80 — flows with no branching or structured nodes are skipped.
 
    **Phase 2 — Targeted reads and fixes:**
 
