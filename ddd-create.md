@@ -552,7 +552,12 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Use `process` nodes for custom logic steps — set `category` (security/transform/integration/business_logic/infrastructure) to classify, `inputs`/`outputs` arrays to document data shape
      > **Note:** For exhaustive node spec field documentation, refer to the fetched DDD Usage Guide Section 6. The fields listed above cover the most commonly needed options.
      - End every path with a `terminal` node (set `outcome`, `status`, `body`; optional: `response_type` for streaming/SSE/file responses, `headers` for custom HTTP response headers)
-   - **Connection format:** Always write connections in the per-node `connections:` array using `targetNodeId` (canonical). **Never use the top-level `connections:` format with `from`/`to` keys** — it is not preserved by all DDD commands and causes validation errors when re-read.
+   - **Connection format:** Always write connections in the per-node `connections:` array using `targetNodeId` (canonical). **NEVER use any of these forbidden formats:**
+     - Top-level `connections:` array with `from:`/`to:` keys
+     - Top-level `connections:` array with `source:`/`target:` keys
+     - `handle:` field on a connection object (use `sourceHandle:` instead)
+
+     The ONLY valid format is per-node: `connections: [{ targetNodeId: "...", sourceHandle: "..." }]`. Any other key on a connection object besides `targetNodeId`, `sourceHandle`, `label`, `behavior`, `data`, and `condition` is invalid.
    - **CRITICAL — Wire every handle:** A branching node with a disconnected output handle causes a DDD Tool validation error. Every handle listed below MUST be wired before the spec is complete. Wire all connections with proper `sourceHandle` values:
      - `input` → `"valid"` / `"invalid"`
      - `decision` → `"true"` / `"false"`
@@ -574,6 +579,22 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `human_gate` → dynamic option IDs (from `approval_options[].id`)
      - `websocket_broadcast` → `"done"` (single output — no error branching)
      - All other nodes (delay, transform, sub_flow, orchestrator, handoff, agent_group) → single unnamed output
+
+   **Required fields at a glance** — scan this table before moving on from each node:
+
+   | Node type | Required fields (must never be omitted) |
+   |-----------|----------------------------------------|
+   | `collection` | `spec.input` (array expression e.g. `"$.items"`), `spec.output` (result var name) |
+   | `batch` | `spec.input` AND one of: `spec.operation_template` or `spec.sub_flow_ref` |
+   | `cache` | `spec.operation`, `spec.key`, `spec.store` (`"redis"` or `"memory"`) |
+   | `crypto` (encrypt/decrypt/sign) | `spec.key_source: { env: "ENV_VAR_NAME" }` |
+   | `service_call` | `spec.method` AND one of: `spec.url` or `spec.integration` |
+   | `service_call` (oauth1a) | `spec.oauth1a_config` with all 4: `api_key_field`, `api_key_secret_field`, `access_token_field`, `access_token_secret_field` |
+   | `data_store` (memory) | `spec.store` (store name from domain.yaml), `spec.selector` (path in store) |
+   | `parallel` | `spec.branches` array with ≥ 2 entries |
+   | `transaction` | `spec.steps` array with ≥ 2 entries (each with `action` and `rollback`) |
+   | `agent_loop` | `spec.tools` (≥ 1 entry with `is_terminal: true`), `spec.model`, `spec.max_iterations` |
+
    - Connections support optional fields: `behavior` for error handling (`continue`/`stop`/`retry`/`circuit_break`), `data` for annotating what data flows between nodes (e.g., `data: "userId, email"`), `label` for human-readable edge labels on the canvas, and `condition` for single-step optional processing (e.g., `condition: "$.changed_fields.length > 0"` — when false at runtime, this edge is skipped; use this instead of a decision node when the guard only leads to one optional step). When `behavior: circuit_break`, add `circuit_break_config: { failure_threshold, recovery_timeout_ms, half_open_max_calls? }` — `/ddd-implement` generates an opossum-style circuit breaker from these values.
    - Position nodes vertically with ~130px spacing, branch error terminals to the right
    - `metadata` with created and modified timestamps (current ISO). **For existing projects:** when modifying any existing spec file (schema, UI page, infrastructure, domain), also update its `metadata.modified` to the current ISO timestamp.
@@ -622,6 +643,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - **No unreachable nodes** — every node except the trigger must have at least one incoming connection. A node with no incoming edge is never executed. Scan each flow: if any node has zero incoming connections and is not the trigger, it is unreachable — wire it or remove it.
    - **Handoff nodes must specify target.flow** — `handoff` nodes with `mode: transfer` or `mode: consult` must have `target.flow` set to a valid `domain/flow-id`. A handoff with only `target.domain` or an empty `target` is incomplete.
    - **HTTP flows missing auth field** — ⚠️ warning (not error): HTTP-triggered flows without a `flow.auth` field have no machine-readable auth spec. Add `auth: { required: true, roles: [], strategy: 'jwt' }` to all non-public HTTP flows. Public endpoints (register, login, health check) set `required: false`.
+   - **`update_where` is memory-only** — `operation: update_where` is only valid when `store_type: memory`. For database data stores, use `operation: update` with a `query.where` clause instead. Using `update_where` on a database node causes a DDD Tool validation error.
 
    **Data (schemas):**
    - Every model referenced by `data_store` nodes in any flow exists in `specs/schemas/`
@@ -680,7 +702,51 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
    If ANY check fails, go back to the relevant generation step and create the missing specs. Do NOT finish the command with incomplete pillar coverage.
 
-16. **Shortfall report** (only if `--shortfalls` flag is present in `$ARGUMENTS`):
+16. **Completeness Sweep (BLOCKER — Grep-first, targeted reads only)**
+
+   The step 15 quality checklist is a mental check. This step is a tool-enforced check. It runs after all files are written and catches anything that slipped through generation. It uses Grep to locate files at risk first, then reads only those files — not every file.
+
+   **Phase 1 — Parallel Grep scan across all generated flow files:**
+
+   Run these Grep searches simultaneously across `specs/domains/*/flows/*.yaml` (use `files_with_matches` output mode):
+
+   | Pattern | What it flags |
+   |---------|--------------|
+   | `type: collection` | Files with collection nodes — check `spec.input`, `spec.output`, and both `result`/`empty` handles wired |
+   | `type: batch` | Files with batch nodes — check `spec.input`, `spec.operation_template` or `spec.sub_flow_ref`, both `done`/`error` handles |
+   | `type: cache` | Files with cache nodes — check `spec.store` |
+   | `type: crypto` | Files with crypto nodes — check `spec.key_source` (for encrypt/decrypt/sign) and both `success`/`error` handles |
+   | `type: service_call` | Files with service_call nodes — check `spec.url` or `spec.integration`, and both `success`/`error` handles |
+   | `store_type: memory` | Files with memory data_store — check `spec.selector` |
+   | `type: parallel` | Files with parallel nodes — check ≥2 branches and `done` handle wired |
+   | `type: transaction` | Files with transaction nodes — check ≥2 steps |
+   | `type: data_store` | Files with data_store nodes — check both `success`/`error` handles |
+   | `type: guardrail` | Files with guardrail nodes — check both `pass`/`block` handles |
+   | `type: parse` | Files with parse nodes — check both `success`/`error` handles |
+   | `update_where` | Files using update_where — check `store_type` is memory, not database |
+   | `type: agent` (in flow metadata) | Flows declaring `type: agent` — verify at least one `agent_loop`, `agent_group`, or `orchestrator` node |
+
+   Collect the **union of unique file paths** across all Grep results. For a typical 80-flow project, this will be 30–50 files rather than all 80.
+
+   **Phase 2 — Targeted reads and fixes:**
+
+   For each flagged file: Read it once, then fix ALL issues found in that single read before moving to the next file. For each node in the file:
+
+   1. **Required fields** — check against the required-fields table in step 13. Add any missing field using the best value from context.
+   2. **Handle completeness** — for every branching node type, verify all output handles (`success`/`error`, `result`/`empty`, `done`/`error`, etc.) have at least one outgoing connection. Add a connection to an error terminal if missing.
+   3. **Connection format** — if a top-level `connections:` key exists with `from`/`to`, `source`/`target`, or `handle:` fields, convert to per-node `connections: [{ targetNodeId, sourceHandle }]` format.
+   4. **Agent type** — if `type: agent` but no `agent_loop`, `agent_group`, or `orchestrator` node present, set `type: traditional`.
+   5. **update_where mismatch** — if `operation: update_where` with `store_type: database`, change to `operation: update` with `query.where`.
+
+   Edit the file once after checking all nodes. Do not make a separate edit per issue.
+
+   **Phase 3 — Schema ownership audit (Grep-based):**
+
+   1. Grep for `model:` across all flow files to collect every unique model name referenced by `data_store` nodes
+   2. For each unique model, verify `specs/schemas/{model}.yaml` exists and that the model appears in one domain's `owns_schemas` list
+   3. For any model failing either check: create the missing schema file and add to the appropriate domain's `owns_schemas`
+
+17. **Shortfall report** (only if `--shortfalls` flag is present in `$ARGUMENTS`):
 
     **Step A — Build the DDD Feature Usage Matrix:**
 
