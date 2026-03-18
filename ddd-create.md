@@ -529,74 +529,54 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - **If you generated a trigger without `spec.event`, STOP and add it before continuing.** A trigger with `method`/`path` but no `event` is invalid.
      - Optional advanced fields: `filter` (Record — event payload filter, supports dot notation and operators, e.g., `{platform: twitter}` or `{"payload.amount": {gte: 100}}`), `debounce_ms` (debounce rapid-fire triggers), `rate_limit` (`{ window_ms, max_requests, key_by?, on_exceeded? }` — per-endpoint rate limiting), `signature` (`{ algorithm, key_source: { env }, header }` — webhook HMAC signature validation), `tier_limits` (HTTP triggers only — per-role rate limit overrides: `[{ role, max_requests, window_ms }]`), `connection_config` (ws triggers only — `{ auth_required, auth_strategy?: jwt|api_key|none, heartbeat_ms?, max_connections_per_client?, reconnect? }`), `cors_config` (HTTP triggers only — `{ origins, methods?, headers?, credentials? }` for self-describing CORS policy)
    - For flows called as sub-flows, add a `contract` section to the flow metadata with `inputs` and `outputs`
-   - `nodes` array — **start every flow from this skeleton template**, then add business logic nodes between trigger and terminals:
+   - `nodes` array — **start every flow by copying this skeleton template**, then fill in placeholders and add business nodes:
      ```yaml
-     # ── Flow skeleton (fill in placeholders, then add nodes between trigger and terminals) ──
+     # === FLOW TEMPLATE — copy this skeleton for every flow, then fill in ===
      flow:
        id: {flow-id}
        name: {Flow Name}
        type: traditional          # or agent (only if agent_loop/agent_group/orchestrator present)
        domain: {domain-id}
-       description: {what this flow does}
+       description: |
+         {description}
 
      trigger:
        id: trigger-{nanoid8}
-       label: {Trigger Label}
-       spec:
-         event: "{EVENT STRING}"   # ← MANDATORY — HTTP POST /path, cron expr, event:Name, manual, etc.
-         source: "{source}"
-         description: {trigger description}
+       position: { x: 400, y: 50 }
        connections:
-         - targetNodeId: input-{nanoid8}
+         - targetNodeId: {first-node-id}
+       spec:
+         event: "{EVENT STRING}"   # ← MANDATORY. HTTP POST /path, cron expr, event:Name, etc.
+         method: POST              # ← only for HTTP triggers
+         path: "/api/v1/..."       # ← only for HTTP triggers
+         description: {what triggers this flow}
+       label: {trigger label}
 
      nodes:
-       # ── Error terminal (shared — wire all error/empty/false/block handles here) ──
-       - id: error-terminal
+       # --- ERROR TERMINAL (generate FIRST, before business nodes) ---
+       - id: terminal-{nanoid8}
          type: terminal
-         label: Error
-         position: { x: 600, y: 800 }
+         position: { x: 700, y: 800 }
          spec:
            outcome: error
            status: 500
-           body: { error: "$.error" }
+           body: { error: "ERR_CODE", message: "description" }
          connections: []
 
-       # ── Success terminal ──
-       - id: success-terminal
-         type: terminal
-         label: Success
-         position: { x: 250, y: 800 }
-         spec:
-           outcome: success
-           status: 200
-           body: { data: "$.result" }
-         connections: []
+       # --- BUSINESS NODES (wire BOTH handles inline for every branching node) ---
+       # Example pattern for any branching node:
+       #   connections:
+       #     - targetNodeId: next-node
+       #       sourceHandle: success
+       #     - targetNodeId: terminal-{error-terminal-id}
+       #       sourceHandle: error        # ← NEVER omit this
 
-       # ── Business logic nodes go here ──
-       # For each branching node, wire BOTH handles inline:
-       #   service_call/data_store/llm_call/parse/crypto/ipc_call → success + error
-       #   decision → true + false
-       #   collection → result + empty
-       #   cache (check) → hit + miss
-       #   batch/agent_loop → done + error
-       #   transaction → committed + rolled_back
-       #   guardrail → pass + block
-       #   input → valid + invalid
+     metadata:
+       created: "{ISO timestamp}"
+       modified: "{ISO timestamp}"
      ```
-     Fill in all `{placeholders}`, replace `{nanoid8}` with actual nanoid(8) values, adjust positions, and add nodes between the trigger and terminals. Delete the comment block after filling in.
-     - **Error terminal first (MANDATORY):** The skeleton above pre-includes the error terminal. If you're not using the skeleton, generate it before any business logic nodes:
-       ```yaml
-       - id: error-terminal
-         type: terminal
-         label: Error
-         position: { x: 600, y: 800 }
-         spec:
-           outcome: error
-           status: 500
-           body: { error: "$.error" }
-         connections: []
-       ```
-       All branching nodes that lack a dedicated error-handling chain MUST connect their error/empty/false/block handle to this node. Adjust its `y` position to be below the last node in the flow.
+     For every flow, start by copying this skeleton. Fill in the placeholders, then add business nodes between the trigger and the error terminal. Every branching node you add MUST have both handles wired — copy the connection pattern from the example comment. Remove `method:`/`path:` lines for non-HTTP triggers.
+     - **Error terminal (MANDATORY):** The skeleton above pre-includes it. All branching nodes that lack a dedicated error-handling chain MUST connect their error/empty/false/block handle to this terminal. Adjust its `y` position to be below the last node in the flow.
      - Always start with `input` node after trigger for API flows (validate incoming data)
      - Use `decision` nodes for branching logic (always wire both `true` and `false`)
      - Use `data_store` for data storage operations. Set `store_type` to `'database'` (default), `'filesystem'`, or `'memory'`. For database: set `operation` (create/read/update/delete/upsert/create_many/update_many/delete_many/aggregate), `model`, `data`/`query`. Optional: `include` (join related models), `upsert_key` (conflict key for upsert), `returning` (return affected records — valid for all operation types, not just bulk), `safety: 'strict'` (null-safe reads), `pagination_response: { data_field, cursor_field, has_more_field }` (for read operations with pagination — auto-formats the cursor pagination response envelope instead of needing a separate transform node), `aggregate_fields` (for `aggregate` operation: array of `{function, field, alias}`), `group_by` (for `aggregate`: list of field names). For filesystem: set `path`, `content`, `create_parents`. For memory: **REQUIRED `store` and `selector`** — set `store` (store name from domain.yaml `stores`), `selector` (path within the store), and prefer memory operations (`get`/`set`/`merge`/`reset`/`subscribe`/`update_where`). Use `update_where` with `predicate` + `patch` for array item updates. **Every `model:` referenced in a `data_store` node must match a schema in `specs/schemas/` AND appear in the domain's `owns_schemas` list.**
