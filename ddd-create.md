@@ -293,7 +293,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `data_flows` — inter-zone directed data flow arrows for L1 visualization
    - `characteristics` — system-level badges (e.g., "Event-driven", "6 external APIs")
    - `pipelines` — cross-domain event chains that trace end-to-end pipelines
-   - `ws_topology` (optional) — describe WebSocket architecture for L1 visualization: `{ hubs: [{id, domain, path, description}], fanout: [{from, to, event}] }`. Include when using `ws` triggers or `websocket_broadcast` nodes.
+   - `ws_topology` (optional) — describe WebSocket architecture for L1 visualization: flat array `[{ channel, producer_flow, consumer_pages[] }]`. Include when using `ws` triggers or `websocket_broadcast` nodes.
    - `specs/architecture.yaml` — project structure, naming conventions, dependencies, infrastructure, API design, testing, deployment. Include a `cross_cutting_patterns: {}` placeholder section for patterns discovered during implementation. Cross-cutting patterns can target nodes (default) or triggers — use `applies_to: trigger` with `trigger_type: HTTP` to define trigger-level patterns (e.g., default rate limiting for all HTTP endpoints). Use `audit_log` pattern type to define automatic audit trail generation for data_store write operations.
    - `specs/config.yaml` — required and optional environment variables
    - `specs/shared/errors.yaml` — error codes with HTTP status mappings (cover at least: VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, DUPLICATE_ENTRY, RATE_LIMITED, INTERNAL_ERROR)
@@ -477,8 +477,8 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - `on_error` (optional) — domain-level error hook with `emit_event` name. `/ddd-implement` adds this to all error terminals.
    - `publishes_events` and `consumes_events` (cross-domain event wiring). Include `payload` field in events to document event data shape
    - `event_groups` (optional) — named collections of events for use in multi-event triggers. Define `name`, `description`, `events` array, and optional `correlation_key` (expression for matching events across a session, e.g. `"$.order_id"` — ensures only events sharing the same key satisfy the group). Referenced as `event_group:{name}` in trigger `event` fields.
-   - `sla_config` (optional) — domain-level SLA monitoring: `{ max_latency_ms, max_error_rate, alert_channel }`
-   - `memory_stores` (optional) — AI/agent memory stores available across flows in the domain: array of `{ name, type: key_value|list|counter, description }`. Distinct from `stores` (which are UI-layer in-memory state stores).
+   - `sla_config` (optional) — domain-level SLA monitoring: `{ max_latency_ms, alert_threshold_ms, on_breach }`
+   - `memory_stores` (optional) — AI/agent memory stores available across flows in the domain: array of `{ name, type: 'vector_store' | 'key_value' | 'conversation_history', description }`. Distinct from `stores` (which are UI-layer in-memory state stores).
    - `rate_limit_policy` (optional) — domain-wide rate limiting default: `{ window_ms, max_requests, key_by, tiers? }`. All HTTP triggers in the domain inherit this policy. Trigger-level `rate_limit` overrides.
    - `audit` (optional) — set `audit: true` for automatic audit event emission on all data_store create/update/delete operations in the domain. `/ddd-implement` auto-generates audit events with standard payload (user_id, action, model, record_id, before, after).
    - `layout` with flow positions (space flows vertically with ~200px gaps)

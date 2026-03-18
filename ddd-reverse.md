@@ -616,7 +616,7 @@ Before writing final spec files, verify across all four pillars:
   | `process` | `action` or `description` |
   | `decision` | `condition` |
   | `terminal` | `outcome` (success/error/redirect), `status` (HTTP code), `body` |
-  | `data_store` | `operation` (find/create/update/delete), `model` |
+  | `data_store` | `operation` (read/create/update/delete/upsert), `model` |
   | `service_call` | `method`, `url` |
   | `event` | `direction` (emit/consume), `event_name` |
   | `llm_call` | `model` or `provider`, `prompt` or `messages` |
@@ -625,10 +625,10 @@ Before writing final spec files, verify across all four pillars:
   | `cache` | `operation` (get/set/invalidate), `key` |
   | `parse` | `format` (json/xml/html/csv/rss) |
   | `crypto` | `operation` (encrypt/decrypt/hash/sign/verify/jwt_sign/jwt_verify/generate_key/generate_token) |
-  | `batch` | `collection`, `operation` |
+  | `batch` | `input`, `operation_template` or `sub_flow_ref` |
   | `transaction` | `steps` or description of atomic operations |
   | `ipc_call` | `command` |
-  | `transform` | `mapping` or `expression` |
+  | `transform` | `field_mappings` (schema mode) or `mode: expression` with `field_mappings` |
 - Decision nodes have both true and false branches wired
 - Input nodes have valid/invalid paths wired
 - Data store nodes have success/error paths wired
