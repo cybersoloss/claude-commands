@@ -529,8 +529,62 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - **If you generated a trigger without `spec.event`, STOP and add it before continuing.** A trigger with `method`/`path` but no `event` is invalid.
      - Optional advanced fields: `filter` (Record — event payload filter, supports dot notation and operators, e.g., `{platform: twitter}` or `{"payload.amount": {gte: 100}}`), `debounce_ms` (debounce rapid-fire triggers), `rate_limit` (`{ window_ms, max_requests, key_by?, on_exceeded? }` — per-endpoint rate limiting), `signature` (`{ algorithm, key_source: { env }, header }` — webhook HMAC signature validation), `tier_limits` (HTTP triggers only — per-role rate limit overrides: `[{ role, max_requests, window_ms }]`), `connection_config` (ws triggers only — `{ auth_required, auth_strategy?: jwt|api_key|none, heartbeat_ms?, max_connections_per_client?, reconnect? }`), `cors_config` (HTTP triggers only — `{ origins, methods?, headers?, credentials? }` for self-describing CORS policy)
    - For flows called as sub-flows, add a `contract` section to the flow metadata with `inputs` and `outputs`
-   - `nodes` array — design the complete node graph:
-     - **Error terminal first (MANDATORY):** Before writing any business logic nodes, generate a shared error terminal node for the flow:
+   - `nodes` array — **start every flow from this skeleton template**, then add business logic nodes between trigger and terminals:
+     ```yaml
+     # ── Flow skeleton (fill in placeholders, then add nodes between trigger and terminals) ──
+     flow:
+       id: {flow-id}
+       name: {Flow Name}
+       type: traditional          # or agent (only if agent_loop/agent_group/orchestrator present)
+       domain: {domain-id}
+       description: {what this flow does}
+
+     trigger:
+       id: trigger-{nanoid8}
+       label: {Trigger Label}
+       spec:
+         event: "{EVENT STRING}"   # ← MANDATORY — HTTP POST /path, cron expr, event:Name, manual, etc.
+         source: "{source}"
+         description: {trigger description}
+       connections:
+         - targetNodeId: input-{nanoid8}
+
+     nodes:
+       # ── Error terminal (shared — wire all error/empty/false/block handles here) ──
+       - id: error-terminal
+         type: terminal
+         label: Error
+         position: { x: 600, y: 800 }
+         spec:
+           outcome: error
+           status: 500
+           body: { error: "$.error" }
+         connections: []
+
+       # ── Success terminal ──
+       - id: success-terminal
+         type: terminal
+         label: Success
+         position: { x: 250, y: 800 }
+         spec:
+           outcome: success
+           status: 200
+           body: { data: "$.result" }
+         connections: []
+
+       # ── Business logic nodes go here ──
+       # For each branching node, wire BOTH handles inline:
+       #   service_call/data_store/llm_call/parse/crypto/ipc_call → success + error
+       #   decision → true + false
+       #   collection → result + empty
+       #   cache (check) → hit + miss
+       #   batch/agent_loop → done + error
+       #   transaction → committed + rolled_back
+       #   guardrail → pass + block
+       #   input → valid + invalid
+     ```
+     Fill in all `{placeholders}`, replace `{nanoid8}` with actual nanoid(8) values, adjust positions, and add nodes between the trigger and terminals. Delete the comment block after filling in.
+     - **Error terminal first (MANDATORY):** The skeleton above pre-includes the error terminal. If you're not using the skeleton, generate it before any business logic nodes:
        ```yaml
        - id: error-terminal
          type: terminal
