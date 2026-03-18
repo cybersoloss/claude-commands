@@ -511,10 +511,10 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
 13. **Create flow YAML files**: For each flow, create `specs/domains/{domain-id}/flows/{flow-id}.yaml` with:
    - `flow` metadata (id, name, type, domain, description). Optionally add `emits: string[]` and `listens_to: string[]` to summarize the flow's event surface. For flows triggered by keyboard shortcuts, add `keyboard_shortcut` (e.g., `"Cmd+K"`). For reusable parameterized flows, add `template: true` and `parameters` (Record<string, FlowParameter> where FlowParameter has `type` and optional `values`) — callers pass parameters via `sub_flow` node's `input_mapping`. For HTTP-triggered flows, add `auth: { required: boolean, roles?: string[], strategy?: 'jwt'|'api_key'|'none' }` — `/ddd-implement` generates auth middleware from this field. Internal, cron, and event-triggered flows may omit `auth`. For performance-critical flows, optionally add `metrics: [{name, type: counter|gauge|histogram, labels?}]`. For flows that need per-flow log configuration, add `log: {level: 'debug'|'info'|'warn'|'error', include_input?: boolean, include_output?: boolean}` to override the default log level.
-   - `trigger` node with `spec.event` set to one of these conventions:
-     - `HTTP {METHOD} {path}` for API endpoints
-     - `cron {expression}` for scheduled jobs. Add `job_config` to the trigger spec with queue, concurrency, timeout, and retry settings
-     - `event:{EventName}` for event-driven flows
+   - `trigger` node — **`spec.event` is MANDATORY on every trigger.** Triggers do NOT have a `type` field — there is no `type: api_endpoint` or similar. The trigger type is implicit from the `event` string. Set `spec.event` to one of these conventions:
+     - `HTTP {METHOD} {path}` for API endpoints (e.g., `event: "HTTP POST /api/v1/analyses"`)
+     - `cron {expression}` for scheduled jobs (e.g., `event: "cron 0 0 * * *"`). Add `job_config` to the trigger spec with queue, concurrency, timeout, and retry settings
+     - `event:{EventName}` for event-driven flows (e.g., `event: "event:AnalysisStarted"`)
      - `webhook {path}` for webhook handlers
      - `manual` for admin-triggered flows
      - `shortcut {keys}` for keyboard shortcut triggers (e.g., `shortcut Cmd+K`)
@@ -526,9 +526,23 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `ws {path}` for WebSocket endpoints (e.g., `ws /api/live`)
      - `pattern:{EventName}` for event pattern triggers that aggregate multiple events
      - The label can match the event value or be more descriptive
+     - **If you generated a trigger without `spec.event`, STOP and add it before continuing.** A trigger with `method`/`path` but no `event` is invalid.
      - Optional advanced fields: `filter` (Record — event payload filter, supports dot notation and operators, e.g., `{platform: twitter}` or `{"payload.amount": {gte: 100}}`), `debounce_ms` (debounce rapid-fire triggers), `rate_limit` (`{ window_ms, max_requests, key_by?, on_exceeded? }` — per-endpoint rate limiting), `signature` (`{ algorithm, key_source: { env }, header }` — webhook HMAC signature validation), `tier_limits` (HTTP triggers only — per-role rate limit overrides: `[{ role, max_requests, window_ms }]`), `connection_config` (ws triggers only — `{ auth_required, auth_strategy?: jwt|api_key|none, heartbeat_ms?, max_connections_per_client?, reconnect? }`), `cors_config` (HTTP triggers only — `{ origins, methods?, headers?, credentials? }` for self-describing CORS policy)
    - For flows called as sub-flows, add a `contract` section to the flow metadata with `inputs` and `outputs`
    - `nodes` array — design the complete node graph:
+     - **Error terminal first (MANDATORY):** Before writing any business logic nodes, generate a shared error terminal node for the flow:
+       ```yaml
+       - id: error-terminal
+         type: terminal
+         label: Error
+         position: { x: 600, y: 800 }
+         spec:
+           outcome: error
+           status: 500
+           body: { error: "$.error" }
+         connections: []
+       ```
+       All branching nodes that lack a dedicated error-handling chain MUST connect their error/empty/false/block handle to this node. Adjust its `y` position to be below the last node in the flow.
      - Always start with `input` node after trigger for API flows (validate incoming data)
      - Use `decision` nodes for branching logic (always wire both `true` and `false`)
      - Use `data_store` for data storage operations. Set `store_type` to `'database'` (default), `'filesystem'`, or `'memory'`. For database: set `operation` (create/read/update/delete/upsert/create_many/update_many/delete_many/aggregate), `model`, `data`/`query`. Optional: `include` (join related models), `upsert_key` (conflict key for upsert), `returning` (return affected records — valid for all operation types, not just bulk), `safety: 'strict'` (null-safe reads), `pagination_response: { data_field, cursor_field, has_more_field }` (for read operations with pagination — auto-formats the cursor pagination response envelope instead of needing a separate transform node), `aggregate_fields` (for `aggregate` operation: array of `{function, field, alias}`), `group_by` (for `aggregate`: list of field names). For filesystem: set `path`, `content`, `create_parents`. For memory: **REQUIRED `store` and `selector`** — set `store` (store name from domain.yaml `stores`), `selector` (path within the store), and prefer memory operations (`get`/`set`/`merge`/`reset`/`subscribe`/`update_where`). Use `update_where` with `predicate` + `patch` for array item updates. **Every `model:` referenced in a `data_store` node must match a schema in `specs/schemas/` AND appear in the domain's `owns_schemas` list.**
@@ -564,7 +578,15 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - `handle:` field on a connection object (use `sourceHandle:` instead)
 
      The ONLY valid format is per-node: `connections: [{ targetNodeId: "...", sourceHandle: "..." }]`. Any other key on a connection object besides `targetNodeId`, `sourceHandle`, `label`, `behavior`, `data`, and `condition` is invalid.
-   - **CRITICAL — Wire every handle:** A branching node with a disconnected output handle causes a DDD Tool validation error. Every handle listed below MUST be wired before the spec is complete. Wire all connections with proper `sourceHandle` values:
+   - **CRITICAL — Wire every handle INLINE:** A branching node with a disconnected output handle causes a DDD Tool validation error. **When you write a branching node, write BOTH connections immediately — do NOT defer error/empty/false wiring to a later step.** Every handle listed below MUST be wired before moving to the next node. Example — when generating a `service_call`, write both handles in the same block:
+     ```yaml
+     connections:
+       - targetNodeId: next-node
+         sourceHandle: success
+       - targetNodeId: error-terminal
+         sourceHandle: error
+     ```
+     Wire all connections with proper `sourceHandle` values:
      - `input` → `"valid"` / `"invalid"`
      - `decision` → `"true"` / `"false"`
      - `data_store` → `"success"` / `"error"`
@@ -622,7 +644,10 @@ Create a complete DDD (Design Driven Development) project from a software projec
 15. **Quality checks**: Before finishing, verify:
 
    **Logic (flows):**
+   - Every trigger has `spec.event` set — not just `method`/`path` (e.g., `event: "HTTP POST /api/v1/users"`)
+   - No trigger uses a `type` field (e.g., `type: api_endpoint` is invalid — remove it)
    - Every flow has exactly one trigger
+   - Every flow has at least one error terminal node (`outcome: error`) — all error/empty/false/block handles must reach one
    - All paths from trigger reach a terminal node
    - No orphaned nodes
    - Decision nodes have both branches wired
@@ -736,6 +761,16 @@ Create a complete DDD (Design Driven Development) project from a software projec
    | `type: text_split` | Check `spec.input`, `spec.max_length`, `spec.split_strategy`, `spec.output` |
    | `update_where` | Check `store_type` is memory, not database |
    | `type: agent` (in flow metadata) | **COMMON MISS:** Verify at least one `agent_loop`, `agent_group`, or `orchestrator` node exists — downgrade to `type: traditional` if not. Flows that only use `llm_call`, `sub_flow`, `decision`, or `parallel` are NOT agent flows. |
+   | `type: api_endpoint` | **INVALID — remove it.** Triggers do not have a `type` field. If found, delete the `type:` line. |
+
+   **Additionally, run these trigger-specific Grep scans across all flow files:**
+
+   | Pattern | Action |
+   |---------|--------|
+   | `spec:` under trigger blocks WITHOUT a following `event:` | Read the file. If the trigger has `method`/`path` but no `event`, add `event: "HTTP {METHOD} {path}"`. If the trigger has no `event` at all, determine the correct event string from context and add it. |
+   | `type: api_endpoint` | Delete the `type: api_endpoint` line — it is not a valid DDD field. |
+
+   **Graph reachability spot-check:** For each flow file read in Phase 2, trace from the trigger through all connections. If any node has zero incoming connections (and is not the trigger), wire it into the graph or remove it.
 
    Collect the **union of unique file paths** across all Grep results. For a typical 80-flow project, this will be 30–50 files rather than all 80 — flows with no branching or structured nodes are skipped.
 
