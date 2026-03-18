@@ -243,6 +243,8 @@ Parse the argument to determine what to update:
    - Event wiring is consistent (published events match consumed events across domains)
    - Agent flows have at least one agent_loop with `model`, tools, and a terminal tool (`is_terminal: true`)
    - **Connection field names**: verify all connections use `targetNodeId` (not `target`/`targetId`) and `sourceHandle` (not `handle`/`label` as handle). When using parallel agents to fix connections, each agent MUST use the canonical field names — `label` is NOT a handle alias.
+   - **Every trigger has `spec.event`** — if any trigger node is missing `spec.event`, STOP and add it before continuing. A trigger without `spec.event` is invalid and will fail to load in the DDD Tool.
+   - **No trigger has a `type` field** — `type: api_endpoint` and all other `type` values are invalid on trigger nodes. The trigger kind is expressed through `spec.event` conventions only (e.g., `"HTTP POST /path"`). If any trigger has a `type` field, STOP and remove it before continuing.
 
 10. **Preserve existing data**: When updating a flow:
    - Keep all nodes that aren't being changed — don't regenerate the entire flow

@@ -147,6 +147,11 @@ Parse `$ARGUMENTS` to determine scope (scope arguments are separate from flags l
    - Detect services added/removed in code but not in spec, or spec services missing from code
 
    **Logic (flow) drift:**
+   - **Spec structural pre-check (run before drift analysis):** For every flow spec in scope, verify structural soundness:
+     - Every trigger node has `spec.event` — any trigger missing this field is a `spec_defect`; flag it immediately (do not proceed with drift analysis for that flow until noted)
+     - No trigger node has a `type` field — `type: api_endpoint` or any other `type` value on a trigger is a `spec_defect`; flag it
+     - All error/false/block output handles on branching nodes are wired to a downstream node (not dangling)
+     Structural defects are reported with `spec_defect` status in the report and should be fixed via `/ddd-update` or manually before `/ddd-implement` runs on that flow.
    - Compare `specs/domains/*/flows/*.yaml` against actual implementation files
    - Full bidirectional check as described in (a), (b), (c) above
    - Check if flows use `cross_cutting_patterns` from `architecture.yaml` — if code applies a pattern (stealth_http, encryption, soft_delete) that the flow spec doesn't reference, classify as code-ahead
