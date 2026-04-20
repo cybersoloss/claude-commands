@@ -813,6 +813,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
    | Pattern | Files to read and verify |
    |---------|--------------------------|
+   | `type: input` | Check both `valid`/`invalid` handles wired — `invalid` MUST connect to an error terminal |
    | `type: collection` | Check `spec.input`, `spec.output`, and both `result`/`empty` handles wired |
    | `type: batch` | Check `spec.input`, `spec.operation_template` or `spec.sub_flow_ref`, both `done`/`error` handles |
    | `type: cache` | Check `spec.store` |
