@@ -285,7 +285,7 @@ Parse `$ARGUMENTS` to determine scope (scope arguments are separate from flags l
    - Update architecture.yaml with approved cross-cutting patterns
    - Update mapping.yaml hashes for all changes
 
-9. **Fix drift** (if `--fix-drift` or `--full` flag):
+9. **Fix drift** (if `--fix-drift` or `--full` flag) — **perform all drift fixes directly in this session, do NOT delegate to subagents.** Subagents lack the Usage Guide, cross-cutting patterns, and vocabulary gate context needed for correct spec/code generation:
 
    **⚠ VOCABULARY GATE — verify before writing EACH node (see Usage Guide § DDD Vocabulary Reference):**
    - **Handles:** ONLY use: `success`/`error`, `body`/`done`, `true`/`false`, `valid`/`invalid`, `hit`/`miss`, `result`/`empty`, `pass`/`block`, `committed`/`rolled_back`, `branch-N`, `chunks`, `done`. NEVER: `next`, `each`, `output`, `yes`, `no`, `passed`, `blocked`.

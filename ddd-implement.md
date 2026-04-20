@@ -103,7 +103,9 @@ Parse the argument to determine scope:
 
 4. **Fetch the DDD Usage Guide**: Run `gh api repos/cybersoloss/DDD/contents/DDD-USAGE-GUIDE.md --jq '.content' | base64 -d` to get the latest version. This guide defines all YAML formats, node types, spec fields, connection patterns, UI spec format, infrastructure spec format, and conventions. Use it as your reference for understanding node specs during implementation.
 
-5. **Understand the flow spec**: Each flow YAML contains:
+5. **Implement all flows/pages directly in this session — do NOT delegate code generation to subagents.** Subagents don't have the Usage Guide, architecture.yaml cross-cutting patterns, or shared context (schemas, error codes, types) needed to generate correct code. Generate each flow's code sequentially.
+
+6. **Understand the flow spec**: Each flow YAML contains:
    - `flow:` — metadata (id, name, type, domain)
    - `trigger:` — what starts the flow (event, HTTP, scheduled, manual)
    - `nodes:` — ordered list of processing steps (see Usage Guide for all node types and their spec fields)
