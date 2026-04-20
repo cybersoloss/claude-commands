@@ -539,7 +539,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
    - **transform:** `field_mappings` (NEVER `mapping`/`output_shape`), MUST set `mode: "expression"` for computed transforms
    - **crypto:** `algorithm` + `key_source: { env: "VAR" }` as OBJECT (NEVER string `"env:VAR"`)
    - **llm_call:** `prompt_template` (NEVER `prompt`)
-   - **sub_flow:** `flow_ref` in `domain/flow-id` format (NEVER `flow`)
+   - **sub_flow:** `flow_ref` must be STATIC `domain/flow-id` (NEVER `flow`, NEVER dynamic `$.var` interpolation — use smart_router for dispatch)
    - **decision:** `condition` (NEVER `expression`)
    - **event:** `direction` (NEVER `action`), `event_name` (NEVER `event_type`)
    - **collection:** `input` (NEVER `source`), `output` (NEVER `fields`), `operation` must be one of: filter/sort/deduplicate/merge/group_by/aggregate/reduce/flatten/first/last/join (NEVER `collect`/`map`)
@@ -574,6 +574,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
 
      nodes:
        # --- ERROR TERMINAL (generate FIRST, before business nodes) ---
+       # ↓ DELETE this error terminal if flow has ONLY non-branching nodes (process, transform, delay, event, sub_flow) ↓
        - id: terminal-{nanoid8}
          type: terminal
          position: { x: 700, y: 800 }
@@ -596,7 +597,7 @@ Create a complete DDD (Design Driven Development) project from a software projec
        modified: "{ISO timestamp}"
      ```
      For every flow, start by copying this skeleton. Fill in the placeholders, then add business nodes between the trigger and the error terminal. Every branching node you add MUST have both handles wired — copy the connection pattern from the example comment. Remove `method:`/`path:` lines for non-HTTP triggers.
-     - **Error terminal (MANDATORY):** The skeleton above pre-includes it. All branching nodes that lack a dedicated error-handling chain MUST connect their error/empty/false/block handle to this terminal. Adjust its `y` position to be below the last node in the flow.
+     - **Error terminal:** The skeleton includes one. **Keep it** if the flow has ANY branching node (data_store, service_call, crypto, ipc_call, llm_call, parse, loop, batch, collection, cache, decision, input, guardrail, parallel, transaction) — all error/empty/false/block handles must reach it. **Delete it** if the flow has ONLY non-branching nodes (process, transform, delay, event, sub_flow) — an unreachable error terminal causes a validation error.
      - Always start with `input` node after trigger for API flows (validate incoming data)
      - Use `decision` nodes for branching logic (always wire both `true` and `false`)
      - Use `data_store` for data storage operations. Set `store_type` to `'database'` (default), `'filesystem'`, or `'memory'`. For database: set `operation` (create/read/update/delete/upsert/create_many/update_many/delete_many/aggregate), `model`, `data`/`query`. Optional: `include` (join related models), `upsert_key` (conflict key for upsert), `returning` (return affected records — valid for all operation types, not just bulk), `safety: 'strict'` (null-safe reads), `select` (column projection — `string[]` of field names to return, or `Record<string, string>` for computed columns; use to avoid fetching large BLOBs in list views), `pagination_response: { data_field, cursor_field, has_more_field }` (for read operations with pagination — auto-formats the cursor pagination response envelope instead of needing a separate transform node), `aggregate_fields` (for `aggregate` operation: array of `{function, field, alias}`), `group_by` (for `aggregate`: list of field names). For filesystem: set `path`, `content`, `create_parents`. For memory: **REQUIRED `store` and `selector`** — set `store` (store name from domain.yaml `stores`), `selector` (path within the store), and prefer memory operations (`get`/`set`/`merge`/`reset`/`subscribe`/`update_where`). Use `update_where` with `predicate` + `patch` for array item updates. **Every `model:` referenced in a `data_store` node must match a schema in `specs/schemas/` AND appear in the domain's `owns_schemas` list.**

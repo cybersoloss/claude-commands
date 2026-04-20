@@ -145,7 +145,7 @@ Parse `$ARGUMENTS` to determine scope:
    - **transform:** `field_mappings` (NEVER `mapping`/`output_shape`), MUST set `mode: "expression"` for computed transforms
    - **crypto:** `algorithm` + `key_source: { env: "VAR" }` as OBJECT (NEVER string `"env:VAR"`)
    - **llm_call:** `prompt_template` (NEVER `prompt`)
-   - **sub_flow:** `flow_ref` in `domain/flow-id` format (NEVER `flow`)
+   - **sub_flow:** `flow_ref` must be STATIC `domain/flow-id` (NEVER `flow`, NEVER dynamic `$.var` interpolation — use smart_router for dispatch)
    - **decision:** `condition` (NEVER `expression`)
    - **event:** `direction` (NEVER `action`), `event_name` (NEVER `event_type`)
    - **collection:** `input` (NEVER `source`), `output` (NEVER `fields`), `operation` must be one of: filter/sort/deduplicate/merge/group_by/aggregate/reduce/flatten/first/last/join (NEVER `collect`/`map`)
