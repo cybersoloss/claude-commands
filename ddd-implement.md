@@ -286,7 +286,7 @@ Parse the argument to determine scope:
    - `smart_router` → routing logic from `rules` and/or `llm_routing` (check `confidence_threshold` for LLM-based routing)
    - `handoff` → agent transfer with context passing per `mode`: `transfer` (fire-and-forget), `consult` (return result), `collaborate` (ongoing back-and-forth)
    - `agent_group` → agent team coordination with shared memory. Check `selection_strategy` (`round_robin`/`broadcast`/`sequential`/`random`/`priority`).
-   - `ipc_call` → local IPC or native function call (e.g., Tauri invoke, Electron IPC). Check `result_condition` to map return values to success/error handles (eliminates separate decision node).
+   - `ipc_call` → local IPC, native function call, or OS subprocess (e.g., Tauri invoke, Electron IPC, shell commands). Check `bridge: "shell"` for subprocess — use `child_process.execFile` or `spawn` with `working_dir`, `capture` (stdout/stderr/both), `on_nonzero_exit` (error or log_and_continue). Check `result_condition` to map return values to success/error handles (eliminates separate decision node).
    - `cache` → three operations: `check` (default — "hit"/"miss" handles), `set` (store value), `invalidate` (clear cached entry). Only `check` uses branching handles.
    - `delay` → deliberate wait (rate limiting, scheduling) with `min_ms`, `max_ms`, `strategy`
    - `transform` → structured data mapping between formats using `input_schema`/`output_schema`/`field_mappings`
@@ -343,6 +343,11 @@ Parse the argument to determine scope:
    - `status` → HTTP status code (e.g., 201, 422, 409)
    - `body` → response body shape (values starting with `$.` are variable references)
    - Map `body.error` values to error codes defined in `specs/shared/errors.yaml` for consistent error responses
+
+   **Data store column projection**: When `data_store` has a `select` field:
+   - `string[]` — generate Prisma `select: { field1: true, field2: true }` or SQL `SELECT field1, field2`
+   - `Record<string, string>` — generate computed columns using `$queryRaw` or equivalent (e.g., `SUBSTRING(raw_content, 1, 500) AS preview`)
+   - When `select` is omitted, fetch all columns (default behavior)
 
    **Data store pagination/sort**: When `data_store` has `operation: read` with `pagination` and/or `sort` fields:
    - Implement cursor-based or offset pagination per `pagination.style`
