@@ -298,7 +298,7 @@ Additionally, scan for recurring patterns across flows and populate `architectur
 - **HTTP flows:** MUST have `flow.auth: { required, strategy }`
 - **Connections:** `targetNodeId` (NEVER `target`/`targetId`)
 
-**B8. Generate all spec files** and proceed to Quality Checks and Coverage Verification.
+**B8. Generate all spec files** — **write all flow YAML directly in this session, do NOT delegate to subagents.** Subagents don't have the Usage Guide or vocabulary gate in context and will invent incompatible YAML structures. Proceed to Quality Checks and Coverage Verification.
 
 ---
 
