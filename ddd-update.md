@@ -187,6 +187,7 @@ Parse the argument to determine what to update:
    - **sub_flow:** `flow_ref` in `domain/flow-id` format (NEVER `flow`)
    - **decision:** `condition` (NEVER `expression`)
    - **event:** `direction` (NEVER `action`), `event_name` (NEVER `event_type`)
+   - **collection:** `input` (NEVER `source`), `output` (NEVER `fields`), `operation` must be one of: filter/sort/deduplicate/merge/group_by/aggregate/reduce/flatten/first/last/join (NEVER `collect`/`map`)
    - **service_call:** `url` or `integration` (NEVER `endpoint`). Redis/local ops use `ipc_call`, not `service_call`.
    - **Input fields:** every field MUST have `type`
    - **HTTP flows:** MUST have `flow.auth: { required, strategy }`
