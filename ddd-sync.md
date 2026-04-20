@@ -287,6 +287,17 @@ Parse `$ARGUMENTS` to determine scope (scope arguments are separate from flags l
 
 9. **Fix drift** (if `--fix-drift` or `--full` flag):
 
+   **⚠ VOCABULARY GATE — verify before writing EACH node (see Usage Guide § DDD Vocabulary Reference):**
+   - **Handles:** ONLY use: `success`/`error`, `body`/`done`, `true`/`false`, `valid`/`invalid`, `hit`/`miss`, `result`/`empty`, `pass`/`block`, `committed`/`rolled_back`, `branch-N`, `chunks`, `done`. NEVER use: `next`, `each`, `output`, `yes`, `no`, `passed`, `blocked`.
+   - **Wiring:** EVERY branching node MUST have ALL handles wired — no exceptions, no "simple reads". data_store/service_call/crypto/ipc_call/llm_call/parse → BOTH `success` AND `error`. loop → BOTH `body` AND `done`. batch/agent_loop → BOTH `done` AND `error`. cache (check) → BOTH `hit` AND `miss`. collection → BOTH `result` AND `empty`. parallel → ALL `branch-N` AND `done`. Do NOT skip `error` handles on "boilerplate" state reads/writes.
+   - **Loop:** `collection` + `iterator` — NEVER `over`/`as`
+   - **Batch:** `input` + (`operation_template: {type}` OR `sub_flow_ref`) — NEVER `data`/`operation` as string
+   - **Transform** (computed): MUST set `mode: "expression"`
+   - **Crypto** (encrypt/decrypt/sign/jwt*): MUST set `algorithm` + `key_source: {env}`
+   - **Input fields:** every field MUST have `type`
+   - **HTTP flows:** MUST have `flow.auth: {required, strategy}`
+   - **Connections:** use `targetNodeId` — NEVER `target`/`targetId`
+
    **WARNING:** `--fix-drift` re-implements code from specs, overwriting existing files. If you have manual edits you want to keep, commit them first or use `/ddd-reflect` to capture changes as annotations before re-implementing.
 
    **Connection format normalization (CRITICAL — do NOT skip):** Before modifying any flow, check if the YAML has a top-level `connections:` section with `from`/`to` entries (the "external" format used by some generators). If so, convert it to per-node `connections` arrays before making any changes:

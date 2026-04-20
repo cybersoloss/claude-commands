@@ -530,6 +530,17 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - **If you generated a trigger without `spec.event`, STOP and add it before continuing.** A trigger with `method`/`path` but no `event` is invalid.
      - Optional advanced fields: `filter` (Record — event payload filter, supports dot notation and operators, e.g., `{platform: twitter}` or `{"payload.amount": {gte: 100}}`), `debounce_ms` (debounce rapid-fire triggers), `rate_limit` (`{ window_ms, max_requests, key_by?, on_exceeded? }` — per-endpoint rate limiting), `signature` (`{ algorithm, key_source: { env }, header }` — webhook HMAC signature validation), `tier_limits` (HTTP triggers only — per-role rate limit overrides: `[{ role, max_requests, window_ms }]`), `connection_config` (ws triggers only — `{ auth_required, auth_strategy?: jwt|api_key|none, heartbeat_ms?, max_connections_per_client?, reconnect? }`), `cors_config` (HTTP triggers only — `{ origins, methods?, headers?, credentials? }` for self-describing CORS policy)
    - For flows called as sub-flows, add a `contract` section to the flow metadata with `inputs` and `outputs`
+   **⚠ VOCABULARY GATE — verify before writing EACH node (see Usage Guide § DDD Vocabulary Reference):**
+   - **Handles:** ONLY use: `success`/`error`, `body`/`done`, `true`/`false`, `valid`/`invalid`, `hit`/`miss`, `result`/`empty`, `pass`/`block`, `committed`/`rolled_back`, `branch-N`, `chunks`, `done`. NEVER use: `next`, `each`, `output`, `yes`, `no`, `passed`, `blocked`.
+   - **Wiring:** EVERY branching node MUST have ALL handles wired — no exceptions, no "simple reads". data_store/service_call/crypto/ipc_call/llm_call/parse → BOTH `success` AND `error`. loop → BOTH `body` AND `done`. batch/agent_loop → BOTH `done` AND `error`. cache (check) → BOTH `hit` AND `miss`. collection → BOTH `result` AND `empty`. parallel → ALL `branch-N` AND `done`. Do NOT skip `error` handles on "boilerplate" state reads/writes.
+   - **Loop:** `collection` + `iterator` — NEVER `over`/`as`
+   - **Batch:** `input` + (`operation_template: {type}` OR `sub_flow_ref`) — NEVER `data`/`operation` as string
+   - **Transform** (computed): MUST set `mode: "expression"`
+   - **Crypto** (encrypt/decrypt/sign/jwt*): MUST set `algorithm` + `key_source: {env}`
+   - **Input fields:** every field MUST have `type`
+   - **HTTP flows:** MUST have `flow.auth: {required, strategy}`
+   - **Connections:** use `targetNodeId` — NEVER `target`/`targetId`
+
    - `nodes` array — **start every flow by copying this skeleton template**, then fill in placeholders and add business nodes:
      ```yaml
      # === FLOW TEMPLATE — copy this skeleton for every flow, then fill in ===

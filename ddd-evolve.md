@@ -357,6 +357,8 @@ When `$ARGUMENTS` contains `--apply` and a path to an evolution plan:
 
    **WARNING:** `--apply` directly modifies framework files (DDD-USAGE-GUIDE.md, command definitions, DDD Tool source). These changes affect all future DDD projects. Review each change carefully.
 
+   **⚠ VOCABULARY GATE — when modifying node types, spec fields, or handle names, ensure changes are consistent with the DDD Vocabulary Reference section in DDD-USAGE-GUIDE.md. If adding a new node type or changing field names, update ALL of: (1) the per-node section, (2) the Spec Field Reference table, (3) the sourceHandle Reference table, (4) the vocabulary gate in all 6 YAML-writing commands.**
+
    ```
    Approved items to apply:
 
