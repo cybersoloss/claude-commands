@@ -634,7 +634,7 @@ Before writing final spec files, verify across all four pillars:
   | Node Type | Required Fields |
   |-----------|----------------|
   | `trigger` | `event` (e.g., `http POST /api/users`) |
-  | `input` | `fields` array with at least one field |
+  | `input` | `fields` array with at least one field; both `valid`/`invalid` handles wired — `invalid` must reach error terminal |
   | `process` | `action` or `description` |
   | `decision` | `condition` |
   | `terminal` | `outcome` (success/error/redirect), `status` (HTTP code), `body` |
