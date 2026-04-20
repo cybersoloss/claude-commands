@@ -298,7 +298,11 @@ Additionally, scan for recurring patterns across flows and populate `architectur
 - **HTTP flows:** MUST have `flow.auth: { required, strategy }`
 - **Connections:** `targetNodeId` (NEVER `target`/`targetId`)
 
-**B8. Generate all spec files** — **write all flow YAML directly in this session, do NOT delegate to subagents.** Subagents don't have the Usage Guide or vocabulary gate in context and will invent incompatible YAML structures. Proceed to Quality Checks and Coverage Verification.
+**B8. Generate all spec files** — **write all flow YAML directly in this session, do NOT delegate to subagents.** Subagents don't have the Usage Guide or vocabulary gate in context and will invent incompatible YAML structures.
+
+**B8b. Structural format validation (BLOCKER):** After generating all flow specs, read the first 20 lines of one flow per domain. Verify: `flow:` + `trigger:` + `nodes:` are root-level peers (not nested), trigger has `id:`, no top-level `connections:` section. If any fail, fix the structural issues in-place before proceeding.
+
+Proceed to Quality Checks and Coverage Verification.
 
 ---
 

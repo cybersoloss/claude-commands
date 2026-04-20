@@ -696,6 +696,15 @@ Create a complete DDD (Design Driven Development) project from a software projec
      - Resort to `custom_fields` to express something that should be a first-class field
      - Cannot express a cross-cutting concern (auth, logging, rate limiting, monitoring) structurally
 
+13b. **Structural format validation (BLOCKER):** After generating all flow YAML files, read the first 20 lines of ONE flow per domain. Verify:
+   - `flow:` exists as a root-level key with `id`, `name`, `type` (NOT `name:` at root without wrapper)
+   - `trigger:` exists as a root-level key (peer of `flow:`, NOT nested inside `flow:`)
+   - `trigger` has an `id:` field
+   - `nodes:` exists as a root-level key (peer of `flow:`, NOT nested inside `flow:`)
+   - No root-level `connections:` key (connections must be per-node `connections:` arrays inside each node)
+
+   If ANY sampled flow fails: warn the user that structural issues were detected (likely from subagent delegation), delete ALL flow files in the failing domain(s), and regenerate those domains' flows sequentially in this session. Do NOT proceed to step 14 until all sampled flows pass.
+
 14. **Node ID convention**: Use `{type}-{nanoid(8)}` format — 8-character alphanumeric, matching the DDD Tool (e.g., `input-aR9tK3wN`, `process-sN4xY7eQ`).
 
 15. **Quality checks**: Before finishing, verify:
