@@ -137,15 +137,21 @@ Parse `$ARGUMENTS` to determine scope:
    **WARNING:** Promotion writes patterns directly into spec files. While it only adds (never removes) content, promoted changes cannot be automatically reverted. Review each annotation carefully during `--review` before approving.
 
    **⚠ VOCABULARY GATE — when promoting annotations that add nodes or modify connections (see Usage Guide § DDD Vocabulary Reference):**
-   - **Handles:** ONLY use: `success`/`error`, `body`/`done`, `true`/`false`, `valid`/`invalid`, `hit`/`miss`, `result`/`empty`, `pass`/`block`, `committed`/`rolled_back`, `branch-N`, `chunks`, `done`. NEVER use: `next`, `each`, `output`, `yes`, `no`, `passed`, `blocked`.
-   - **Wiring:** EVERY branching node MUST have ALL handles wired — no exceptions, no "simple reads". data_store/service_call/crypto/ipc_call/llm_call/parse → BOTH `success` AND `error`. loop → BOTH `body` AND `done`. batch/agent_loop → BOTH `done` AND `error`. cache (check) → BOTH `hit` AND `miss`. collection → BOTH `result` AND `empty`. parallel → ALL `branch-N` AND `done`. Do NOT skip `error` handles on "boilerplate" state reads/writes.
-   - **Loop:** `collection` + `iterator` — NEVER `over`/`as`
-   - **Batch:** `input` + (`operation_template: {type}` OR `sub_flow_ref`) — NEVER `data`/`operation` as string
-   - **Transform** (computed): MUST set `mode: "expression"`
-   - **Crypto** (encrypt/decrypt/sign/jwt*): MUST set `algorithm` + `key_source: {env}`
+   - **Handles:** ONLY use: `success`/`error`, `body`/`done`, `true`/`false`, `valid`/`invalid`, `hit`/`miss`, `result`/`empty`, `pass`/`block`, `committed`/`rolled_back`, `branch-N`, `chunks`, `done`. NEVER: `next`, `each`, `output`, `yes`, `no`, `passed`, `blocked`.
+   - **Wiring:** EVERY branching node MUST have ALL handles wired — no exceptions, no "simple reads". data_store/service_call/crypto/ipc_call/llm_call/parse → BOTH `success` AND `error`. loop → BOTH `body` AND `done`. batch/agent_loop → BOTH `done` AND `error`. cache (check) → BOTH `hit` AND `miss`. collection → BOTH `result` AND `empty`. parallel → ALL `branch-N` AND `done`.
+   - **data_store:** `model` (NEVER `table`/`entity`/`schema`), `query` (NEVER `where`), `data` (NEVER `set`/`values`)
+   - **batch:** `input` (NEVER `collection`/`data`/`items`), `operation_template: { type }` (NEVER `per_item`/`operation` string)
+   - **loop:** `collection` + `iterator` (NEVER `over`/`as`/`item_alias`)
+   - **transform:** `field_mappings` (NEVER `mapping`/`output_shape`), MUST set `mode: "expression"` for computed transforms
+   - **crypto:** `algorithm` + `key_source: { env: "VAR" }` as OBJECT (NEVER string `"env:VAR"`)
+   - **llm_call:** `prompt_template` (NEVER `prompt`)
+   - **sub_flow:** `flow_ref` in `domain/flow-id` format (NEVER `flow`)
+   - **decision:** `condition` (NEVER `expression`)
+   - **event:** `direction` (NEVER `action`), `event_name` (NEVER `event_type`)
+   - **service_call:** `url` or `integration` (NEVER `endpoint`). Redis/local ops use `ipc_call`, not `service_call`.
    - **Input fields:** every field MUST have `type`
-   - **HTTP flows:** MUST have `flow.auth: {required, strategy}`
-   - **Connections:** use `targetNodeId` — NEVER `target`/`targetId`
+   - **HTTP flows:** MUST have `flow.auth: { required, strategy }`
+   - **Connections:** `targetNodeId` (NEVER `target`/`targetId`)
 
 5. **Create promotion plan**: Before promoting anything, enumerate all approved annotations per pillar and output the plan as a table:
 
